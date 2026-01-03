@@ -1,7 +1,7 @@
 """
-LABBAIK AI - Home Page
-======================
-Platform Umrah Cerdas Indonesia
+LABBAIK Smart Planner - Home Page
+==================================
+Satu-satunya AI Companion untuk Umrah Anda
 """
 
 import streamlit as st
@@ -17,8 +17,15 @@ try:
     from core.version import get_display_version, APP_VERSION
 except ImportError:
     def get_display_version():
-        return "v7.1.0"
-    APP_VERSION = "7.1.0"
+        return "v7.1.1"
+    APP_VERSION = "7.1.1"
+
+# Brand Identity
+BRAND_NAME = "LABBAIK Smart Planner"
+BRAND_TAGLINE = "Satu-satunya AI Companion untuk Umrah Anda"
+SMART_PREP = "Smart Prep"
+SMART_SAVINGS = "Smart Savings"
+SMART_JOURNEY = "Smart Journey"
 
 # =============================================================================
 # VISITOR ANALYTICS - AGGRESSIVE DATABASE DETECTION
@@ -687,14 +694,14 @@ def render_hero_section():
     </style>
     """, unsafe_allow_html=True)
     
-    # Hero content
+    # Hero content - Premium Brand Identity
     st.markdown(f"""
     <div class="hero-section-v6">
         <div class="arabic-calligraphy-v6">لَبَّيْكَ اللَّهُمَّ لَبَّيْكَ</div>
-        <div class="brand-name-v6">L A B B A I K</div>
-        <div class="tagline-v6">Panggilan-Nya, Langkahmu</div>
-        <div class="subtitle-v6">Platform Perencanaan Umrah AI #1 Indonesia</div>
-        <div class="version-badge-v6">{get_display_version()} - Platform Umrah Cerdas</div>
+        <div class="brand-name-v6">LABBAIK</div>
+        <div class="tagline-v6">Smart Planner</div>
+        <div class="subtitle-v6">{BRAND_TAGLINE}</div>
+        <div class="version-badge-v6">{get_display_version()} - The Only AI Umrah Companion</div>
     </div>
     """, unsafe_allow_html=True)
     
@@ -752,44 +759,44 @@ def render_stats_counter():
 
 
 def render_3_pilar_framework():
-    """Render Framework 3 Pilar Umrah Mandiri section - BLACK GOLD theme."""
-    
+    """Render Smart Planner Framework section - BLACK GOLD theme."""
+
     st.markdown("---")
-    st.markdown("## 🏛️ Framework 3 Pilar Umrah Mandiri")
-    st.caption("Sistem persiapan umrah mandiri yang komprehensif:")
-    
+    st.markdown("## 🧠 LABBAIK Smart Planner Framework")
+    st.caption("Sistem AI cerdas yang menemani perjalanan umrah Anda dari awal hingga akhir:")
+
     col1, col2, col3 = st.columns(3)
-    
+
     with col1:
-        st.markdown("""
-        <div style="background: linear-gradient(135deg, #1a1a1a 0%, #2d2d2d 100%); 
+        st.markdown(f"""
+        <div style="background: linear-gradient(135deg, #1a1a1a 0%, #2d2d2d 100%);
              padding: 1.5rem; border-radius: 15px; text-align: center; height: 200px;
              border-top: 4px solid #d4af37; border: 1px solid #333;">
             <div style="font-size: 3rem;">📋</div>
-            <h3 style="color: #d4af37; margin: 0.5rem 0;">Administrasi & Persiapan</h3>
-            <p style="color: #888; font-size: 0.9rem;">Dokumen, legalitas, dan kesiapan sebelum keberangkatan</p>
+            <h3 style="color: #d4af37; margin: 0.5rem 0;">{SMART_PREP}</h3>
+            <p style="color: #888; font-size: 0.9rem;">Persiapan cerdas dengan panduan AI personal & checklist otomatis</p>
         </div>
         """, unsafe_allow_html=True)
-    
+
     with col2:
-        st.markdown("""
-        <div style="background: linear-gradient(135deg, #1a1a1a 0%, #2d2d2d 100%); 
+        st.markdown(f"""
+        <div style="background: linear-gradient(135deg, #1a1a1a 0%, #2d2d2d 100%);
              padding: 1.5rem; border-radius: 15px; text-align: center; height: 200px;
              border-top: 4px solid #d4af37; border: 1px solid #333;">
-            <div style="font-size: 3rem;">🏨</div>
-            <h3 style="color: #d4af37; margin: 0.5rem 0;">Logistik & Akomodasi</h3>
-            <p style="color: #888; font-size: 0.9rem;">Kenyamanan fisik dan efisiensi biaya</p>
+            <div style="font-size: 3rem;">💰</div>
+            <h3 style="color: #d4af37; margin: 0.5rem 0;">{SMART_SAVINGS}</h3>
+            <p style="color: #888; font-size: 0.9rem;">Optimasi budget cerdas, hemat hingga jutaan rupiah</p>
         </div>
         """, unsafe_allow_html=True)
-    
+
     with col3:
-        st.markdown("""
-        <div style="background: linear-gradient(135deg, #1a1a1a 0%, #2d2d2d 100%); 
+        st.markdown(f"""
+        <div style="background: linear-gradient(135deg, #1a1a1a 0%, #2d2d2d 100%);
              padding: 1.5rem; border-radius: 15px; text-align: center; height: 200px;
              border-top: 4px solid #d4af37; border: 1px solid #333;">
-            <div style="font-size: 3rem;">🚀</div>
-            <h3 style="color: #d4af37; margin: 0.5rem 0;">Eksekusi di Lapangan</h3>
-            <p style="color: #888; font-size: 0.9rem;">Survival tools setelah mendarat</p>
+            <div style="font-size: 3rem;">🕌</div>
+            <h3 style="color: #d4af37; margin: 0.5rem 0;">{SMART_JOURNEY}</h3>
+            <p style="color: #888; font-size: 0.9rem;">AI companion 24/7 selama di Tanah Suci</p>
         </div>
         """, unsafe_allow_html=True)
     
@@ -819,10 +826,10 @@ def render_features_showcase():
             "highlight": "8 Langkah Interaktif"
         },
         {
-            "icon": "🏛️",
-            "title": "3 Pilar Framework",
-            "description": "Checklist persiapan komprehensif: Administrasi (paspor, visa), Logistik (hotel, transport), Eksekusi (apps, survival kit).",
-            "highlight": "15+ Checklist Items"
+            "icon": "🧠",
+            "title": "Smart Planner Framework",
+            "description": "Sistem AI cerdas: Smart Prep (persiapan), Smart Savings (budget), Smart Journey (di lapangan).",
+            "highlight": "AI-Powered Planning"
         },
         {
             "icon": "💰",

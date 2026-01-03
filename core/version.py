@@ -1,6 +1,6 @@
 """
-LABBAIK AI - Dynamic Version Management
-========================================
+LABBAIK Smart Planner - Dynamic Version Management
+===================================================
 Centralized version control for the entire application.
 """
 
@@ -12,12 +12,12 @@ from typing import Dict, Any
 # =============================================================================
 
 MAJOR = 7
-MINOR = 3
-PATCH = 0
+MINOR = 1
+PATCH = 1
 RELEASE_TYPE = "stable"  # stable, beta, alpha, dev
 
 # Build info
-BUILD_DATE = "2025-12-26"
+BUILD_DATE = "2026-01-03"
 BUILD_NUMBER = 1
 
 # =============================================================================
@@ -54,8 +54,8 @@ def get_version_info() -> Dict[str, Any]:
         "release_type": RELEASE_TYPE,
         "build_date": BUILD_DATE,
         "build_number": BUILD_NUMBER,
-        "app_name": "LABBAIK AI",
-        "tagline": "Platform Umrah Cerdas Indonesia",
+        "app_name": "LABBAIK Smart Planner",
+        "tagline": "Satu-satunya AI Companion untuk Umrah Anda",
     }
 
 
@@ -66,8 +66,8 @@ def get_version_info() -> Dict[str, Any]:
 APP_VERSION = get_version()
 APP_FULL_VERSION = get_full_version()
 APP_DISPLAY_VERSION = get_display_version()
-APP_NAME = "LABBAIK AI"
-APP_TAGLINE = "Platform Umrah Cerdas Indonesia"
+APP_NAME = "LABBAIK Smart Planner"
+APP_TAGLINE = "Satu-satunya AI Companion untuk Umrah Anda"
 
 
 # =============================================================================
@@ -75,6 +75,27 @@ APP_TAGLINE = "Platform Umrah Cerdas Indonesia"
 # =============================================================================
 
 CHANGELOG = [
+    {
+        "version": "7.1.1",
+        "date": "2026-01-03",
+        "changes": [
+            "Premium brand refresh: LABBAIK Smart Planner",
+            "New Smart Pillars: Smart Prep, Smart Savings, Smart Journey",
+            "Updated tagline: Satu-satunya AI Companion untuk Umrah Anda",
+            "Refined UI messaging with premium positioning",
+            "3-Pillar navigation refactored to Smart Planner framework",
+        ]
+    },
+    {
+        "version": "7.1.0",
+        "date": "2026-01-03",
+        "changes": [
+            "3-Pillar sidebar navigation structure",
+            "Smart nudge in Budget Optimizer for Umrah Bareng",
+            "Domain migration to labbaik.io",
+            "GLM-4 (Zhipu AI) integration for chat",
+        ]
+    },
     {
         "version": "7.3.0",
         "date": "2025-12-26",

@@ -1,16 +1,14 @@
 """
-LABBAIK AI - Platform Umrah Cerdas Indonesia
-=============================================
+LABBAIK Smart Planner - The Only AI-Powered Umrah Companion You Need
+=====================================================================
 By MS Hadianto
 
-Main entry point - compatible with Streamlit Cloud deployment
+Satu-satunya AI Companion untuk Umrah Anda
 
 Features:
-- AI Chat Assistant for Umrah guidance
-- Cost Simulator with Scenario Planning
-- Live Package Price Updates
-- WhatsApp Bot Integration
-- Group Tracking & SOS Emergency
+- Smart Prep: AI-guided preparation & checklist
+- Smart Savings: Intelligent budget optimization
+- Smart Journey: Real-time AI companion di Tanah Suci
 """
 
 import streamlit as st
@@ -26,19 +24,32 @@ try:
     from core.version import get_display_version, APP_VERSION
 except ImportError:
     def get_display_version():
-        return "v7.1.0"
-    APP_VERSION = "7.1.0"
+        return "v7.1.1"
+    APP_VERSION = "7.1.1"
+
+# =============================================================================
+# BRAND IDENTITY - LABBAIK Smart Planner
+# =============================================================================
+BRAND_NAME = "LABBAIK Smart Planner"
+BRAND_TAGLINE_EN = "The Only AI-Powered Umrah Companion You Need"
+BRAND_TAGLINE_ID = "Satu-satunya AI Companion untuk Umrah Anda"
+BRAND_VERSION = "7.1.1"
+
+# Smart Pillars (Premium Messaging)
+SMART_PREP = "Smart Prep"           # Persiapan Cerdas
+SMART_SAVINGS = "Smart Savings"     # Hemat Cerdas
+SMART_JOURNEY = "Smart Journey"     # Perjalanan Cerdas
 
 # Page config - MUST be first Streamlit command
 st.set_page_config(
-    page_title="LABBAIK AI - Platform Umrah Cerdas",
+    page_title="LABBAIK Smart Planner - AI Umrah Companion",
     page_icon="🕋",
     layout="wide",
     initial_sidebar_state="expanded",
     menu_items={
         'Get Help': 'https://labbaik.io/help',
         'Report a bug': 'https://labbaik.io/feedback',
-        'About': 'LABBAIK AI - Platform Perencanaan Umrah AI #1 Indonesia'
+        'About': f'{BRAND_NAME} v{BRAND_VERSION} - {BRAND_TAGLINE_ID}'
     }
 )
 
@@ -470,14 +481,17 @@ def render_visitor_analytics_status():
 # =============================================================================
 
 def render_sidebar():
-    """Render sidebar with 3-pillar navigation structure."""
+    """Render sidebar with Smart Planner navigation structure."""
     with st.sidebar:
-        # Logo & Brand
-        st.markdown("""
+        # Logo & Brand - Premium Identity
+        st.markdown(f"""
         <div style="text-align: center; padding: 1rem 0;">
             <div style="font-size: 3rem;">🕋</div>
-            <h2 style="color: #d4af37; margin: 0;">LABBAIK AI</h2>
-            <p style="color: #888; font-size: 0.85rem;">Platform Umrah Cerdas</p>
+            <h2 style="color: #d4af37; margin: 0;">{BRAND_NAME}</h2>
+            <p style="color: #888; font-size: 0.8rem; margin-top: 0.25rem;">{BRAND_TAGLINE_ID}</p>
+            <span style="background: linear-gradient(135deg, #d4af37, #f5d77a); color: #000;
+                        padding: 0.15rem 0.5rem; border-radius: 12px; font-size: 0.65rem;
+                        font-weight: bold;">v{BRAND_VERSION}</span>
         </div>
         """, unsafe_allow_html=True)
 
@@ -513,10 +527,10 @@ def render_sidebar():
         st.markdown("")
 
         # =====================================================================
-        # PILAR 1: ADMINISTRASI & PERSIAPAN
+        # SMART PREP - Persiapan Cerdas
         # =====================================================================
-        with st.expander("📋 PILAR 1: Administrasi & Persiapan", expanded=False):
-            st.caption("Persiapan dokumen & pembelajaran manasik")
+        with st.expander(f"📋 {SMART_PREP}", expanded=False):
+            st.caption("Persiapan cerdas dengan panduan AI personal")
 
             pilar1_items = [
                 ("📋", "Smart Checklist", "checklist", HAS_CHECKLIST),
@@ -533,10 +547,10 @@ def render_sidebar():
                         st.rerun()
 
         # =====================================================================
-        # PILAR 2: LOGISTIK & AKOMODASI (Expanded by Default - Main Focus)
+        # SMART SAVINGS - Hemat Cerdas (Expanded by Default - Main Focus)
         # =====================================================================
-        with st.expander("💰 PILAR 2: Logistik & Akomodasi", expanded=True):
-            st.caption("Hitung biaya, cari grup, bandingkan harga")
+        with st.expander(f"💰 {SMART_SAVINGS}", expanded=True):
+            st.caption("Optimasi budget cerdas, hemat hingga jutaan rupiah")
 
             # Primary CTA - Budget Optimizer
             is_simulator = st.session_state.get("current_page") == "simulator"
@@ -568,10 +582,10 @@ def render_sidebar():
                 st.rerun()
 
         # =====================================================================
-        # PILAR 3: EKSEKUSI DI LAPANGAN
+        # SMART JOURNEY - Perjalanan Cerdas
         # =====================================================================
-        with st.expander("🕌 PILAR 3: Eksekusi di Lapangan", expanded=False):
-            st.caption("Bantuan selama di Tanah Suci")
+        with st.expander(f"🕌 {SMART_JOURNEY}", expanded=False):
+            st.caption("AI companion 24/7 selama di Tanah Suci")
 
             pilar3_items = [
                 ("🤖", "AI Assistant", "chat", True, False),
