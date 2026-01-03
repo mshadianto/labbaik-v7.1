@@ -42,14 +42,14 @@ SMART_JOURNEY = "Smart Journey"     # Perjalanan Cerdas
 
 # Page config - MUST be first Streamlit command
 st.set_page_config(
-    page_title="LABBAIK Smart Planner - AI Umrah Companion",
-    page_icon="🕋",
+    page_title="LABBAIK Smart Planner - AI-Powered Umrah Companion",
+    page_icon="✨",
     layout="wide",
     initial_sidebar_state="expanded",
     menu_items={
-        'Get Help': 'https://labbaik.io/help',
+        'Get Help': 'https://labbaik.io/support',
         'Report a bug': 'https://labbaik.io/feedback',
-        'About': f'{BRAND_NAME} v{BRAND_VERSION} - {BRAND_TAGLINE_ID}'
+        'About': "LABBAIK Smart Planner - The Only AI-Powered Umrah Companion You Need"
     }
 )
 
