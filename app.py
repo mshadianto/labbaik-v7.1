@@ -470,7 +470,7 @@ def render_visitor_analytics_status():
 # =============================================================================
 
 def render_sidebar():
-    """Render sidebar with navigation, widgets, and branding."""
+    """Render sidebar with 3-pillar navigation structure."""
     with st.sidebar:
         # Logo & Brand
         st.markdown("""
@@ -480,7 +480,7 @@ def render_sidebar():
             <p style="color: #888; font-size: 0.85rem;">Platform Umrah Cerdas</p>
         </div>
         """, unsafe_allow_html=True)
-        
+
         st.markdown("---")
 
         # User Login Widget
@@ -488,193 +488,227 @@ def render_sidebar():
             render_login_widget()
             st.markdown("")
 
-        # SOS Emergency Button (Always Visible)
+        # Get user info for access control
+        user = get_current_user() if HAS_USER_MANAGEMENT else None
+        user_role = user.role.value if user else "guest"
+
+        # 🆘 SOS Emergency Button (Always Visible at Top)
         if HAS_SOS:
             if st.button("🆘 DARURAT / SOS", key="sos_sidebar_main", use_container_width=True, type="primary"):
                 st.session_state.current_page = "sos"
                 st.rerun()
             st.markdown("")
-        
+
         # Live Visitor Analytics Status
         render_visitor_analytics_status()
-        
+
         st.markdown("---")
-        
-        # Main Navigation Menu
-        st.markdown("### 🧭 Menu Utama")
-        
-        main_menu = [
-            ("🏠", "Beranda", "home"),
-            ("🤖", "AI Assistant", "chat"),
-            ("💰", "Simulasi Biaya", "simulator"),
-            ("👥", "Umrah Bareng", "umrah_bareng"),
-            ("🧭", "Umrah Mandiri", "umrah_mandiri"),
-            ("📦", "Booking", "booking"),
-        ]
-        
-        for icon, label, page_key in main_menu:
-            is_active = st.session_state.get("current_page") == page_key
-            btn_type = "primary" if is_active else "secondary"
-            if st.button(f"{icon} {label}", key=f"nav_{page_key}", use_container_width=True, type=btn_type):
-                st.session_state.current_page = page_key
+
+        # 🏠 Home Button
+        is_home = st.session_state.get("current_page") == "home"
+        if st.button("🏠 Beranda", key="nav_home", use_container_width=True, type="primary" if is_home else "secondary"):
+            st.session_state.current_page = "home"
+            st.rerun()
+
+        st.markdown("")
+
+        # =====================================================================
+        # PILAR 1: ADMINISTRASI & PERSIAPAN
+        # =====================================================================
+        with st.expander("📋 PILAR 1: Administrasi & Persiapan", expanded=False):
+            st.caption("Persiapan dokumen & pembelajaran manasik")
+
+            pilar1_items = [
+                ("📋", "Smart Checklist", "checklist", HAS_CHECKLIST),
+                ("📖", "Panduan Manasik", "umrah_mandiri", True),
+                ("🕋", "Manasik 3D", "manasik", HAS_MANASIK),
+            ]
+
+            for icon, label, page_key, is_available in pilar1_items:
+                if is_available:
+                    is_active = st.session_state.get("current_page") == page_key
+                    if st.button(f"{icon} {label}", key=f"p1_{page_key}", use_container_width=True,
+                                type="primary" if is_active else "secondary"):
+                        st.session_state.current_page = page_key
+                        st.rerun()
+
+        # =====================================================================
+        # PILAR 2: LOGISTIK & AKOMODASI (Expanded by Default - Main Focus)
+        # =====================================================================
+        with st.expander("💰 PILAR 2: Logistik & Akomodasi", expanded=True):
+            st.caption("Hitung biaya, cari grup, bandingkan harga")
+
+            # Primary CTA - Budget Optimizer
+            is_simulator = st.session_state.get("current_page") == "simulator"
+            if st.button("💰 AI Budget Optimizer", key="p2_simulator", use_container_width=True,
+                        type="primary"):
+                st.session_state.current_page = "simulator"
                 st.rerun()
-        
+
+            # Umrah Bareng
+            is_bareng = st.session_state.get("current_page") == "umrah_bareng"
+            if st.button("👥 Umrah Bareng", key="p2_umrah_bareng", use_container_width=True,
+                        type="primary" if is_bareng else "secondary"):
+                st.session_state.current_page = "umrah_bareng"
+                st.rerun()
+
+            # Price Comparison
+            if HAS_PRICE_AGGREGATION:
+                is_price = st.session_state.get("current_page") == "price_comparison"
+                if st.button("💵 Perbandingan Harga", key="p2_price", use_container_width=True,
+                            type="primary" if is_price else "secondary"):
+                    st.session_state.current_page = "price_comparison"
+                    st.rerun()
+
+            # Booking
+            is_booking = st.session_state.get("current_page") == "booking"
+            if st.button("📦 Booking", key="p2_booking", use_container_width=True,
+                        type="primary" if is_booking else "secondary"):
+                st.session_state.current_page = "booking"
+                st.rerun()
+
+        # =====================================================================
+        # PILAR 3: EKSEKUSI DI LAPANGAN
+        # =====================================================================
+        with st.expander("🕌 PILAR 3: Eksekusi di Lapangan", expanded=False):
+            st.caption("Bantuan selama di Tanah Suci")
+
+            pilar3_items = [
+                ("🤖", "AI Assistant", "chat", True, False),
+                ("📊", "Prediksi Keramaian", "crowd", HAS_CROWD_PREDICTION, False),
+                ("🤲", "Doa & Dzikir", "doa", HAS_DOA_PLAYER, False),
+                ("📍", "Group Tracking", "tracking", HAS_TRACKING, True),  # Premium
+            ]
+
+            for icon, label, page_key, is_available, is_premium in pilar3_items:
+                if is_available:
+                    is_active = st.session_state.get("current_page") == page_key
+                    premium_locked = is_premium and user_role not in ["premium", "partner", "admin"]
+                    lock_icon = " 🔒" if premium_locked else ""
+
+                    if st.button(f"{icon} {label}{lock_icon}", key=f"p3_{page_key}", use_container_width=True,
+                                type="primary" if is_active else "secondary"):
+                        st.session_state.current_page = page_key
+                        st.rerun()
+
         st.markdown("---")
-        
-        # ✨ New Features Menu
-        st.markdown("### ✨ Fitur Baru")
 
-        # Check user access for premium features
-        user = get_current_user() if HAS_USER_MANAGEMENT else None
-        user_role = user.role.value if user else "guest"
+        # =====================================================================
+        # AKUN SECTION
+        # =====================================================================
+        with st.expander("👤 Akun Saya", expanded=False):
+            if HAS_USER_MANAGEMENT:
+                is_auth = st.session_state.get("current_page") == "auth"
+                if st.button("👤 Profile", key="acc_auth", use_container_width=True,
+                            type="primary" if is_auth else "secondary"):
+                    st.session_state.current_page = "auth"
+                    st.rerun()
 
-        # Feature list with premium indicator
-        # Format: (icon, label, page_key, is_available, is_premium)
-        new_features = [
-            ("📊", "Prediksi Keramaian", "crowd", HAS_CROWD_PREDICTION, False),
-            ("💰", "Perbandingan Harga", "price_comparison", HAS_PRICE_AGGREGATION, False),  # v7.5
-            ("📍", "Group Tracking", "tracking", HAS_TRACKING, True),  # Premium
-            ("🗓️", "AI Itinerary", "itinerary", HAS_ITINERARY, True),  # Premium
-            ("📋", "Smart Checklist", "checklist", HAS_CHECKLIST, False),
-            ("🕋", "Manasik 3D", "manasik", HAS_MANASIK, False),
-            ("🤲", "Doa & Dzikir", "doa", HAS_DOA_PLAYER, False),
-            ("🔍", "Bandingkan Paket", "compare", HAS_COMPARISON, False),
-            ("👤", "Akun Saya", "auth", HAS_USER_MANAGEMENT, False),
-            ("⭐", "Upgrade Premium", "subscription", HAS_SUBSCRIPTION, False),
-            ("🎁", "Referral", "referral", HAS_SUBSCRIPTION, False),
-            ("🤝", "Kemitraan", "partner", HAS_PARTNER_SYSTEM, False),
-            ("📲", "Install App", "install", HAS_PWA, False),
-        ]
+            # Upgrade Premium (only for free users)
+            if HAS_SUBSCRIPTION and user_role in ["guest", "free", "user"]:
+                is_sub = st.session_state.get("current_page") == "subscription"
+                if st.button("⭐ Upgrade Premium", key="acc_subscription", use_container_width=True,
+                            type="primary" if is_sub else "secondary"):
+                    st.session_state.current_page = "subscription"
+                    st.rerun()
 
-        # Admin/Partner Features
-        if HAS_USER_MANAGEMENT and is_logged_in():
-            if user and user.role.value in ["admin", "partner"]:
-                st.markdown("---")
-                st.markdown("### 🔐 Admin/Mitra")
+            # Referral
+            if HAS_SUBSCRIPTION:
+                is_ref = st.session_state.get("current_page") == "referral"
+                if st.button("🎁 Referral", key="acc_referral", use_container_width=True,
+                            type="primary" if is_ref else "secondary"):
+                    st.session_state.current_page = "referral"
+                    st.rerun()
 
+            # PWA Install
+            if HAS_PWA:
+                is_install = st.session_state.get("current_page") == "install"
+                if st.button("📲 Install App", key="acc_install", use_container_width=True,
+                            type="primary" if is_install else "secondary"):
+                    st.session_state.current_page = "install"
+                    st.rerun()
+
+        # =====================================================================
+        # ADMIN/PARTNER SECTION (Only for authorized users)
+        # =====================================================================
+        if HAS_USER_MANAGEMENT and is_logged_in() and user and user.role.value in ["admin", "partner"]:
+            with st.expander("🔐 Admin/Mitra", expanded=False):
                 if user.role.value in ["partner", "admin"]:
-                    if st.button("📊 Partner Dashboard", key="nav_partner_dash", use_container_width=True):
+                    if st.button("📊 Partner Dashboard", key="adm_partner_dash", use_container_width=True):
                         st.session_state.current_page = "partner_dashboard"
                         st.rerun()
-                    if st.button("📦 Package Builder", key="nav_package_builder", use_container_width=True):
+                    if st.button("📦 Package Builder", key="adm_package_builder", use_container_width=True):
                         st.session_state.current_page = "package_builder"
                         st.rerun()
-                    if st.button("📖 API Docs", key="nav_api_docs", use_container_width=True):
+                    if st.button("📖 API Docs", key="adm_api_docs", use_container_width=True):
                         st.session_state.current_page = "api_docs"
                         st.rerun()
 
                 if user.role.value == "admin":
-                    if st.button("👥 User Analytics", key="nav_user_analytics", use_container_width=True):
+                    if st.button("👥 User Analytics", key="adm_user_analytics", use_container_width=True):
                         st.session_state.current_page = "user_analytics"
                         st.rerun()
-                    if st.button("📈 Analytics", key="nav_analytics_admin", use_container_width=True):
+                    if st.button("📈 Analytics", key="adm_analytics", use_container_width=True):
                         st.session_state.current_page = "analytics"
                         st.rerun()
 
-                if st.button("📱 WhatsApp", key="nav_whatsapp_admin", use_container_width=True):
+                if st.button("📱 WhatsApp", key="adm_whatsapp", use_container_width=True):
                     st.session_state.current_page = "whatsapp"
                     st.rerun()
 
-                # CRM Menu for Partners/Admins
-                if HAS_CRM:
-                    st.markdown("---")
-                    st.markdown("### 💼 CRM Travel")
+            # CRM Menu for Partners/Admins
+            if HAS_CRM:
+                with st.expander("💼 CRM Travel", expanded=False):
+                    crm_items = [
+                        ("📊", "Dashboard CRM", "crm_analytics"),
+                        ("👥", "Manajemen Lead", "crm_leads"),
+                        ("📅", "Booking & Bayar", "crm_bookings"),
+                        ("👤", "Database Jamaah", "crm_jamaah"),
+                        ("📋", "Quote & Invoice", "crm_quotes"),
+                        ("📢", "WA Broadcast", "crm_broadcast"),
+                        ("📈", "Monitor Kompetitor", "crm_competitors"),
+                    ]
 
-                    if st.button("📊 Dashboard CRM", key="nav_crm_analytics", use_container_width=True):
-                        st.session_state.current_page = "crm_analytics"
-                        st.rerun()
-                    if st.button("👥 Manajemen Lead", key="nav_crm_leads", use_container_width=True):
-                        st.session_state.current_page = "crm_leads"
-                        st.rerun()
-                    if st.button("📅 Booking & Bayar", key="nav_crm_bookings", use_container_width=True):
-                        st.session_state.current_page = "crm_bookings"
-                        st.rerun()
-                    if st.button("👤 Database Jamaah", key="nav_crm_jamaah", use_container_width=True):
-                        st.session_state.current_page = "crm_jamaah"
-                        st.rerun()
-                    if st.button("📋 Quote & Invoice", key="nav_crm_quotes", use_container_width=True):
-                        st.session_state.current_page = "crm_quotes"
-                        st.rerun()
-                    if st.button("📢 WA Broadcast", key="nav_crm_broadcast", use_container_width=True):
-                        st.session_state.current_page = "crm_broadcast"
-                        st.rerun()
-                    if st.button("📈 Monitor Kompetitor", key="nav_crm_competitors", use_container_width=True):
-                        st.session_state.current_page = "crm_competitors"
-                        st.rerun()
+                    for icon, label, page_key in crm_items:
+                        if st.button(f"{icon} {label}", key=f"crm_{page_key}", use_container_width=True):
+                            st.session_state.current_page = page_key
+                            st.rerun()
 
-        # Partner CTA for non-partners
+        # Partner CTA for non-partners (B2B promotion)
         if not user or (user and user.role.value not in ["partner", "admin"]):
-            st.markdown("---")
-            st.markdown("""
-                <div style="background: linear-gradient(135deg, #FFD700 0%, #FFA500 100%);
-                            padding: 0.75rem; border-radius: 12px; text-align: center;">
-                    <div style="color: #000; font-weight: bold; font-size: 0.9rem;">Jadi Mitra Travel</div>
-                    <div style="color: #333; font-size: 0.75rem;">Komisi hingga 15%</div>
-                </div>
-            """, unsafe_allow_html=True)
-            if st.button("Gabung Mitra", key="nav_partner_cta", use_container_width=True):
-                st.session_state.current_page = "partner"
-                st.rerun()
-
-        for icon, label, page_key, is_available, is_premium in new_features:
-            if is_available:
-                is_active = st.session_state.get("current_page") == page_key
-
-                # Add lock icon for premium features if user doesn't have access
-                premium_locked = is_premium and user_role not in ["premium", "partner", "admin"]
-                lock_icon = " 🔒" if premium_locked else ""
-
-                label_display = f"**{label}**" if is_active else label
-                if st.button(f"{icon} {label_display}{lock_icon}", key=f"nav_{page_key}", use_container_width=True):
-                    st.session_state.current_page = page_key
+            if HAS_PARTNER_SYSTEM:
+                st.markdown("---")
+                st.markdown("""
+                    <div style="background: linear-gradient(135deg, #FFD700 0%, #FFA500 100%);
+                                padding: 0.75rem; border-radius: 12px; text-align: center;">
+                        <div style="color: #000; font-weight: bold; font-size: 0.9rem;">Jadi Mitra Travel</div>
+                        <div style="color: #333; font-size: 0.75rem;">Komisi hingga 15%</div>
+                    </div>
+                """, unsafe_allow_html=True)
+                if st.button("🤝 Gabung Mitra", key="nav_partner_cta", use_container_width=True):
+                    st.session_state.current_page = "partner"
                     st.rerun()
-        
+
         st.markdown("---")
-        
-        # Quick Widgets
-        st.markdown("### 📊 Quick Info")
-        
-        # Conditional rendering of mini widgets
-        if HAS_WHATSAPP:
-            try: render_whatsapp_status()
-            except: pass
-        
-        if HAS_CROWD_PREDICTION:
-            try: render_crowd_widget("makkah", compact=True)
-            except: pass
-            
-        if HAS_TRACKING:
-            try: render_tracking_mini_widget()
-            except: pass
-            
-        if HAS_MANASIK:
-            try: render_manasik_mini_widget()
-            except: pass
-            
-        if HAS_DOA_PLAYER:
-            try: render_doa_mini_widget()
-            except: pass
-        
-        st.markdown("---")
-        
+
         # Gamification Stats
         st.markdown("### 🏆 Progress Anda")
-        
+
         level = st.session_state.get("level", 1)
         xp = st.session_state.get("xp", 0)
         xp_for_next = level * 100
-        
+
         st.markdown(f"**Level {level}** - {get_level_title(level)}")
         st.progress(min(xp / xp_for_next, 1.0))
         st.caption(f"{xp}/{xp_for_next} XP")
-        
+
         achievements = st.session_state.get("achievements", [])
         if achievements:
             badges = " ".join(achievements[:5])
             st.caption(f"🎖️ {badges}")
-        
+
         st.markdown("---")
-        
+
         # Footer
         st.markdown(f"""
         <div style="text-align: center; padding: 1rem 0;">

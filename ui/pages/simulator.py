@@ -1693,7 +1693,23 @@ def render_simulator_page():
             if params["num_travelers"] > 1:
                 group_total = cost.total * params["num_travelers"]
                 st.info(f"👥 Total {params['num_travelers']} orang: **{format_currency(group_total)}**")
-        
+
+            # Smart Nudge untuk Umrah Bareng
+            if cost.total > 25_000_000:
+                potential_savings = int(cost.total * 0.15)
+                st.success(f"""
+💡 **Hemat hingga {format_currency(potential_savings)}!**
+
+Dengan **Umrah Bareng**, kamu bisa:
+- ✅ Dapat group pricing untuk hotel & transport
+- ✅ Match dengan jamaah yang punya jadwal serupa
+- ✅ Tidak perlu repot cari 10-15 orang sendiri
+                """)
+
+                if st.button("🤝 Coba Umrah Bareng", key="nudge_umrah_bareng", use_container_width=True):
+                    st.session_state.current_page = "umrah_bareng"
+                    st.rerun()
+
         # Quick breakdown
         render_cost_breakdown(cost, params["num_travelers"])
     
