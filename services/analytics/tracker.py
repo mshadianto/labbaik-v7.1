@@ -1,6 +1,6 @@
 """
-LABBAIK AI v6.0 - Analytics Service
-====================================
+LABBAIK Smart Planner - Analytics Service
+==========================================
 Real-time visitor tracking and analytics.
 """
 
@@ -12,6 +12,13 @@ from typing import Optional, Dict, Any, List
 import uuid
 
 logger = logging.getLogger(__name__)
+
+# Internal/admin emails to exclude from tracking
+EXCLUDED_EMAILS = [
+    'admin@labbaik.io',
+    'founder@labbaik.io',
+    'salam@labbaik.io',
+]
 
 
 # =============================================================================
@@ -54,17 +61,38 @@ class AnalyticsTracker:
         if not ip:
             return ""
         return hashlib.sha256(ip.encode()).hexdigest()[:16]
+
+    def _is_excluded_user(self) -> bool:
+        """Check if current user should be excluded from tracking (internal users)."""
+        try:
+            if 'user' in st.session_state and st.session_state.user:
+                user = st.session_state.user
+                email = None
+                if hasattr(user, 'email'):
+                    email = user.email
+                elif isinstance(user, dict):
+                    email = user.get('email')
+
+                if email and email.lower() in [e.lower() for e in EXCLUDED_EMAILS]:
+                    return True
+        except:
+            pass
+        return False
     
     def track_page_view(self, page: str) -> bool:
         """
         Track a page view event.
-        
+
         Args:
             page: Page name (e.g., 'home', 'chat', 'simulator')
-        
+
         Returns:
             True if tracking successful
         """
+        # Skip tracking for internal/admin users
+        if self._is_excluded_user():
+            return True
+
         if not self.db:
             return False
         
@@ -328,6 +356,10 @@ class AnalyticsTracker:
         metadata: Optional[Dict[str, Any]] = None
     ) -> bool:
         """Track custom analytics event."""
+        # Skip tracking for internal/admin users
+        if self._is_excluded_user():
+            return True
+
         if not self.db:
             return False
 

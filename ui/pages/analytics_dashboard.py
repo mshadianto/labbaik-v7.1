@@ -21,6 +21,14 @@ except ImportError:
     HAS_PLOTLY = False
 
 
+# Internal/admin emails to exclude from analytics
+EXCLUDED_EMAILS = [
+    'admin@labbaik.io',
+    'founder@labbaik.io',
+    'salam@labbaik.io',
+]
+
+
 def render_analytics_dashboard():
     """Render comprehensive analytics dashboard (admin only)."""
 
@@ -45,6 +53,7 @@ def render_analytics_dashboard():
 
     st.title("📊 LABBAIK Analytics Dashboard")
     st.caption("Real-time user engagement & feature performance metrics")
+    st.caption("📌 *Data excludes internal team (admin, founder, salam)*")
 
     # Get database connection
     try:
@@ -108,19 +117,28 @@ def render_analytics_dashboard():
         render_conversion_metrics(db, start_date, end_date)
 
 
+def get_excluded_user_ids_sql():
+    """Get SQL clause to exclude internal users."""
+    emails = "', '".join(EXCLUDED_EMAILS)
+    return f"SELECT id FROM users WHERE email IN ('{emails}')"
+
+
 def render_overview_metrics(db, start_date, end_date):
     """Overview KPIs."""
     st.subheader("📊 Key Metrics")
 
+    excluded_sql = get_excluded_user_ids_sql()
+
     try:
-        # Try to get data from analytics_events table
-        query = """
+        # Try to get data from analytics_events table (excluding internal users)
+        query = f"""
         SELECT
             COUNT(DISTINCT COALESCE(user_id::text, session_id)) as total_users,
             COUNT(DISTINCT session_id) as total_sessions,
             COUNT(*) as total_events
         FROM analytics_events
         WHERE event_timestamp::date BETWEEN %s AND %s
+            AND (user_id IS NULL OR user_id NOT IN ({excluded_sql}))
         """
         metrics = db.fetch_one(query, (start_date, end_date))
 
