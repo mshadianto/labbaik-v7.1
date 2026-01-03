@@ -1202,56 +1202,44 @@ def render_testimonials():
 
 
 def render_upcoming_trips():
-    """Render upcoming public trips section."""
-    
+    """Render Umrah Bareng invitation section."""
+
     st.markdown("---")
-    st.markdown("## 🗓️ Trip Umrah Terdekat")
-    st.caption("Gabung dengan trip yang sudah terjadwal")
-    
-    trips = [
-        {
-            "title": "Umrah Ramadan 2025",
-            "date": "15 Mar 2025",
-            "duration": "14 hari",
-            "slots": 12,
-            "price": "35 Juta",
-            "leader": "Ustadz Ahmad"
-        },
-        {
-            "title": "Umrah Liburan Sekolah",
-            "date": "20 Jun 2025",
-            "duration": "10 hari",
-            "slots": 8,
-            "price": "28 Juta",
-            "leader": "Ustadzah Siti"
-        },
-        {
-            "title": "Umrah Akhir Tahun",
-            "date": "25 Dec 2025",
-            "duration": "12 hari",
-            "slots": 15,
-            "price": "30 Juta",
-            "leader": "Ustadz Budi"
-        },
-    ]
-    
-    cols = st.columns(3)
-    
-    for col, trip in zip(cols, trips):
-        with col:
-            with st.container(border=True):
-                st.markdown(f"### {trip['title']}")
-                st.caption(f"📅 {trip['date']} · ⏱️ {trip['duration']}")
-                
-                st.markdown(f"👨‍🏫 **Leader:** {trip['leader']}")
-                st.markdown(f"💰 **Mulai** Rp {trip['price']}")
-                
-                st.progress(1 - (trip['slots'] / 30))
-                st.caption(f"🎫 {trip['slots']} slot tersisa")
-                
-                if st.button("Gabung", key=f"trip_{trip['title']}", type="primary", use_container_width=True):
-                    st.session_state.current_page = "umrah_bareng"
-                    st.rerun()
+    st.markdown("## 👥 Umrah Bareng - Cari Teman Perjalanan")
+    st.caption("Fitur untuk menemukan jamaah dengan jadwal & budget yang sama")
+
+    col1, col2 = st.columns([2, 1])
+
+    with col1:
+        st.markdown("""
+        ### 🤝 Tidak Perlu Umrah Sendirian
+
+        **Umrah Bareng** membantu Anda menemukan teman perjalanan yang cocok:
+
+        - 🎯 **Smart Matching** - AI mencocokkan berdasarkan jadwal, budget, dan kota asal
+        - 💰 **Hemat Biaya** - Berbagi biaya hotel, transport, dan guide
+        - 👥 **Komunitas** - Kenalan dengan sesama jamaah dari berbagai kota
+        - 🛡️ **Lebih Aman** - Perjalanan berkelompok lebih nyaman
+
+        *Buat trip Anda sendiri atau gabung dengan trip yang sudah ada!*
+        """)
+
+        if st.button("🚀 Mulai Cari Teman Umrah", type="primary", use_container_width=True):
+            st.session_state.current_page = "umrah_bareng"
+            st.rerun()
+
+    with col2:
+        st.markdown("""
+        <div style="background: linear-gradient(135deg, #1a1a1a 0%, #2d2d2d 100%);
+                    border: 1px solid #d4af37; border-radius: 15px; padding: 1.5rem; text-align: center;">
+            <div style="font-size: 3rem;">👥</div>
+            <div style="color: #d4af37; font-size: 1.2rem; font-weight: bold; margin: 0.5rem 0;">Umrah Bareng</div>
+            <div style="color: #888; font-size: 0.85rem; margin-bottom: 1rem;">Hemat hingga 30% dengan berbagi biaya</div>
+            <div style="background: #333; padding: 0.5rem; border-radius: 8px;">
+                <div style="color: #fafafa; font-size: 0.8rem;">💡 Tips: Buat trip 3-6 bulan sebelum keberangkatan</div>
+            </div>
+        </div>
+        """, unsafe_allow_html=True)
 
 
 def render_quick_chat():
