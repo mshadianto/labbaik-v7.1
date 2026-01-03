@@ -53,6 +53,27 @@ st.set_page_config(
     }
 )
 
+# Open Graph meta tags for social media sharing
+st.markdown("""
+<meta property="og:title" content="LABBAIK Smart Planner - AI-Powered Umrah Companion" />
+<meta property="og:description" content="The Only AI-Powered Umrah Companion You Need. Plan smarter, save up to 30%, travel better with LABBAIK Smart Planner." />
+<meta property="og:image" content="https://labbaik.io/wp-content/uploads/labbaik-og-image.png" />
+<meta property="og:url" content="https://app.labbaik.io" />
+<meta property="og:type" content="website" />
+<meta property="og:site_name" content="LABBAIK Smart Planner" />
+
+<!-- Twitter Card -->
+<meta name="twitter:card" content="summary_large_image" />
+<meta name="twitter:title" content="LABBAIK Smart Planner" />
+<meta name="twitter:description" content="AI-Powered Umrah Companion - Plan Smarter, Save More" />
+<meta name="twitter:image" content="https://labbaik.io/wp-content/uploads/labbaik-og-image.png" />
+
+<!-- Additional SEO -->
+<meta name="description" content="LABBAIK Smart Planner - The Only AI-Powered Umrah Companion You Need. Plan umrah mandiri with AI intelligence and save up to 30%." />
+<meta name="keywords" content="umrah mandiri, umrah planner, AI umrah, umrah hemat, umrah bareng, labbaik" />
+<meta name="author" content="LABBAIK.AI" />
+""", unsafe_allow_html=True)
+
 # =============================================================================
 # LAZY IMPORTS & FEATURE FLAGS
 # =============================================================================
