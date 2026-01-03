@@ -1787,7 +1787,7 @@ Dengan **Umrah Bareng**, kamu bisa:
     
     # Footer
     st.divider()
-    st.caption("💡 Harga bersifat estimasi dan dapat berubah. Hubungi tim kami untuk penawaran terbaik.")
+    st.caption("💡 Harga bersifat estimasi berdasarkan data terkini dan dapat berubah sewaktu-waktu.")
 
 
 # Export

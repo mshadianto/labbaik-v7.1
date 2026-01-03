@@ -1330,36 +1330,29 @@ def render_newsletter():
 
 def render_footer():
     """Render footer section."""
-    
+
     st.markdown("---")
-    
-    col1, col2, col3, col4 = st.columns(4)
-    
+
+    col1, col2, col3 = st.columns(3)
+
     with col1:
-        st.markdown("### 🕋 LABBAIK AI")
-        st.caption("Platform Cerdas untuk Perjalanan Umrah")
-        st.caption("© 2025 MS Hadianto")
-    
+        st.markdown("### 🕋 LABBAIK Smart Planner")
+        st.caption("Satu-satunya AI Companion untuk Umrah Anda")
+        st.caption("© 2025 LABBAIK")
+
     with col2:
-        st.markdown("**Fitur**")
-        st.caption("AI Assistant")
-        st.caption("Cost Simulator")
-        st.caption("Umrah Bareng")
-        st.caption("Knowledge Base")
-    
+        st.markdown("**Fitur Utama**")
+        st.caption("🤖 AI Chat Assistant")
+        st.caption("💰 Simulasi Biaya")
+        st.caption("👥 Umrah Bareng")
+        st.caption("🧭 Panduan Mandiri")
+
     with col3:
-        st.markdown("**Bantuan**")
-        st.caption("FAQ")
-        st.caption("Kontak Kami")
-        st.caption("Syarat & Ketentuan")
-        st.caption("Kebijakan Privasi")
-    
-    with col4:
-        st.markdown("**Ikuti Kami**")
-        st.caption("📱 Instagram")
-        st.caption("💬 WhatsApp")
-        st.caption("▶️ YouTube")
-        st.caption("💼 LinkedIn")
+        st.markdown("**Kontak**")
+        st.caption("📧 founder@labbaik.io")
+        st.caption("🌐 app.labbaik.io")
+        st.markdown("")
+        st.caption("*Dibuat dengan ❤️ di Indonesia*")
 
 
 # =============================================================================
