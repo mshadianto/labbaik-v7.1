@@ -248,29 +248,32 @@ def render_public_highlights_section():
 
     st.markdown("")
 
-    # Social Proof Section
+    # Info Section - Realistic for new app
     col1, col2 = st.columns(2)
 
     with col1:
         st.markdown("""
         <div style="background: linear-gradient(135deg, #1a1a1a 0%, #2d2d2d 100%);
                     border: 1px solid #333; border-radius: 15px; padding: 1.5rem;">
-            <h4 style="color: #d4af37; margin-bottom: 1rem;">💬 Kata Jamaah</h4>
+            <h4 style="color: #d4af37; margin-bottom: 1rem;">🚀 Baru Diluncurkan!</h4>
         </div>
         """, unsafe_allow_html=True)
 
-        testimonials_mini = [
-            ("⭐⭐⭐⭐⭐", "Simulasi biayanya akurat banget!", "Budi, Jakarta"),
-            ("⭐⭐⭐⭐⭐", "AI chatnya sangat membantu", "Siti, Surabaya"),
-            ("⭐⭐⭐⭐⭐", "Dapat teman umrah dari fitur Bareng", "Ahmad, Bandung"),
+        launch_info = [
+            ("🆕", "Early Access", "Jadilah yang pertama mencoba"),
+            ("🆓", "100% Gratis", "Semua fitur terbuka untuk Anda"),
+            ("💡", "Terus Berkembang", "Update fitur setiap minggu"),
+            ("📢", "Feedback Welcome", "Bantu kami jadi lebih baik"),
         ]
 
-        for rating, text, author in testimonials_mini:
+        for icon, title, desc in launch_info:
             st.markdown(f"""
-            <div style="padding: 0.8rem 0; border-bottom: 1px solid #333;">
-                <div style="color: #ffd700; font-size: 0.8rem;">{rating}</div>
-                <div style="color: #fafafa; font-size: 0.9rem; margin: 0.3rem 0;">"{text}"</div>
-                <div style="color: #888; font-size: 0.75rem;">— {author}</div>
+            <div style="display: flex; align-items: center; padding: 0.6rem 0; border-bottom: 1px solid #333;">
+                <span style="font-size: 1.3rem; margin-right: 0.8rem;">{icon}</span>
+                <div>
+                    <div style="color: #fafafa; font-weight: bold; font-size: 0.9rem;">{title}</div>
+                    <div style="color: #888; font-size: 0.8rem;">{desc}</div>
+                </div>
             </div>
             """, unsafe_allow_html=True)
 
@@ -1167,59 +1170,35 @@ def render_package_preview():
 
 
 def render_testimonials():
-    """Render testimonials section."""
-    
+    """Render community invitation section (replacing fake testimonials)."""
+
     st.markdown("---")
-    st.markdown("## 💬 Apa Kata Mereka")
-    st.caption("Testimoni jamaah yang telah menggunakan LABBAIK")
-    
-    testimonials = [
-        {
-            "name": "Budi Santoso",
-            "location": "Jakarta",
-            "rating": 5,
-            "text": "AI Assistant sangat membantu! Semua pertanyaan saya tentang umrah dijawab dengan detail. Simulasi biayanya juga akurat.",
-            "avatar": "👨"
-        },
-        {
-            "name": "Siti Nurhaliza",
-            "location": "Surabaya",
-            "rating": 5,
-            "text": "Fitur Umrah Bareng luar biasa! Saya menemukan teman perjalanan yang cocok dan kami jadi sahabat sampai sekarang.",
-            "avatar": "👩"
-        },
-        {
-            "name": "Ahmad Fauzi",
-            "location": "Bandung",
-            "rating": 5,
-            "text": "Proses booking sangat mudah. Dari pemilihan paket sampai pembayaran, semuanya lancar. Recommended!",
-            "avatar": "👨"
-        },
-        {
-            "name": "Fatimah Zahra",
-            "location": "Medan",
-            "rating": 5,
-            "text": "Knowledge base-nya lengkap banget. Saya jadi lebih paham tentang tata cara umrah sebelum berangkat.",
-            "avatar": "👩"
-        },
-    ]
-    
-    cols = st.columns(2)
-    
-    for i, t in enumerate(testimonials):
-        with cols[i % 2]:
-            with st.container(border=True):
-                col1, col2 = st.columns([1, 4])
-                
-                with col1:
-                    st.markdown(f"### {t['avatar']}")
-                
-                with col2:
-                    st.markdown(f"**{t['name']}**")
-                    st.caption(f"📍 {t['location']}")
-                
-                st.write(f'"{t["text"]}"')
-                st.markdown("⭐" * t['rating'])
+    st.markdown("## 🤝 Bergabung dengan Komunitas")
+    st.caption("Jadilah bagian dari generasi pertama pengguna LABBAIK Smart Planner")
+
+    col1, col2 = st.columns(2)
+
+    with col1:
+        with st.container(border=True):
+            st.markdown("### 🎁 Keuntungan Early Adopter")
+            benefits = [
+                "✅ Akses gratis ke semua fitur premium",
+                "✅ Prioritas mendapat fitur baru",
+                "✅ Langsung terhubung dengan tim developer",
+                "✅ Suara Anda membentuk masa depan app",
+            ]
+            for b in benefits:
+                st.markdown(b)
+
+    with col2:
+        with st.container(border=True):
+            st.markdown("### 📢 Sampaikan Feedback")
+            st.markdown("Kami ingin mendengar pengalaman Anda!")
+            st.caption("Temukan bug? Punya ide fitur? Butuh bantuan?")
+
+            feedback_email = "founder@labbaik.io"
+            st.markdown(f"📧 Email: **{feedback_email}**")
+            st.caption("Setiap feedback akan kami baca dan tindaklanjuti.")
 
 
 def render_upcoming_trips():
