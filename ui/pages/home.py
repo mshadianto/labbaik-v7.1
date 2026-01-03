@@ -1351,7 +1351,7 @@ def render_footer():
         st.markdown("**Kontak**")
         st.caption("📧 founder@labbaik.io")
         st.caption("🌐 app.labbaik.io")
-        st.markdown("")
+        st.caption("📱 Instagram: [@labbaik.ai](https://instagram.com/labbaik.ai)")
         st.caption("*Dibuat dengan ❤️ di Indonesia*")
 
 
