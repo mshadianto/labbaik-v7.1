@@ -308,13 +308,26 @@ class StateManager:
         st.session_state[StateKeys.IS_AUTHENTICATED] = user is not None
         
         if user:
-            # Update Umrah Bareng profile
+            # Update Umrah Bareng profile - handle both dict and User object
+            if hasattr(user, 'id'):
+                # User object
+                user_id = user.id
+                name = getattr(user, 'name', 'User')
+                city = getattr(user, 'city', 'Jakarta')
+                is_verified = getattr(user, 'is_verified', False)
+            else:
+                # Dict
+                user_id = user.get("id", "guest")
+                name = user.get("name", "User")
+                city = user.get("city", "Jakarta")
+                is_verified = user.get("is_verified", False)
+
             st.session_state[StateKeys.UB_PROFILE] = {
                 **self._create_default_profile(),
-                "user_id": user.get("id", "guest"),
-                "name": user.get("name", "User"),
-                "city": user.get("city", "Jakarta"),
-                "is_verified": user.get("is_verified", False),
+                "user_id": user_id,
+                "name": name,
+                "city": city,
+                "is_verified": is_verified,
             }
     
     # =========================================================================
@@ -380,7 +393,8 @@ class StateManager:
         # Sync with service
         user = self.get_user()
         if user and SERVICES_AVAILABLE:
-            UserService.add_points(user.get("id"), points, reason)
+            user_id = user.id if hasattr(user, 'id') else user.get("id")
+            UserService.add_points(user_id, points, reason)
     
     def add_badge(self, badge_id: str, name: str, icon: str):
         """Add badge to user."""
