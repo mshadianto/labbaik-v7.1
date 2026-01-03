@@ -27,6 +27,31 @@ SMART_PREP = "Smart Prep"
 SMART_SAVINGS = "Smart Savings"
 SMART_JOURNEY = "Smart Journey"
 
+# Internal team emails (allowed to see platform stats)
+INTERNAL_EMAILS = [
+    'admin@labbaik.io',
+    'founder@labbaik.io',
+    'salam@labbaik.io',
+]
+
+
+def is_internal_user() -> bool:
+    """Check if current user is an internal team member."""
+    try:
+        if 'user' in st.session_state and st.session_state.user:
+            user = st.session_state.user
+            email = None
+            if hasattr(user, 'email'):
+                email = user.email
+            elif isinstance(user, dict):
+                email = user.get('email')
+
+            if email and email.lower() in [e.lower() for e in INTERNAL_EMAILS]:
+                return True
+    except:
+        pass
+    return False
+
 # =============================================================================
 # VISITOR ANALYTICS - AGGRESSIVE DATABASE DETECTION
 # =============================================================================
@@ -190,12 +215,111 @@ def get_visitor_stats():
     }
 
 
+def render_public_highlights_section():
+    """Render highlights section for public users (non-internal)."""
+
+    st.markdown("""
+    <div style="text-align: center; margin-bottom: 1.5rem;">
+        <h2 style="color: #d4af37; margin-bottom: 0.5rem;">🌟 Kenapa LABBAIK Smart Planner?</h2>
+        <p style="color: #888;">Platform AI #1 untuk perencanaan umrah di Indonesia</p>
+    </div>
+    """, unsafe_allow_html=True)
+
+    # Highlight Cards
+    col1, col2, col3, col4 = st.columns(4)
+
+    highlights = [
+        ("🤖", "AI Assistant 24/7", "Tanya apa saja tentang umrah, dijawab AI cerdas kapan saja"),
+        ("💰", "Hemat Hingga 50%", "Bandingkan harga & temukan paket terbaik sesuai budget"),
+        ("👥", "Umrah Bareng", "Cari teman perjalanan dengan matching AI otomatis"),
+        ("📋", "Panduan Lengkap", "Dari persiapan sampai pulang, semua ada di sini"),
+    ]
+
+    for col, (icon, title, desc) in zip([col1, col2, col3, col4], highlights):
+        with col:
+            st.markdown(f"""
+            <div style="background: linear-gradient(135deg, #1a1a1a 0%, #2d2d2d 100%);
+                        border: 1px solid #d4af37; border-radius: 15px; padding: 1.5rem; text-align: center; min-height: 180px;">
+                <div style="font-size: 2.5rem;">{icon}</div>
+                <div style="font-size: 1.1rem; font-weight: bold; color: #d4af37; margin: 0.5rem 0;">{title}</div>
+                <div style="color: #888; font-size: 0.85rem;">{desc}</div>
+            </div>
+            """, unsafe_allow_html=True)
+
+    st.markdown("")
+
+    # Social Proof Section
+    col1, col2 = st.columns(2)
+
+    with col1:
+        st.markdown("""
+        <div style="background: linear-gradient(135deg, #1a1a1a 0%, #2d2d2d 100%);
+                    border: 1px solid #333; border-radius: 15px; padding: 1.5rem;">
+            <h4 style="color: #d4af37; margin-bottom: 1rem;">💬 Kata Jamaah</h4>
+        </div>
+        """, unsafe_allow_html=True)
+
+        testimonials_mini = [
+            ("⭐⭐⭐⭐⭐", "Simulasi biayanya akurat banget!", "Budi, Jakarta"),
+            ("⭐⭐⭐⭐⭐", "AI chatnya sangat membantu", "Siti, Surabaya"),
+            ("⭐⭐⭐⭐⭐", "Dapat teman umrah dari fitur Bareng", "Ahmad, Bandung"),
+        ]
+
+        for rating, text, author in testimonials_mini:
+            st.markdown(f"""
+            <div style="padding: 0.8rem 0; border-bottom: 1px solid #333;">
+                <div style="color: #ffd700; font-size: 0.8rem;">{rating}</div>
+                <div style="color: #fafafa; font-size: 0.9rem; margin: 0.3rem 0;">"{text}"</div>
+                <div style="color: #888; font-size: 0.75rem;">— {author}</div>
+            </div>
+            """, unsafe_allow_html=True)
+
+    with col2:
+        st.markdown("""
+        <div style="background: linear-gradient(135deg, #1a1a1a 0%, #2d2d2d 100%);
+                    border: 1px solid #333; border-radius: 15px; padding: 1.5rem;">
+            <h4 style="color: #d4af37; margin-bottom: 1rem;">🎯 Mulai Sekarang</h4>
+        </div>
+        """, unsafe_allow_html=True)
+
+        steps = [
+            ("1️⃣", "Daftar Gratis", "Buat akun dalam 30 detik"),
+            ("2️⃣", "Simulasi Budget", "Hitung estimasi biaya umrah Anda"),
+            ("3️⃣", "Konsultasi AI", "Tanya apa saja tentang persiapan"),
+            ("4️⃣", "Berangkat!", "Siap menuju Tanah Suci"),
+        ]
+
+        for num, title, desc in steps:
+            st.markdown(f"""
+            <div style="display: flex; align-items: center; padding: 0.6rem 0; border-bottom: 1px solid #333;">
+                <span style="font-size: 1.5rem; margin-right: 1rem;">{num}</span>
+                <div>
+                    <div style="color: #d4af37; font-weight: bold;">{title}</div>
+                    <div style="color: #888; font-size: 0.8rem;">{desc}</div>
+                </div>
+            </div>
+            """, unsafe_allow_html=True)
+
+    # CTA
+    st.markdown("")
+    col1, col2, col3 = st.columns([1, 2, 1])
+    with col2:
+        if st.button("🚀 Mulai Perencanaan Umrah Gratis", type="primary", use_container_width=True):
+            st.session_state.current_page = "simulator"
+            st.rerun()
+
+
 def render_visitor_stats_section():
-    """Render live visitor statistics section."""
-    
+    """Render live visitor statistics section (internal only) or alternative content."""
+
     st.markdown("---")
-    
-    # Get stats
+
+    # Check if user is internal - only show stats to internal team
+    if not is_internal_user():
+        render_public_highlights_section()
+        return
+
+    # Get stats (internal users only)
     stats = get_visitor_stats()
     is_live = stats.get("source") == "database"
     engagement = stats.get("engagement", {})
@@ -356,7 +480,11 @@ def render_visitor_stats_section():
 # =============================================================================
 
 def render_debug_widget():
-    """🔧 FIX: Temporary debug widget - can be collapsed by default."""
+    """🔧 FIX: Temporary debug widget - only for internal users."""
+    # Only show debug widget to internal team
+    if not is_internal_user():
+        return
+
     with st.sidebar.expander("🔍 DB Debug", expanded=False):
         st.caption("Debug Mode - Remove after fixing")
         
