@@ -314,6 +314,98 @@ class AnalyticsTracker:
             "source": "demo"
         }
     
+    # =========================================================================
+    # EVENT TRACKING METHODS
+    # =========================================================================
+
+    def track_event(
+        self,
+        event_type: str,
+        event_category: str,
+        event_action: str,
+        event_label: Optional[str] = None,
+        page_name: Optional[str] = None,
+        metadata: Optional[Dict[str, Any]] = None
+    ) -> bool:
+        """Track custom analytics event."""
+        if not self.db:
+            return False
+
+        try:
+            session_id = self._get_or_create_session_id()
+            user_id = None
+
+            # Try to get user ID from session
+            if 'user' in st.session_state and st.session_state.user:
+                user_id = st.session_state.user.get('id')
+
+            query = """
+                INSERT INTO analytics_events (
+                    user_id, session_id, event_type, event_category,
+                    event_action, event_label, page_name, metadata
+                ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
+            """
+
+            import json
+            metadata_json = json.dumps(metadata) if metadata else None
+
+            self.db.execute(
+                query,
+                (user_id, session_id, event_type, event_category,
+                 event_action, event_label, page_name, metadata_json)
+            )
+            return True
+        except Exception as e:
+            logger.debug(f"Event tracking error: {e}")
+            return False
+
+    def track_smart_nudge_show(self, savings_amount: float, page_name: str = "simulator") -> bool:
+        """Track when smart nudge is shown."""
+        return self.track_event(
+            event_type='nudge_shown',
+            event_category='smart_savings',
+            event_action='nudge_displayed',
+            page_name=page_name,
+            metadata={'potential_savings': savings_amount}
+        )
+
+    def track_smart_nudge_click(self, page_name: str = "simulator") -> bool:
+        """Track smart nudge click-through."""
+        return self.track_event(
+            event_type='button_click',
+            event_category='smart_savings',
+            event_action='nudge_clicked',
+            event_label='umrah_bareng_redirect',
+            page_name=page_name
+        )
+
+    def track_feature_usage(self, feature_name: str, action: str, metadata: Optional[Dict] = None) -> bool:
+        """Track feature usage."""
+        return self.track_event(
+            event_type='feature_usage',
+            event_category=feature_name,
+            event_action=action,
+            metadata=metadata
+        )
+
+    def track_conversion(self, conversion_type: str, value: Optional[float] = None) -> bool:
+        """Track conversion events (premium upgrade, umrah bareng match, etc)."""
+        return self.track_event(
+            event_type='conversion',
+            event_category='conversions',
+            event_action=conversion_type,
+            metadata={'value': value} if value else None
+        )
+
+    def track_pillar_view(self, pillar_name: str) -> bool:
+        """Track pillar navigation (Smart Prep, Smart Savings, Smart Journey)."""
+        return self.track_event(
+            event_type='pillar_view',
+            event_category='navigation',
+            event_action=f'view_{pillar_name.lower().replace(" ", "_")}',
+            event_label=pillar_name
+        )
+
     def get_daily_trend(self, days: int = 7) -> List[Dict]:
         """Get daily visitor trend."""
         if not self.db:
@@ -413,11 +505,36 @@ def with_analytics(page_name: str):
     return decorator
 
 
+# Convenience functions for event tracking
+def track_smart_nudge_show(savings_amount: float) -> bool:
+    """Track smart nudge display."""
+    return get_analytics_tracker().track_smart_nudge_show(savings_amount)
+
+
+def track_smart_nudge_click() -> bool:
+    """Track smart nudge click."""
+    return get_analytics_tracker().track_smart_nudge_click()
+
+
+def track_feature_usage(feature_name: str, action: str) -> bool:
+    """Track feature usage."""
+    return get_analytics_tracker().track_feature_usage(feature_name, action)
+
+
+def track_conversion(conversion_type: str, value: Optional[float] = None) -> bool:
+    """Track conversion event."""
+    return get_analytics_tracker().track_conversion(conversion_type, value)
+
+
 # Export
 __all__ = [
     "AnalyticsTracker",
-    "get_analytics_tracker", 
+    "get_analytics_tracker",
     "track_page",
     "get_visitor_stats",
-    "with_analytics"
+    "with_analytics",
+    "track_smart_nudge_show",
+    "track_smart_nudge_click",
+    "track_feature_usage",
+    "track_conversion"
 ]

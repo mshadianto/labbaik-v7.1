@@ -1697,6 +1697,14 @@ def render_simulator_page():
             # Smart Nudge untuk Umrah Bareng
             if cost.total > 25_000_000:
                 potential_savings = int(cost.total * 0.15)
+
+                # Track nudge display
+                try:
+                    from services.analytics.tracker import track_smart_nudge_show
+                    track_smart_nudge_show(potential_savings)
+                except:
+                    pass
+
                 st.success(f"""
 💡 **Hemat hingga {format_currency(potential_savings)}!**
 
@@ -1707,6 +1715,12 @@ Dengan **Umrah Bareng**, kamu bisa:
                 """)
 
                 if st.button("🤝 Coba Umrah Bareng", key="nudge_umrah_bareng", use_container_width=True):
+                    # Track nudge click
+                    try:
+                        from services.analytics.tracker import track_smart_nudge_click
+                        track_smart_nudge_click()
+                    except:
+                        pass
                     st.session_state.current_page = "umrah_bareng"
                     st.rerun()
 

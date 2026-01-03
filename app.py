@@ -179,7 +179,7 @@ except ImportError:
 
 # Analytics Dashboard
 try:
-    from services.analytics.dashboard import render_analytics_dashboard
+    from ui.pages.analytics_dashboard import render_analytics_dashboard
     HAS_ANALYTICS = True
 except ImportError:
     HAS_ANALYTICS = False
