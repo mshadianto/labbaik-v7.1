@@ -26,7 +26,19 @@ def render_analytics_dashboard():
 
     # Check admin access
     user = st.session_state.get('user')
-    if not user or user.get('role') != 'admin':
+    if not user:
+        st.error("Akses ditolak. Halaman ini hanya untuk Admin.")
+        st.info("Silakan login dengan akun admin untuk melihat dashboard analytics.")
+        return
+
+    # Get user role - handle both dict and User object
+    user_role = None
+    if hasattr(user, 'role'):
+        user_role = user.role.value if hasattr(user.role, 'value') else user.role
+    elif isinstance(user, dict):
+        user_role = user.get('role')
+
+    if user_role != 'admin':
         st.error("Akses ditolak. Halaman ini hanya untuk Admin.")
         st.info("Silakan login dengan akun admin untuk melihat dashboard analytics.")
         return
