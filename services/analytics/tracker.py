@@ -335,9 +335,13 @@ class AnalyticsTracker:
             session_id = self._get_or_create_session_id()
             user_id = None
 
-            # Try to get user ID from session
+            # Try to get user ID from session - handle both dict and User object
             if 'user' in st.session_state and st.session_state.user:
-                user_id = st.session_state.user.get('id')
+                user = st.session_state.user
+                if hasattr(user, 'id'):
+                    user_id = user.id
+                elif isinstance(user, dict):
+                    user_id = user.get('id')
 
             query = """
                 INSERT INTO analytics_events (
