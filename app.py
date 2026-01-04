@@ -163,6 +163,19 @@ except ImportError:
         st.info("Segera hadir: Generate jadwal Umrah harian otomatis!")
 
 # =============================================================================
+# 🆕 Hotel Price Comparison (Makcorps API)
+# =============================================================================
+try:
+    from ui.pages.hotel_compare import render_hotel_compare_page
+    HAS_HOTEL_COMPARE = True
+except ImportError:
+    HAS_HOTEL_COMPARE = False
+    def render_hotel_compare_page():
+        st.markdown("# 🏨 Hotel Price Comparison")
+        st.warning("⚠️ Fitur Hotel Comparison belum tersedia")
+        st.info("Segera hadir: Bandingkan harga hotel dari 200+ OTA!")
+
+# =============================================================================
 # Smart Checklist
 # =============================================================================
 try:
@@ -624,6 +637,14 @@ def render_sidebar():
                     st.session_state.current_page = "price_comparison"
                     st.rerun()
 
+            # Hotel Comparison (Makcorps)
+            if HAS_HOTEL_COMPARE:
+                is_hotel = st.session_state.get("current_page") == "hotel_compare"
+                if st.button("🏨 Bandingkan Hotel", key="p2_hotel", use_container_width=True,
+                            type="primary" if is_hotel else "secondary"):
+                    st.session_state.current_page = "hotel_compare"
+                    st.rerun()
+
             # Booking
             is_booking = st.session_state.get("current_page") == "booking"
             if st.button("📦 Booking", key="p2_booking", use_container_width=True,
@@ -854,6 +875,9 @@ def render_page():
 
         # v7.5 Price Aggregation
         "price_comparison": render_price_comparison_page,
+
+        # v7.1 Hotel Comparison (Makcorps)
+        "hotel_compare": render_hotel_compare_page,
     }
     
     renderer = page_map.get(page, render_home_page)
