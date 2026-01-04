@@ -12,6 +12,35 @@ import logging
 
 logger = logging.getLogger(__name__)
 
+# =============================================================================
+# PERFORMANCE: CACHING
+# =============================================================================
+
+@st.cache_data(ttl=120)  # Cache for 2 minutes
+def get_cached_db_stats():
+    """Get cached database stats for home page."""
+    try:
+        from services.database.repository import get_db
+        db = get_db()
+        if db:
+            result = db.fetch_one("""
+                SELECT
+                    COALESCE(SUM(unique_visitors), 0) as total_visitors,
+                    COALESCE(SUM(page_views), 0) as total_views,
+                    MAX(updated_at) as last_update
+                FROM visitor_stats
+            """)
+            if result:
+                return {
+                    'total_visitors': int(result.get('total_visitors', 0)),
+                    'total_views': int(result.get('total_views', 0)),
+                    'last_update': result.get('last_update'),
+                    'source': 'database'
+                }
+    except:
+        pass
+    return None
+
 # Import dynamic version
 try:
     from core.version import get_display_version, APP_VERSION
@@ -58,158 +87,52 @@ def is_internal_user() -> bool:
 
 def get_visitor_stats():
     """
-    Get visitor stats - ULTRA AGGRESSIVE DATABASE DETECTION
-    🔧 FIX v2: Removes ALL conditions - if DB exists, USE IT
-    Priority: Direct Database Query > Analytics Service > Demo Fallback
+    Get visitor stats - OPTIMIZED with caching.
+    Uses cached DB stats for performance.
     """
-    import time
-    _cache_buster = int(time.time())
-    
-    logger.info("🔍 get_visitor_stats() called")
-    
-    # Try direct database query FIRST (most reliable)
-    try:
-        from services.database.repository import get_db
-        
-        db = get_db()
-        logger.info(f"Database connection object: {db}")
-        
-        if db:
-            # Test connection first
-            try:
-                test = db.fetch_one("SELECT NOW() as time")
-                logger.info(f"✅ Database connection OK: {test}")
-            except Exception as conn_err:
-                logger.error(f"❌ Connection test failed: {conn_err}")
-                raise
-            
-            # ULTRA AGGRESSIVE: Just try to get stats - no pre-checks
-            try:
-                stats_query = """
-                    SELECT 
-                        COALESCE(SUM(unique_visitors), 0) as total_visitors,
-                        COALESCE(SUM(page_views), 0) as total_views,
-                        MAX(updated_at) as last_update
-                    FROM visitor_stats
-                """
-                result = db.fetch_one(stats_query)
-                logger.info(f"📊 Query result: {result}")
-                
-                # 🔧 ULTRA AGGRESSIVE: If we got ANY result, USE IT
-                # Even if all values are 0, we still use database
-                if result is not None:
-                    total_visitors = int(result.get('total_visitors', 0))
-                    total_views = int(result.get('total_views', 0))
-                    
-                    logger.info(f"✅ FORCING database usage: {total_visitors} visitors, {total_views} views")
-                    
-                    # Get today's stats
-                    today_query = """
-                        SELECT 
-                            COALESCE(SUM(unique_visitors), 0) as visitors_today,
-                            COALESCE(SUM(page_views), 0) as views_today
-                        FROM visitor_stats
-                        WHERE date = CURRENT_DATE
-                    """
-                    today = db.fetch_one(today_query) or {}
-                    
-                    # Get this week's stats
-                    week_query = """
-                        SELECT 
-                            COALESCE(SUM(unique_visitors), 0) as visitors_week
-                        FROM visitor_stats
-                        WHERE date >= CURRENT_DATE - INTERVAL '7 days'
-                    """
-                    week = db.fetch_one(week_query) or {}
-                    
-                    # Get popular pages
-                    pages_query = """
-                        SELECT page, SUM(page_views) as views
-                        FROM visitor_stats
-                        GROUP BY page
-                        ORDER BY views DESC
-                        LIMIT 6
-                    """
-                    popular = db.fetch_all(pages_query) or []
-                    
-                    # Calculate engagement rate
-                    avg_pages = round(total_views / max(total_visitors, 1), 1) if total_visitors > 0 else 1.3
-                    
-                    logger.info(f"🎯 RETURNING DATABASE DATA - source='database'")
-                    
-                    return {
-                        "total_visitors": total_visitors,
-                        "total_views": total_views,
-                        "visitors_today": int(today.get('visitors_today', 0)),
-                        "visitors_week": int(week.get('visitors_week', 0)),
-                        "visitors_month": total_visitors,
-                        "popular_pages": [{"page": p['page'], "views": int(p['views'])} for p in popular] if popular else [],
-                        "engagement": {
-                            "avg_pages_per_visit": avg_pages,
-                            "avg_session_duration": "4m 32s",
-                            "returning_visitors_pct": 34,
-                            "mobile_users_pct": 67,
-                            "top_region": "Jakarta"
-                        },
-                        "source": "database",
-                        "last_update": str(result.get('last_update', '')),
-                        "debug_info": {
-                            "cache_buster": _cache_buster,
-                            "forced_db": True
-                        }
-                    }
-                else:
-                    logger.warning(f"⚠️ Query returned None: {result}")
-                    
-            except Exception as query_err:
-                logger.error(f"❌ Stats query failed: {query_err}", exc_info=True)
-                raise
-                
-    except Exception as e:
-        logger.error(f"❌ Database query failed: {e}", exc_info=True)
-    
-    # Try analytics service as backup
-    try:
-        from services.analytics import get_visitor_stats as get_stats
-        stats = get_stats()
-        if stats and stats.get('source') == 'database':
-            logger.info("ℹ️ Using analytics service data")
-            return stats
-    except Exception as e:
-        logger.debug(f"Analytics service unavailable: {e}")
-    
-    # Fallback: Use session-based demo counting
-    logger.warning("⚠️ FALLBACK TO DEMO DATA")
-    
+    # Try cached database stats first
+    cached = get_cached_db_stats()
+    if cached and cached.get('source') == 'database':
+        total_visitors = cached['total_visitors']
+        total_views = cached['total_views']
+
+        return {
+            "total_visitors": total_visitors,
+            "total_views": total_views,
+            "visitors_today": 0,
+            "visitors_week": 0,
+            "visitors_month": total_visitors,
+            "popular_pages": [],
+            "engagement": {
+                "avg_pages_per_visit": round(total_views / max(total_visitors, 1), 1),
+                "avg_session_duration": "-",
+                "returning_visitors_pct": 0,
+                "mobile_users_pct": 0,
+                "top_region": "-"
+            },
+            "source": "database",
+            "last_update": str(cached.get('last_update', '')),
+        }
+
+    # Fallback: Demo data
     if "visitor_count" not in st.session_state:
-        st.session_state.visitor_count = random.randint(950, 1050)
+        st.session_state.visitor_count = random.randint(50, 100)
     if "page_view_count" not in st.session_state:
-        st.session_state.page_view_count = random.randint(1300, 1400)
-    
-    # Increment on each visit
-    if not st.session_state.get("counted_this_session"):
-        st.session_state.visitor_count += 1
-        st.session_state.page_view_count += random.randint(1, 3)
-        st.session_state.counted_this_session = True
-    
+        st.session_state.page_view_count = random.randint(100, 150)
+
     return {
         "total_visitors": st.session_state.visitor_count,
         "total_views": st.session_state.page_view_count,
-        "visitors_today": random.randint(40, 60),
-        "visitors_week": random.randint(280, 350),
+        "visitors_today": 0,
+        "visitors_week": 0,
         "visitors_month": st.session_state.visitor_count,
-        "popular_pages": [
-            {"page": "home", "views": 10},
-            {"page": "umrah_mandiri", "views": 7},
-            {"page": "simulator", "views": 5},
-            {"page": "chat", "views": 3},
-        ],
+        "popular_pages": [],
         "engagement": {
             "avg_pages_per_visit": 1.3,
-            "avg_session_duration": "4m 32s",
-            "returning_visitors_pct": 34,
-            "mobile_users_pct": 67,
-            "top_region": "Jakarta"
+            "avg_session_duration": "-",
+            "returning_visitors_pct": 0,
+            "mobile_users_pct": 0,
+            "top_region": "-"
         },
         "source": "demo"
     }
@@ -633,7 +556,12 @@ def render_price_intelligence_section():
 # =============================================================================
 
 def inject_custom_css():
-    """Inject custom CSS for stunning visuals."""
+    """Inject custom CSS for stunning visuals - only once per session."""
+    # Skip if already injected this session
+    if st.session_state.get('_home_css_injected'):
+        return
+    st.session_state._home_css_injected = True
+
     st.markdown("""
     <style>
     /* Hero gradient background */

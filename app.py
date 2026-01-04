@@ -15,9 +15,49 @@ import streamlit as st
 import os
 import sys
 from datetime import datetime, timedelta
+from functools import lru_cache
+import time
 
 # Add current directory to path
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+
+# =============================================================================
+# PERFORMANCE: CACHING UTILITIES
+# =============================================================================
+
+@st.cache_resource(ttl=300)  # Cache for 5 minutes
+def get_cached_db_connection():
+    """Get cached database connection."""
+    try:
+        from services.database.repository import get_db
+        return get_db()
+    except:
+        return None
+
+@st.cache_data(ttl=60)  # Cache for 1 minute
+def get_cached_visitor_stats():
+    """Get cached visitor analytics stats."""
+    try:
+        db = get_cached_db_connection()
+        if db:
+            result = db.fetch_one("""
+                SELECT
+                    COALESCE(SUM(unique_visitors), 0) as visitors,
+                    COALESCE(SUM(page_views), 0) as views,
+                    MAX(updated_at) as last_update
+                FROM visitor_stats
+                WHERE date = CURRENT_DATE
+            """)
+            if result and result.get('last_update'):
+                return {
+                    'visitors': result.get('visitors', 0),
+                    'views': result.get('views', 0),
+                    'last_update': result.get('last_update'),
+                    'source': 'database'
+                }
+    except:
+        pass
+    return {'source': 'offline'}
 
 # Import version info
 try:
@@ -443,58 +483,33 @@ def add_xp(amount: int, reason: str = ""):
 # =============================================================================
 
 def render_visitor_analytics_status():
-    """Render live visitor analytics status."""
+    """Render live visitor analytics status - CACHED for performance."""
     try:
-        # Try to get LIVE visitor stats from database
-        from services.database.repository import get_db
-        
-        db = get_db()
-        if db:
-            try:
-                # Get latest visitor data
-                result = db.fetch_one("""
-                    SELECT 
-                        COALESCE(SUM(unique_visitors), 0) as visitors,
-                        COALESCE(SUM(page_views), 0) as views,
-                        MAX(updated_at) as last_update
-                    FROM visitor_stats
-                    WHERE date = CURRENT_DATE
-                """)
-                
-                if result and result.get('last_update'):
-                    # Format timestamp for WIB (UTC+7)
-                    last_update = result.get('last_update')
-                    if isinstance(last_update, datetime):
-                        wib_time = last_update + timedelta(hours=7)
-                        time_str = wib_time.strftime('%d %b %H:%M')
-                        
-                        st.markdown(f"""
-                        <div style="background: linear-gradient(135deg, #1a5f3c 0%, #2d8659 100%); 
-                                    padding: 0.5rem; border-radius: 10px; text-align: center; 
-                                    border: 1px solid #4ade80;">
-                            <div style="color: #4ade80; font-weight: bold; font-size: 0.9rem;">
-                                🟢 Live Data
-                            </div>
-                            <div style="color: #d4af37; font-size: 0.7rem; margin-top: 0.2rem;">
-                                Update: {time_str} WIB
-                            </div>
-                        </div>
-                        """, unsafe_allow_html=True)
-                        return
-            except Exception as e:
-                # Log but don't show error to user
-                pass
-        
-        # Fallback: Show database status
-        db_status = "🟢 Database Connected" if os.getenv("DATABASE_URL") else "🟡 Local Mode"
-        st.caption(f"Status: {db_status}")
-        
-    except ImportError:
-        # Module not available
-        st.caption("Status: 🟡 Offline Mode")
+        # Use cached stats instead of direct DB query
+        stats = get_cached_visitor_stats()
+
+        if stats.get('source') == 'database':
+            last_update = stats.get('last_update')
+            if isinstance(last_update, datetime):
+                wib_time = last_update + timedelta(hours=7)
+                time_str = wib_time.strftime('%d %b %H:%M')
+
+                st.markdown(f"""
+                <div style="background: linear-gradient(135deg, #1a5f3c 0%, #2d8659 100%);
+                            padding: 0.5rem; border-radius: 10px; text-align: center;
+                            border: 1px solid #4ade80;">
+                    <div style="color: #4ade80; font-weight: bold; font-size: 0.9rem;">
+                        🟢 Live
+                    </div>
+                </div>
+                """, unsafe_allow_html=True)
+                return
+
+        # Fallback: Show simple status
+        st.caption("📊 Active")
+
     except Exception:
-        # Any other error
-        st.caption("📊 System Active")
+        st.caption("📊 Active")
 
 
 # =============================================================================
