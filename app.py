@@ -93,6 +93,20 @@ st.set_page_config(
     }
 )
 
+# =============================================================================
+# PERFORMANCE: SCROLL TO TOP ON PAGE CHANGE
+# =============================================================================
+def scroll_to_top():
+    """Inject JavaScript to scroll to top of page."""
+    st.markdown("""
+    <script>
+        window.scrollTo({top: 0, behavior: 'instant'});
+        // Also scroll the main container
+        var main = window.parent.document.querySelector('section.main');
+        if (main) main.scrollTo({top: 0, behavior: 'instant'});
+    </script>
+    """, unsafe_allow_html=True)
+
 # Open Graph meta tags for social media sharing
 st.markdown("""
 <meta property="og:title" content="LABBAIK Smart Planner - AI-Powered Umrah Companion" />
@@ -781,7 +795,10 @@ def render_sidebar():
 def render_page():
     """Render the current page based on session state."""
     page = st.session_state.get("current_page", "home")
-    
+
+    # SCROLL TO TOP - Critical for UX
+    scroll_to_top()
+
     # Track page view
     if HAS_TRACKING_SERVICE:
         try:

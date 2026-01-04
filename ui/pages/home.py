@@ -556,124 +556,24 @@ def render_price_intelligence_section():
 # =============================================================================
 
 def inject_custom_css():
-    """Inject custom CSS for stunning visuals - only once per session."""
-    # Skip if already injected this session
+    """Inject minimal CSS - optimized for speed."""
+    # Skip if already injected
     if st.session_state.get('_home_css_injected'):
         return
     st.session_state._home_css_injected = True
 
+    # Minimal CSS only - removed unused classes
     st.markdown("""
     <style>
-    /* Hero gradient background */
-    .hero-section {
-        background: linear-gradient(135deg, #1a5f3c 0%, #2d8659 50%, #3ba876 100%);
-        padding: 3rem 2rem;
-        border-radius: 20px;
-        margin-bottom: 2rem;
-        text-align: center;
-        color: white;
-    }
-    
-    .hero-title {
-        font-size: 3rem;
-        font-weight: 800;
-        margin-bottom: 1rem;
-        text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
-    }
-    
-    .hero-subtitle {
-        font-size: 1.3rem;
-        opacity: 0.9;
-        margin-bottom: 2rem;
-    }
-    
-    /* Feature cards */
-    .feature-card {
-        background: white;
+    .gold-card {
+        background: linear-gradient(135deg, #1a1a1a 0%, #2d2d2d 100%);
+        border: 1px solid #d4af37;
         border-radius: 15px;
-        padding: 1.5rem;
-        box-shadow: 0 4px 15px rgba(0,0,0,0.1);
-        transition: transform 0.3s ease;
-        height: 100%;
-    }
-    
-    .feature-card:hover {
-        transform: translateY(-5px);
-    }
-    
-    .feature-icon {
-        font-size: 3rem;
-        margin-bottom: 1rem;
-    }
-    
-    /* Stats counter */
-    .stats-container {
-        display: flex;
-        justify-content: space-around;
-        padding: 2rem;
-        background: linear-gradient(90deg, #f8f9fa 0%, #e9ecef 100%);
-        border-radius: 15px;
-        margin: 2rem 0;
-    }
-    
-    .stat-item {
+        padding: 1.2rem;
         text-align: center;
     }
-    
-    .stat-number {
-        font-size: 2.5rem;
-        font-weight: 800;
-        color: #1a5f3c;
-    }
-    
-    .stat-label {
-        color: #666;
-        font-size: 0.9rem;
-    }
-    
-    /* Testimonial cards */
-    .testimonial-card {
-        background: white;
-        border-radius: 15px;
-        padding: 1.5rem;
-        box-shadow: 0 4px 15px rgba(0,0,0,0.08);
-        margin: 1rem 0;
-    }
-    
-    /* CTA button */
-    .cta-button {
-        background: linear-gradient(135deg, #ffd700 0%, #ffb700 100%);
-        color: #1a1a1a !important;
-        padding: 1rem 2rem;
-        border-radius: 50px;
-        font-weight: 700;
-        text-decoration: none;
-        display: inline-block;
-        transition: transform 0.3s ease;
-    }
-    
-    .cta-button:hover {
-        transform: scale(1.05);
-    }
-    
-    /* Floating animation */
-    @keyframes float {
-        0% { transform: translateY(0px); }
-        50% { transform: translateY(-10px); }
-        100% { transform: translateY(0px); }
-    }
-    
-    .floating {
-        animation: float 3s ease-in-out infinite;
-    }
-    
-    /* Gradient text */
-    .gradient-text {
-        background: linear-gradient(135deg, #1a5f3c 0%, #3ba876 100%);
-        -webkit-background-clip: text;
-        -webkit-text-fill-color: transparent;
-        background-clip: text;
-    }
+    .gold-text { color: #d4af37; }
+    .muted-text { color: #888; }
     </style>
     """, unsafe_allow_html=True)
 
@@ -683,75 +583,56 @@ def inject_custom_css():
 # =============================================================================
 
 def render_hero_section():
-    """Render hero section with call-to-action - BLACK GOLD theme."""
-    
-    # CSS only
-    st.markdown("""
-    <style>
-    @import url('https://fonts.googleapis.com/css2?family=Amiri:wght@400;700&display=swap');
-    
-    .hero-section-v6 {
-        background: linear-gradient(135deg, #0d0d0d 0%, #1a1a1a 50%, #0d0d0d 100%);
-        padding: 2.5rem 2rem;
-        border-radius: 20px;
-        margin-bottom: 1rem;
-        text-align: center;
-        color: white;
-        border: 1px solid #d4af37;
-        box-shadow: 0 0 30px rgba(212, 175, 55, 0.2);
-    }
-    
-    .arabic-calligraphy-v6 {
-        font-family: 'Amiri', serif;
-        font-size: 2.2rem;
-        color: #d4af37;
-        margin-bottom: 0.5rem;
-        text-shadow: 0 0 20px rgba(212, 175, 55, 0.5);
-    }
-    
-    .brand-name-v6 {
-        font-size: 2.5rem;
-        font-weight: 800;
-        letter-spacing: 0.8rem;
-        margin-bottom: 0.3rem;
-        color: #d4af37;
-    }
-    
-    .tagline-v6 {
-        font-size: 1.2rem;
-        color: #d4af37;
-        margin-bottom: 0.3rem;
-    }
-    
-    .subtitle-v6 {
-        font-size: 0.95rem;
-        color: #888;
-        margin-bottom: 1rem;
-    }
-    
-    .version-badge-v6 {
-        display: inline-block;
-        background: linear-gradient(135deg, #d4af37 0%, #f4d03f 50%, #d4af37 100%);
-        color: #1a1a1a;
-        padding: 0.4rem 1.2rem;
-        border-radius: 25px;
-        font-weight: bold;
-        font-size: 0.9rem;
-    }
-    
-    .stat-card-v6 {
-        background: linear-gradient(135deg, #1a1a1a 0%, #2d2d2d 100%);
-        border: 1px solid #d4af37;
-        border-radius: 15px;
-        padding: 1rem;
-        text-align: center;
-    }
-    
-    .stat-icon-v6 { font-size: 1.5rem; }
-    .stat-label-v6 { font-size: 0.75rem; color: #888; margin-top: 0.3rem; }
-    .stat-value-v6 { font-size: 1.3rem; font-weight: bold; color: #d4af37; }
-    </style>
-    """, unsafe_allow_html=True)
+    """Render hero section with call-to-action - BLACK GOLD theme (OPTIMIZED)."""
+
+    # CSS - NO external font loading for faster performance
+    if not st.session_state.get('_hero_css_injected'):
+        st.session_state._hero_css_injected = True
+        st.markdown("""
+        <style>
+        .hero-section-v6 {
+            background: linear-gradient(135deg, #0d0d0d 0%, #1a1a1a 50%, #0d0d0d 100%);
+            padding: 2rem 1.5rem;
+            border-radius: 20px;
+            margin-bottom: 1rem;
+            text-align: center;
+            color: white;
+            border: 1px solid #d4af37;
+        }
+        .arabic-calligraphy-v6 {
+            font-size: 1.8rem;
+            color: #d4af37;
+            margin-bottom: 0.3rem;
+        }
+        .brand-name-v6 {
+            font-size: 2.2rem;
+            font-weight: 800;
+            letter-spacing: 0.5rem;
+            color: #d4af37;
+        }
+        .tagline-v6 { font-size: 1rem; color: #d4af37; }
+        .subtitle-v6 { font-size: 0.85rem; color: #888; margin-bottom: 0.8rem; }
+        .version-badge-v6 {
+            display: inline-block;
+            background: linear-gradient(135deg, #d4af37 0%, #f4d03f 100%);
+            color: #1a1a1a;
+            padding: 0.3rem 1rem;
+            border-radius: 20px;
+            font-weight: bold;
+            font-size: 0.8rem;
+        }
+        .stat-card-v6 {
+            background: #1a1a1a;
+            border: 1px solid #d4af37;
+            border-radius: 12px;
+            padding: 0.8rem;
+            text-align: center;
+        }
+        .stat-icon-v6 { font-size: 1.3rem; }
+        .stat-label-v6 { font-size: 0.7rem; color: #888; }
+        .stat-value-v6 { font-size: 1.1rem; font-weight: bold; color: #d4af37; }
+        </style>
+        """, unsafe_allow_html=True)
     
     # Hero content - Premium Brand Identity
     st.markdown(f"""
@@ -1165,33 +1046,41 @@ def render_footer():
 # =============================================================================
 
 def render_home_page():
-    """Main home page renderer."""
-    
+    """Main home page renderer - OPTIMIZED for speed."""
+
     # Track page view
     try:
         from services.analytics import track_page
         track_page("home")
     except:
         pass
-    
-    # 🔧 FIX: ADD DEBUG WIDGET
+
+    # Debug widget (internal only)
     render_debug_widget()
-    
-    # Inject CSS
+
+    # Inject CSS (cached)
     inject_custom_css()
-    
-    # Render sections
+
+    # === CORE SECTIONS (Always render) ===
     render_hero_section()
-    render_price_intelligence_section()  # NEW: Live Price Data
-    render_visitor_stats_section()
-    render_3_pilar_framework()
-    render_features_showcase()
-    render_package_preview()
-    render_upcoming_trips()
-    render_testimonials()
+
+    # Quick Chat - Most important action
     render_quick_chat()
-    render_partners()
-    render_newsletter()
+
+    # Framework overview
+    render_3_pilar_framework()
+
+    # === CONDITIONAL SECTIONS ===
+    # Stats for internal, highlights for public
+    render_visitor_stats_section()
+
+    # Features (compact)
+    render_features_showcase()
+
+    # Umrah Bareng CTA
+    render_upcoming_trips()
+
+    # Footer only
     render_footer()
 
 
