@@ -549,6 +549,145 @@ HEALTH_FAQ = [
 ]
 
 # =============================================================================
+# SAFETY FAQ - Keamanan & Keselamatan
+# =============================================================================
+
+SAFETY_FAQ = [
+    FAQ(
+        id="safety_001",
+        question="Bagaimana cara menjaga anak agar tidak hilang di Masjidil Haram?",
+        answer="""Tips menjaga anak di Masjidil Haram:
+
+**1. Gelang RFID GRATIS dari Otoritas Masjidil Haram**
+Tersedia gelang identitas pintar RFID GRATIS khusus untuk anak-anak dan lansia!
+
+**Lokasi Pengambilan (24 Jam):**
+- Ajyad Gate 3 (Pintu Ajyad 3)
+- King Abdulaziz Gate (Pintu King Abdulaziz)
+- King Fahd Gate No. 79 (Pintu King Fahd No. 79)
+
+**Cara Kerja:**
+- Daftarkan nomor kontak wali di gelang
+- Jika anak terpisah, petugas akan memindai gelang
+- Wali langsung dihubungi untuk penjemputan
+
+**2. Tips Tambahan:**
+- Pakaikan anak baju warna mencolok
+- Foto anak sebelum masuk masjid (untuk identifikasi)
+- Ajarkan anak titik kumpul jika terpisah
+- Simpan kartu identitas di saku anak
+- Jangan biarkan anak jauh dari jangkauan
+
+**Sumber:** HIMPUH (Desember 2024)""",
+        category="safety",
+        keywords=["anak", "hilang", "terpisah", "gelang", "rfid", "keamanan", "lost", "child"]
+    ),
+    FAQ(
+        id="safety_002",
+        question="Apa itu gelang RFID di Masjidil Haram?",
+        answer="""**Gelang RFID Masjidil Haram**
+
+Gelang identitas pintar dengan teknologi RFID (Radio Frequency Identification) yang disediakan GRATIS oleh Otoritas Umum Pengelolaan Urusan Masjidil Haram dan Masjid Nabawi.
+
+**Untuk Siapa:**
+- Anak-anak
+- Lansia
+- Jamaah yang rentan terpisah dalam kerumunan
+
+**Lokasi Pengambilan (24 Jam):**
+1. Ajyad Gate 3
+2. King Abdulaziz Gate
+3. King Fahd Gate No. 79
+
+**Cara Mendapatkan:**
+1. Kunjungi gerbang di atas
+2. Isi data kontak wali/pendamping
+3. Gelang langsung dipasang
+
+**Cara Kerja:**
+- Nomor kontak wali tercantum di gelang
+- Jika jamaah terpisah, petugas memindai gelang
+- Sistem menghubungi wali untuk penjemputan
+
+**Tips:**
+- Gunakan nomor WA yang aktif
+- Bisa pakai nomor Indonesia atau Saudi
+- Pastikan anak/lansia memahami fungsi gelang
+
+**Sumber:** HIMPUH (Desember 2024)""",
+        category="safety",
+        keywords=["gelang", "rfid", "wristband", "identitas", "safety", "keamanan"]
+    ),
+    FAQ(
+        id="safety_003",
+        question="Bagaimana menjaga lansia agar tidak terpisah saat umrah?",
+        answer="""Tips menjaga lansia di Masjidil Haram:
+
+**1. Gunakan Gelang RFID GRATIS**
+Tersedia di gerbang Masjidil Haram (24 jam):
+- Ajyad Gate 3
+- King Abdulaziz Gate
+- King Fahd Gate No. 79
+
+**2. Fasilitas untuk Lansia:**
+- Kursi roda tersedia GRATIS di pintu masuk
+- Jalur khusus lansia di beberapa area
+- Petugas siap membantu
+
+**3. Tips Praktis:**
+- Pakaikan gelang RFID dengan nomor kontak Anda
+- Foto lansia sebelum masuk (untuk identifikasi)
+- Tentukan titik kumpul jika terpisah
+- Bawa tongkat atau alat bantu jalan
+- Jangan tinggalkan lansia sendirian
+- Pilih waktu ibadah yang tidak terlalu ramai
+- Gunakan kursi roda jika perlu
+
+**4. Nomor Darurat:**
+- Saudi Emergency: 997
+- KBRI Riyadh: +966-11-488-2800
+- KJRI Jeddah: +966-12-667-6020
+
+**Sumber:** HIMPUH (Desember 2024)""",
+        category="safety",
+        keywords=["lansia", "orangtua", "elderly", "terpisah", "hilang", "kursi roda"]
+    ),
+    FAQ(
+        id="safety_004",
+        question="Apa saja nomor darurat di Arab Saudi?",
+        answer="""**Nomor Darurat di Arab Saudi:**
+
+**Layanan Darurat Saudi:**
+- 🚨 Polisi: **999**
+- 🚑 Ambulans: **997**
+- 🚒 Pemadam Kebakaran: **998**
+- 🚦 Kecelakaan Lalu Lintas: **993**
+
+**Kedutaan/Konsulat Indonesia:**
+- KBRI Riyadh: **+966-11-488-2800**
+- KJRI Jeddah: **+966-12-667-6020**
+- Hotline Perlindungan WNI: **+966-54-308-0009**
+
+**Rumah Sakit Rujukan:**
+- RS Ajyad (dekat Masjidil Haram)
+- RS King Faisal
+- RS King Abdullah
+
+**Tips:**
+- Simpan semua nomor di HP sebelum berangkat
+- Buat kartu darurat dengan info penting
+- Informasikan nomor kontak ke keluarga di Indonesia
+- Aktifkan roaming atau beli SIM lokal Saudi
+
+**Layanan di Masjidil Haram:**
+- Lost & Found: Tanya petugas di pintu gerbang
+- Gelang RFID untuk anak/lansia: Gratis di Gate 3, King Abdulaziz, King Fahd 79""",
+        category="safety",
+        keywords=["darurat", "emergency", "polisi", "ambulans", "nomor", "telepon", "kbri", "kjri"]
+    ),
+]
+
+# =============================================================================
 # COLLECTION FUNCTIONS
 # =============================================================================
 
@@ -560,6 +699,7 @@ def get_all_faqs() -> List[FAQ]:
     all_faqs.extend(RITUAL_FAQ)
     all_faqs.extend(WOMEN_FAQ)
     all_faqs.extend(HEALTH_FAQ)
+    all_faqs.extend(SAFETY_FAQ)
     return all_faqs
 
 
@@ -571,7 +711,7 @@ def get_faqs_by_category(category: str) -> List[FAQ]:
 
 def get_faq_categories() -> List[str]:
     """Get all unique categories."""
-    return ["general", "preparation", "ritual", "women", "health"]
+    return ["general", "preparation", "ritual", "women", "health", "safety"]
 
 
 def search_faqs(query: str) -> List[FAQ]:
