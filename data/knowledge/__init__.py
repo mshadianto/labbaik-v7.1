@@ -7,15 +7,11 @@ Exports all knowledge base modules for Umrah guidance.
 from .umrah_guide import (
     UMRAH_OVERVIEW,
     UMRAH_REQUIREMENTS,
-    UMRAH_PREPARATION,
-    UMRAH_RITUALS,
     IHRAM_GUIDE,
     TAWAF_GUIDE,
     SAI_GUIDE,
     TAHALLUL_GUIDE,
     get_all_guides,
-    get_guide_by_topic,
-    search_guides,
 )
 
 from .arabic_phrases import (
@@ -70,11 +66,17 @@ def get_full_knowledge_base() -> str:
         "\n---\n",
         UMRAH_REQUIREMENTS,
         "\n---\n",
-        "# PERSIAPAN UMRAH\n",
-        UMRAH_PREPARATION,
+        "# TATA CARA IHRAM\n",
+        IHRAM_GUIDE,
         "\n---\n",
-        "# TATA CARA IBADAH\n",
-        UMRAH_RITUALS,
+        "# TATA CARA TAWAF\n",
+        TAWAF_GUIDE,
+        "\n---\n",
+        "# TATA CARA SA'I\n",
+        SAI_GUIDE,
+        "\n---\n",
+        "# TATA CARA TAHALLUL\n",
+        TAHALLUL_GUIDE,
         "\n---\n",
         "# FRASA BAHASA ARAB\n",
         ARABIC_PHRASES_TEXT,
@@ -82,7 +84,7 @@ def get_full_knowledge_base() -> str:
         "# PERTANYAAN UMUM (FAQ)\n",
         FAQ_TEXT,
     ]
-    
+
     return "\n".join(sections)
 
 
@@ -121,11 +123,11 @@ def get_knowledge_stats() -> dict:
 def search_knowledge_base(query: str, limit: int = 10) -> dict:
     """
     Search across all knowledge base content.
-    
+
     Args:
         query: Search query
         limit: Maximum results per category
-    
+
     Returns:
         Dictionary with search results from each category
     """
@@ -134,14 +136,18 @@ def search_knowledge_base(query: str, limit: int = 10) -> dict:
         "phrases": [],
         "faqs": [],
     }
-    
-    # Search guides
-    guide_results = search_guides(query)
-    for topic, content in guide_results[:limit]:
-        results["guides"].append({
-            "topic": topic,
-            "preview": content[:200] + "..." if len(content) > 200 else content
-        })
+
+    # Search guides (simple keyword matching)
+    query_lower = query.lower()
+    all_guides = get_all_guides()
+    for topic, content in all_guides.items():
+        if query_lower in topic.lower() or query_lower in content.lower():
+            results["guides"].append({
+                "topic": topic,
+                "preview": content[:200] + "..." if len(content) > 200 else content
+            })
+            if len(results["guides"]) >= limit:
+                break
     
     # Search phrases
     phrase_results = search_phrases(query)
@@ -202,15 +208,11 @@ __all__ = [
     # From umrah_guide
     "UMRAH_OVERVIEW",
     "UMRAH_REQUIREMENTS",
-    "UMRAH_PREPARATION",
-    "UMRAH_RITUALS",
     "IHRAM_GUIDE",
     "TAWAF_GUIDE",
     "SAI_GUIDE",
     "TAHALLUL_GUIDE",
     "get_all_guides",
-    "get_guide_by_topic",
-    "search_guides",
     # From arabic_phrases
     "ArabicPhrase",
     "GREETING_PHRASES",
