@@ -941,232 +941,113 @@ def render_3_pilar_framework():
 
 
 def render_features_showcase():
-    """Render features showcase section - SUPER ENHANCED for Umrah Jamaah."""
-    
-    st.markdown("## ✨ Fitur Super Lengkap untuk Jemaah Umrah")
-    st.caption("Semua tools yang Anda butuhkan dari persiapan hingga pulang ke tanah air")
-    
-    # UMRAH MANDIRI FEATURES
-    st.markdown("### 🧭 Umrah Mandiri - Panduan Lengkap DIY")
-    
-    mandiri_features = [
-        {
-            "icon": "📿",
-            "title": "Virtual Manasik Simulator",
-            "description": "Latihan 8 rukun umrah interaktif dengan visualisasi langkah demi langkah. Lengkap dengan doa Arab, latin, dan artinya.",
-            "highlight": "8 Langkah Interaktif"
-        },
-        {
-            "icon": "🧠",
-            "title": "Smart Planner Framework",
-            "description": "Sistem AI cerdas: Smart Prep (persiapan), Smart Savings (budget), Smart Journey (di lapangan).",
-            "highlight": "AI-Powered Planning"
-        },
-        {
-            "icon": "💰",
-            "title": "AI Budget Optimizer",
-            "description": "Hitung estimasi biaya detail: tiket, hotel Makkah & Madinah, transport, makan. Dengan tips hemat hingga 30%!",
-            "highlight": "Smart Cost Calculation"
-        },
-        {
-            "icon": "🌡️",
-            "title": "Weather & Crowd Prediction",
-            "description": "Info cuaca real-time Makkah & Madinah. Prediksi keramaian Thawaf per jam untuk hindari antrian panjang.",
-            "highlight": "Best Time Recommendation"
-        },
-        {
-            "icon": "🤲",
-            "title": "Koleksi Doa Lengkap",
-            "description": "50+ doa umrah dengan teks Arab, transliterasi latin, dan terjemahan. Kategori: Thawaf, Sa'i, Zamzam, dll.",
-            "highlight": "Arabic + Latin + Arti"
-        },
-        {
-            "icon": "🗺️",
-            "title": "Peta Lokasi Penting",
-            "description": "POI Makkah (Masjidil Haram, Jabal Nur, Mina, Arafah) dan Madinah (Masjid Nabawi, Raudhah, Quba, Uhud).",
-            "highlight": "Interactive Map Guide"
-        },
-    ]
-    
-    for i in range(0, len(mandiri_features), 3):
-        cols = st.columns(3)
-        for j, col in enumerate(cols):
-            if i + j < len(mandiri_features):
-                f = mandiri_features[i + j]
-                with col:
-                    with st.container(border=True):
-                        st.markdown(f"### {f['icon']} {f['title']}")
-                        st.write(f['description'])
-                        st.info(f"✨ {f['highlight']}")
-    
-    st.markdown("---")
-    
-    # UMRAH BARENG FEATURES
-    st.markdown("### 👥 Umrah Bareng - Cari Teman Perjalanan")
-    
-    bareng_features = [
-        {
-            "icon": "🎯",
-            "title": "Smart Matching System",
-            "description": "AI matching berdasarkan budget, tanggal, kota asal, gender, dan preferensi perjalanan. Match score hingga 100%!",
-            "highlight": "AI-Powered Matching"
-        },
-        {
-            "icon": "🏆",
-            "title": "Trip Leader Verified",
-            "description": "Lihat profil leader dengan rating, jumlah jamaah yang pernah dipimpin, dan review dari peserta sebelumnya.",
-            "highlight": "Trusted Leaders"
-        },
-        {
-            "icon": "💬",
-            "title": "Group Chat & Discussion",
-            "description": "Diskusi langsung dengan calon teman perjalanan. Koordinasi jadwal, meeting point, dan persiapan bersama.",
-            "highlight": "Real-time Communication"
-        },
-        {
-            "icon": "📋",
-            "title": "Trip Management",
-            "description": "Kelola trip dari pembuatan hingga keberangkatan. Track member, RSVP status, dan payment confirmation.",
-            "highlight": "End-to-End Management"
-        },
-        {
-            "icon": "⭐",
-            "title": "Review & Rating System",
-            "description": "Beri dan baca review pengalaman perjalanan. Bantu jamaah lain menemukan partner terbaik.",
-            "highlight": "Community Trust"
-        },
-        {
-            "icon": "🏅",
-            "title": "Leaderboard & Badges",
-            "description": "Kumpulkan badge: First Timer, Explorer, Community Helper. Naik peringkat di leaderboard jamaah!",
-            "highlight": "Gamification"
-        },
-    ]
-    
-    for i in range(0, len(bareng_features), 3):
-        cols = st.columns(3)
-        for j, col in enumerate(cols):
-            if i + j < len(bareng_features):
-                f = bareng_features[i + j]
-                with col:
-                    with st.container(border=True):
-                        st.markdown(f"### {f['icon']} {f['title']}")
-                        st.write(f['description'])
-                        st.success(f"✨ {f['highlight']}")
-    
-    st.markdown("---")
-    
-    # TOOLS & UTILITIES
-    st.markdown("### 🛠️ Tools & Utilities")
-    
-    tools_features = [
+    """Render features showcase section - only real features."""
+
+    st.markdown("## ✨ Fitur yang Tersedia")
+    st.caption("Tools untuk membantu perencanaan umrah Anda")
+
+    # CORE FEATURES - Actually exist
+    core_features = [
         {
             "icon": "🤖",
             "title": "AI Chat Assistant",
-            "description": "Tanya apa saja tentang umrah 24/7. Dari syarat visa, tips packing, hingga rekomendasi hotel terbaik.",
-            "highlight": "24/7 AI Support"
+            "description": "Tanya jawab seputar umrah dengan AI. Dari tata cara ibadah, tips persiapan, hingga estimasi biaya.",
         },
         {
-            "icon": "🕌",
-            "title": "Tabungan Tracker",
-            "description": "Set target tabungan umrah, track progress harian, dan dapatkan motivasi untuk mencapai goal Anda.",
-            "highlight": "Goal Tracking"
+            "icon": "💰",
+            "title": "Simulasi Biaya",
+            "description": "Hitung estimasi biaya umrah: tiket, hotel, transport, dan kebutuhan lainnya.",
         },
         {
-            "icon": "⏰",
-            "title": "Countdown Timer",
-            "description": "Hitung mundur ke hari H keberangkatan. Dengan milestone reminder: 6 bulan, 3 bulan, 1 bulan, dll.",
-            "highlight": "Smart Reminders"
+            "icon": "🕋",
+            "title": "3D Manasik Virtual",
+            "description": "Visualisasi Ka'bah 3D interaktif dengan panduan tata cara umrah langkah demi langkah.",
         },
         {
-            "icon": "🆘",
-            "title": "Emergency SOS",
-            "description": "Daftar kontak darurat lengkap: Polisi Saudi (999), Ambulance (997), KBRI Riyadh, KJRI Jeddah.",
-            "highlight": "Safety First"
+            "icon": "🤲",
+            "title": "Koleksi Doa",
+            "description": "Kumpulan doa umrah dengan teks Arab, transliterasi latin, dan terjemahan Indonesia.",
         },
         {
-            "icon": "🎯",
-            "title": "Daily Challenges",
-            "description": "Tantangan harian: baca doa, pelajari frasa Arab, checklist persiapan. Dapatkan XP dan naik level!",
-            "highlight": "Stay Motivated"
+            "icon": "👥",
+            "title": "Umrah Bareng",
+            "description": "Fitur untuk mencari dan menemukan teman perjalanan umrah dengan jadwal serupa.",
         },
         {
-            "icon": "🏆",
-            "title": "Achievement System",
-            "description": "Unlock 10+ achievements: Langkah Pertama, Master Planner, Manasik Pro, Istiqomah 7 Hari, dll.",
-            "highlight": "10+ Achievements"
+            "icon": "📊",
+            "title": "Prediksi Keramaian",
+            "description": "Estimasi tingkat keramaian Masjidil Haram untuk membantu perencanaan waktu ibadah.",
         },
     ]
-    
-    for i in range(0, len(tools_features), 3):
+
+    for i in range(0, len(core_features), 3):
         cols = st.columns(3)
         for j, col in enumerate(cols):
-            if i + j < len(tools_features):
-                f = tools_features[i + j]
+            if i + j < len(core_features):
+                f = core_features[i + j]
                 with col:
                     with st.container(border=True):
                         st.markdown(f"### {f['icon']} {f['title']}")
                         st.write(f['description'])
-                        st.warning(f"✨ {f['highlight']}")
 
 
 def render_package_preview():
-    """Render package preview section."""
-    
+    """Render budget range information section."""
+
     st.markdown("---")
-    st.markdown("## 📦 Pilihan Paket Umrah")
-    st.caption("Dari ekonomis hingga VIP, sesuaikan dengan kebutuhan Anda")
-    
-    packages = [
+    st.markdown("## 💰 Kisaran Budget Umrah")
+    st.caption("Estimasi biaya umrah mandiri berdasarkan kelas layanan (harga dapat berubah)")
+
+    # Informational budget ranges - not fake packages
+    budget_info = [
         {
-            "name": "Backpacker",
+            "name": "Hemat",
             "icon": "🎒",
-            "price": "18 Juta",
-            "features": ["Hotel Bintang 3", "Tanpa makan", "Bus sharing"],
-            "color": "#28a745"
+            "range": "15-20 Juta",
+            "desc": "Hotel bintang 3, jarak jauh dari Masjid, transport sharing"
         },
         {
-            "name": "Reguler",
+            "name": "Standar",
             "icon": "⭐",
-            "price": "25 Juta",
-            "features": ["Hotel Bintang 4", "Makan 3x", "Transport full"],
-            "color": "#007bff",
-            "popular": True
+            "range": "20-30 Juta",
+            "desc": "Hotel bintang 4, jarak sedang, transport lebih nyaman"
         },
         {
-            "name": "Plus",
+            "name": "Nyaman",
             "icon": "🌟",
-            "price": "35 Juta",
-            "features": ["Hotel Bintang 5", "Makan premium", "Transport VIP"],
-            "color": "#6f42c1"
+            "range": "30-45 Juta",
+            "desc": "Hotel bintang 5, dekat Masjid, transport VIP"
         },
         {
-            "name": "VIP",
+            "name": "Premium",
             "icon": "👑",
-            "price": "55 Juta",
-            "features": ["Suite room", "Fine dining", "Private car"],
-            "color": "#fd7e14"
+            "range": "45 Juta+",
+            "desc": "Hotel premium, sangat dekat Masjid, layanan eksklusif"
         },
     ]
-    
+
     cols = st.columns(4)
-    
-    for col, pkg in zip(cols, packages):
+
+    for col, info in zip(cols, budget_info):
         with col:
-            with st.container(border=True):
-                if pkg.get("popular"):
-                    st.markdown("🔥 **POPULER**")
-                
-                st.markdown(f"### {pkg['icon']} {pkg['name']}")
-                st.markdown(f"## Rp {pkg['price']}")
-                st.caption("per orang")
-                
-                for feature in pkg['features']:
-                    st.markdown(f"✓ {feature}")
-                
-                if st.button("Lihat Detail", key=f"pkg_{pkg['name']}", use_container_width=True):
-                    st.session_state.current_page = "booking"
-                    st.rerun()
+            st.markdown(f"""
+            <div style="background: linear-gradient(135deg, #1a1a1a 0%, #2d2d2d 100%);
+                        border: 1px solid #333; border-radius: 15px; padding: 1.2rem; text-align: center; min-height: 200px;">
+                <div style="font-size: 2rem;">{info['icon']}</div>
+                <div style="color: #d4af37; font-size: 1.1rem; font-weight: bold; margin: 0.5rem 0;">{info['name']}</div>
+                <div style="color: #fafafa; font-size: 1.3rem; font-weight: bold;">Rp {info['range']}</div>
+                <div style="color: #888; font-size: 0.8rem; margin-top: 0.5rem;">{info['desc']}</div>
+            </div>
+            """, unsafe_allow_html=True)
+
+    st.markdown("")
+    st.caption("💡 *Gunakan Simulasi Biaya untuk kalkulasi detail sesuai kebutuhan Anda*")
+
+    col1, col2, col3 = st.columns([1, 2, 1])
+    with col2:
+        if st.button("💰 Hitung Budget Saya", type="primary", use_container_width=True):
+            st.session_state.current_page = "simulator"
+            st.rerun()
 
 
 def render_testimonials():
@@ -1287,20 +1168,19 @@ def render_quick_chat():
 
 
 def render_partners():
-    """Render technology & compliance badges section."""
+    """Render technology section - only factual claims."""
 
     st.markdown("---")
-    st.markdown("## 🛡️ Teknologi & Keamanan")
+    st.markdown("## 🛠️ Dibangun Dengan")
 
     badges = [
-        ("🤖", "AI-Powered", "Groq & OpenAI"),
-        ("🔒", "Data Aman", "Enkripsi End-to-End"),
-        ("📱", "Multi-Platform", "Web & Mobile Ready"),
-        ("🇮🇩", "Server Indonesia", "Latensi Rendah"),
-        ("✅", "Sesuai Syariah", "Panduan Kemenag"),
+        ("🤖", "AI-Powered", "Groq LLM"),
+        ("🐍", "Python", "Streamlit"),
+        ("🗄️", "Database", "PostgreSQL"),
+        ("☁️", "Cloud", "Railway"),
     ]
 
-    cols = st.columns(5)
+    cols = st.columns(4)
 
     for col, (icon, title, desc) in zip(cols, badges):
         with col:
@@ -1309,23 +1189,20 @@ def render_partners():
 
 
 def render_newsletter():
-    """Render newsletter subscription section."""
-    
+    """Render contact/follow section."""
+
     st.markdown("---")
-    
+
     col1, col2 = st.columns([2, 1])
-    
+
     with col1:
-        st.markdown("### 📬 Dapatkan Info Terbaru")
-        st.caption("Promo, tips umrah, dan jadwal keberangkatan langsung ke inbox Anda")
-    
+        st.markdown("### 📱 Ikuti Perkembangan LABBAIK")
+        st.caption("Dapatkan tips umrah, update fitur, dan info menarik lainnya")
+
     with col2:
-        email = st.text_input("Email", placeholder="email@anda.com", label_visibility="collapsed")
-        if st.button("Subscribe", type="primary", use_container_width=True):
-            if email and "@" in email:
-                st.success("✅ Terima kasih telah subscribe!")
-            else:
-                st.error("Email tidak valid")
+        st.markdown("**Follow Instagram kami:**")
+        st.markdown("[@labbaik.ai](https://instagram.com/labbaik.ai)")
+        st.caption("atau email ke founder@labbaik.io")
 
 
 def render_footer():
