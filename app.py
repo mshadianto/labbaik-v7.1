@@ -176,6 +176,19 @@ except ImportError:
         st.info("Segera hadir: Bandingkan harga hotel dari 200+ OTA!")
 
 # =============================================================================
+# 🆕 Unified Price Hub (replaces hotel_compare + price_comparison)
+# =============================================================================
+try:
+    from ui.pages.price_hub import render_price_hub_page
+    HAS_PRICE_HUB = True
+except ImportError:
+    HAS_PRICE_HUB = False
+    def render_price_hub_page():
+        st.markdown("# 💰 Pusat Perbandingan Harga")
+        st.warning("⚠️ Fitur Price Hub belum tersedia")
+        st.info("Segera hadir: Bandingkan hotel, penerbangan & paket!")
+
+# =============================================================================
 # Smart Checklist
 # =============================================================================
 try:
@@ -639,20 +652,12 @@ def render_sidebar():
                 st.session_state.current_page = "umrah_bareng"
                 st.rerun()
 
-            # Price Comparison
-            if HAS_PRICE_AGGREGATION:
-                is_price = st.session_state.get("current_page") == "price_comparison"
-                if st.button("💵 Perbandingan Harga", key="p2_price", use_container_width=True,
-                            type="primary" if is_price else "secondary"):
-                    st.session_state.current_page = "price_comparison"
-                    st.rerun()
-
-            # Hotel Comparison (Makcorps)
-            if HAS_HOTEL_COMPARE:
-                is_hotel = st.session_state.get("current_page") == "hotel_compare"
-                if st.button("🏨 Bandingkan Hotel", key="p2_hotel", use_container_width=True,
-                            type="primary" if is_hotel else "secondary"):
-                    st.session_state.current_page = "hotel_compare"
+            # Unified Price Hub (Hotel + Flight + Package)
+            if HAS_PRICE_HUB:
+                is_price_hub = st.session_state.get("current_page") == "price_hub"
+                if st.button("💰 Pusat Harga", key="p2_price_hub", use_container_width=True,
+                            type="primary" if is_price_hub else "secondary"):
+                    st.session_state.current_page = "price_hub"
                     st.rerun()
 
             # Booking
@@ -888,6 +893,9 @@ def render_page():
 
         # v7.1 Hotel Comparison (Makcorps)
         "hotel_compare": render_hotel_compare_page,
+
+        # v7.6 Unified Price Hub
+        "price_hub": render_price_hub_page,
     }
     
     renderer = page_map.get(page, render_home_page)
