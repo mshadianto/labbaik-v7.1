@@ -35,6 +35,11 @@ class Feature(str, Enum):
     SMART_CHECKLIST = "smart_checklist"
     AI_ITINERARY = "ai_itinerary"
 
+    # Expert AI Features (Premium-locked)
+    PERSONALIZED_AI_ADVICE = "personalized_ai_advice"
+    DETAILED_PRICE_COMPARISON = "detailed_price_comparison"
+    FINANCIAL_ANALYSIS = "financial_analysis"
+
     # Partner features
     MANAGE_PACKAGES = "manage_packages"
     VIEW_ANALYTICS = "view_analytics"
@@ -66,6 +71,11 @@ FEATURE_ROLES = {
     Feature.DOWNLOAD_REPORTS: UserRole.PREMIUM,
     Feature.PRIORITY_SUPPORT: UserRole.PREMIUM,
     Feature.AI_ITINERARY: UserRole.PREMIUM,
+
+    # Expert AI (Premium-locked)
+    Feature.PERSONALIZED_AI_ADVICE: UserRole.PREMIUM,
+    Feature.DETAILED_PRICE_COMPARISON: UserRole.PREMIUM,
+    Feature.FINANCIAL_ANALYSIS: UserRole.PREMIUM,
 
     # Partner
     Feature.MANAGE_PACKAGES: UserRole.PARTNER,
@@ -385,3 +395,53 @@ def check_page_access(page: str) -> tuple[bool, str]:
 def get_page_access_role(page: str) -> UserRole:
     """Get required role for a page"""
     return PAGE_ACCESS.get(page, UserRole.GUEST)
+
+
+# =============================================================================
+# PREMIUM FEATURE PAYWALL UI
+# =============================================================================
+
+def render_expert_feature_paywall(feature_name: str = "Expert AI", benefit_text: str = None):
+    """
+    Render a clean paywall UI for premium/expert features.
+    Used for gating personalized AI advice, detailed price comparison, etc.
+    """
+    if benefit_text is None:
+        benefit_text = "analisis mendalam untuk mengoptimalkan dana tabungan Anda"
+
+    st.markdown(f"""
+    <div style="background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+                border: 1px solid #d4af37; border-radius: 15px;
+                padding: 1.5rem; text-align: center; margin: 1rem 0;">
+        <div style="font-size: 2rem; margin-bottom: 0.5rem;">🔐</div>
+        <h3 style="color: #d4af37; margin-bottom: 0.5rem;">Fitur {feature_name}</h3>
+        <p style="color: #ccc; font-size: 0.9rem; margin-bottom: 1rem;">
+            Dapatkan {benefit_text} agar berangkat lebih cepat.
+        </p>
+    </div>
+    """, unsafe_allow_html=True)
+
+    col1, col2, col3 = st.columns([1, 2, 1])
+    with col2:
+        if st.button("✨ Upgrade ke Premium", type="primary", use_container_width=True, key=f"upgrade_{feature_name}"):
+            st.session_state.current_page = "subscription"
+            st.rerun()
+
+    st.caption("Mulai dari Rp 99.000/bulan")
+
+
+def check_expert_feature(feature: Feature, feature_name: str = "Expert AI") -> bool:
+    """
+    Check if user can access an expert feature.
+    If not, renders paywall and returns False.
+    """
+    has_access, reason = check_access(feature=feature)
+
+    if not has_access:
+        if reason == "login_required":
+            render_access_denied(reason, feature_name)
+        else:
+            render_expert_feature_paywall(feature_name)
+        return False
+
+    return True

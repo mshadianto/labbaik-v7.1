@@ -613,11 +613,21 @@ def render_sidebar():
         # SMART SAVINGS - Hemat Cerdas (Expanded by Default - Main Focus)
         # =====================================================================
         with st.expander(f"💰 {SMART_SAVINGS}", expanded=True):
-            st.caption("Optimasi budget cerdas, hemat hingga jutaan rupiah")
+            # LOSS AVERSION NUDGE - Creates urgency
+            st.markdown("""
+            <div style="background: linear-gradient(90deg, #8B0000 0%, #4a1010 100%);
+                        padding: 0.6rem 0.8rem; border-radius: 8px; margin-bottom: 0.8rem;
+                        border-left: 3px solid #ff4444;">
+                <span style="color: #ffcc00; font-size: 0.85rem;">
+                    ⚠️ <strong>Waspada:</strong> Biaya Umrah naik rata-rata 5% tiap tahun karena inflasi.
+                    Kunci estimasi hargamu sekarang agar rencana tidak meleset.
+                </span>
+            </div>
+            """, unsafe_allow_html=True)
 
             # Primary CTA - Budget Optimizer
             is_simulator = st.session_state.get("current_page") == "simulator"
-            if st.button("💰 AI Budget Optimizer", key="p2_simulator", use_container_width=True,
+            if st.button("📉 Kunci Estimasi Harga Sekarang", key="p2_simulator", use_container_width=True,
                         type="primary"):
                 st.session_state.current_page = "simulator"
                 st.rerun()

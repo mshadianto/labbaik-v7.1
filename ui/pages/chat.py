@@ -589,7 +589,62 @@ def render_chat_input():
 
 
 def render_chat_features():
-    """Render additional chat features."""
+    """Render additional chat features with premium gating."""
+
+    # === EXPERT AI FEATURE (Premium-locked) ===
+    with st.expander("🧠 Expert AI - Analisis Personal", expanded=False):
+        # Check if user has premium access
+        try:
+            from services.user.access_control import (
+                Feature, check_expert_feature, has_feature_access
+            )
+            from services.user.user_service import get_current_user
+
+            user = get_current_user()
+            has_expert_access = has_feature_access(user, Feature.PERSONALIZED_AI_ADVICE)
+        except:
+            has_expert_access = False
+
+        if has_expert_access:
+            # === PREMIUM USER: Full Expert Features ===
+            st.success("Expert AI Aktif")
+
+            expert_options = [
+                ("📊", "Analisis Rencana Keuangan", "Analisis mendalam tabungan dan target umrah Anda"),
+                ("💡", "Rekomendasi Personal", "Saran optimal berdasarkan profil dan preferensi"),
+                ("📈", "Proyeksi Tabungan", "Simulasi kapan target tercapai dengan berbagai skenario"),
+            ]
+
+            for icon, label, desc in expert_options:
+                with st.container(border=True):
+                    col1, col2 = st.columns([3, 1])
+                    with col1:
+                        st.markdown(f"**{icon} {label}**")
+                        st.caption(desc)
+                    with col2:
+                        if st.button("Mulai", key=f"expert_{label}", use_container_width=True):
+                            # Trigger expert analysis prompt
+                            st.session_state.expert_prompt = label
+                            st.rerun()
+        else:
+            # === FREE USER: Show paywall ===
+            st.markdown("""
+            <div style="background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+                        border: 1px solid #d4af37; border-radius: 12px;
+                        padding: 1.2rem; text-align: center;">
+                <div style="font-size: 1.8rem; margin-bottom: 0.3rem;">🔐</div>
+                <h4 style="color: #d4af37; margin-bottom: 0.3rem;">Fitur Expert AI</h4>
+                <p style="color: #aaa; font-size: 0.85rem; margin-bottom: 0.8rem;">
+                    Dapatkan analisis mendalam untuk mengoptimalkan dana tabungan Anda agar berangkat lebih cepat.
+                </p>
+            </div>
+            """, unsafe_allow_html=True)
+
+            if st.button("✨ Upgrade ke Premium", type="primary", use_container_width=True, key="expert_upgrade"):
+                st.session_state.current_page = "subscription"
+                st.rerun()
+
+            st.caption("Mulai dari Rp 99.000/bulan")
 
     with st.expander("🛠️ Fitur Tambahan", expanded=False):
         # Voice Input Section

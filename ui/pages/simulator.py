@@ -1024,32 +1024,156 @@ def render_budget_planner(cost: CostBreakdown, num_travelers: int):
 
 
 def render_save_simulation(params: Dict, cost: CostBreakdown):
-    """Render save/export simulation."""
-    
+    """Render save/export simulation with WhatsApp gating for anonymous users."""
+
     st.markdown("---")
-    
-    col1, col2, col3 = st.columns(3)
-    
-    with col1:
-        if st.button("💾 Simpan Simulasi", use_container_width=True):
-            simulation = {
-                "timestamp": datetime.now().isoformat(),
-                "params": {k: str(v) if isinstance(v, date) else v for k, v in params.items()},
-                "total": cost.total,
-            }
-            st.session_state.sim_saved.append(simulation)
-            st.success("✅ Simulasi disimpan!")
-    
-    with col2:
-        if st.button("📤 Export PDF", use_container_width=True):
-            st.info("Fitur export PDF akan segera hadir")
-    
-    with col3:
-        if st.button("📱 Share WhatsApp", use_container_width=True):
-            total = format_currency(cost.total)
-            msg = f"Simulasi Umrah LABBAIK:\n💰 Total: {total}/orang\n🔗 Hitung di: labbaik.streamlit.app"
-            st.code(msg)
-            st.caption("Copy dan paste ke WhatsApp")
+
+    # Check if user is logged in
+    try:
+        from services.user.user_service import is_logged_in, get_current_user
+        user_logged_in = is_logged_in()
+        current_user = get_current_user()
+    except:
+        user_logged_in = False
+        current_user = None
+
+    # Store simulation in session for later use (anonymous-first)
+    if "pending_simulation" not in st.session_state:
+        st.session_state.pending_simulation = None
+
+    # Save current simulation to session
+    simulation_data = {
+        "timestamp": datetime.now().isoformat(),
+        "params": {k: str(v) if isinstance(v, date) else v for k, v in params.items()},
+        "total": cost.total,
+        "breakdown": {
+            "flight": cost.flight,
+            "visa": cost.visa,
+            "hotel_makkah": cost.hotel_makkah,
+            "hotel_madinah": cost.hotel_madinah,
+            "transport": cost.transport,
+            "meals": cost.meals,
+            "mutawif": cost.mutawif,
+            "insurance": cost.insurance,
+            "misc": cost.misc,
+        }
+    }
+    st.session_state.pending_simulation = simulation_data
+
+    if user_logged_in:
+        # === LOGGED IN USER: Full features ===
+        col1, col2, col3 = st.columns(3)
+
+        with col1:
+            if st.button("💾 Simpan Simulasi", use_container_width=True):
+                st.session_state.sim_saved.append(simulation_data)
+                st.success("Simulasi disimpan!")
+
+        with col2:
+            if st.button("📤 Export PDF", use_container_width=True):
+                st.info("Fitur export PDF akan segera hadir")
+
+        with col3:
+            if st.button("📱 Kirim ke WhatsApp", use_container_width=True, type="primary"):
+                _send_simulation_to_whatsapp(simulation_data, current_user)
+
+    else:
+        # === ANONYMOUS USER: WhatsApp Gating ===
+        st.markdown("""
+        <div style="background: linear-gradient(135deg, #1a472a 0%, #2d5a3d 100%);
+                    padding: 1.5rem; border-radius: 15px; text-align: center;
+                    border: 1px solid #d4af37; margin: 1rem 0;">
+            <h3 style="color: #d4af37; margin-bottom: 0.5rem;">
+                Simpan Rencana Umrah Anda
+            </h3>
+            <p style="color: #ccc; font-size: 0.9rem;">
+                Dapatkan jadwal rencana lengkap langsung ke WhatsApp Anda
+            </p>
+        </div>
+        """, unsafe_allow_html=True)
+
+        col1, col2 = st.columns([2, 1])
+
+        with col1:
+            # HIGH-INTENT CTA BUTTON
+            if st.button(
+                "📲 Kirim Jadwal Rencana ke WhatsApp Saya",
+                use_container_width=True,
+                type="primary",
+                key="wa_gate_btn"
+            ):
+                # Track WhatsApp gating click event for funnel analysis
+                try:
+                    from services.analytics.tracker import track_whatsapp_gating_click
+                    track_whatsapp_gating_click(
+                        page_name="simulator",
+                        simulation_data=simulation_data
+                    )
+                except Exception:
+                    pass  # Don't block UX if tracking fails
+
+                # Store simulation and redirect to auth
+                st.session_state.pending_simulation = simulation_data
+                st.session_state.auth_redirect_to = "simulator"
+                st.session_state.auth_action = "send_wa_simulation"
+                st.session_state.current_page = "auth"
+                st.session_state.auth_mode = "login"
+                st.rerun()
+
+        with col2:
+            st.caption("Gratis & tanpa spam")
+
+        # Secondary option
+        st.markdown("---")
+        st.caption("Atau copy manual:")
+        total = format_currency(cost.total)
+        msg = f"Simulasi Umrah LABBAIK:\n💰 Total: {total}/orang\n📅 Durasi: {params.get('duration', 10)} hari\n🔗 Hitung sendiri di: labbaik.streamlit.app"
+        st.code(msg)
+
+
+def _send_simulation_to_whatsapp(simulation: Dict, user):
+    """Send simulation summary to user's WhatsApp."""
+    try:
+        from services.whatsapp import send_whatsapp_message
+
+        if not user or not getattr(user, 'phone', None):
+            st.warning("Nomor WhatsApp belum terdaftar. Silakan update di profil.")
+            return
+
+        # Format message
+        total = format_currency(simulation.get('total', 0))
+        params = simulation.get('params', {})
+
+        message = f"""
+*Rencana Umrah Anda*
+
+📅 *Keberangkatan:* {params.get('departure_city', 'N/A')}
+🗓️ *Tanggal:* {params.get('departure_date', 'N/A')}
+⏱️ *Durasi:* {params.get('duration', 10)} hari
+
+💰 *Estimasi Biaya:*
+{total} per orang
+
+🕋 Makkah: {params.get('nights_makkah', 5)} malam
+🕌 Madinah: {params.get('nights_madinah', 4)} malam
+
+---
+Simulasi dari LABBAIK Smart Planner
+🔗 labbaik.streamlit.app
+        """.strip()
+
+        # Send via WAHA
+        success = send_whatsapp_message(user.phone, message)
+
+        if success:
+            st.success("Jadwal rencana telah dikirim ke WhatsApp Anda!")
+        else:
+            st.warning("Gagal mengirim. Silakan coba lagi.")
+
+    except ImportError:
+        st.info("Layanan WhatsApp belum tersedia. Copy pesan di bawah:")
+        total = format_currency(simulation.get('total', 0))
+        st.code(f"Rencana Umrah: {total}/orang")
 
 
 def render_saved_simulations():

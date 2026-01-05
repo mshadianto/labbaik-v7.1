@@ -27,6 +27,15 @@ except ImportError:
     HAS_MAKCORPS = False
     logger.warning("Makcorps API not available")
 
+# Access control imports
+try:
+    from services.user.access_control import Feature, has_feature_access
+    from services.user.user_service import get_current_user
+    HAS_ACCESS_CONTROL = True
+except ImportError:
+    HAS_ACCESS_CONTROL = False
+    logger.warning("Access control not available")
+
 
 # =============================================================================
 # HELPER FUNCTIONS
@@ -171,21 +180,54 @@ def render_hotel_card(hotel: Dict, nights: int = 1):
             st.markdown(f"**Total: {currency} {total:,.0f}**")
             st.caption(f"untuk {nights} malam")
 
-        # Vendor comparison
+        # Vendor comparison (PREMIUM FEATURE)
         vendors = hotel.get('vendors', [])
         if vendors:
             st.markdown("---")
-            st.markdown("**💰 Perbandingan Harga:**")
 
-            vendor_cols = st.columns(min(len(vendors), 4))
-            for i, vendor in enumerate(vendors[:4]):
-                with vendor_cols[i]:
-                    st.markdown(f"""
-                    <div style="background: #1a1a1a; padding: 0.5rem; border-radius: 8px; text-align: center;">
-                        <div style="color: #888; font-size: 0.75rem;">{vendor.get('name', 'OTA')}</div>
-                        <div style="color: #d4af37; font-weight: bold;">{currency} {vendor.get('price', 0):,.0f}</div>
+            # Check if user has premium access for detailed vendor breakdown
+            has_vendor_access = False
+            if HAS_ACCESS_CONTROL:
+                try:
+                    user = get_current_user()
+                    has_vendor_access = has_feature_access(user, Feature.DETAILED_PRICE_COMPARISON)
+                except:
+                    has_vendor_access = False
+
+            if has_vendor_access:
+                # === PREMIUM USER: Full vendor comparison ===
+                st.markdown("**💰 Perbandingan Harga dari 200+ OTA:**")
+
+                vendor_cols = st.columns(min(len(vendors), 4))
+                for i, vendor in enumerate(vendors[:4]):
+                    with vendor_cols[i]:
+                        st.markdown(f"""
+                        <div style="background: #1a1a1a; padding: 0.5rem; border-radius: 8px; text-align: center;">
+                            <div style="color: #888; font-size: 0.75rem;">{vendor.get('name', 'OTA')}</div>
+                            <div style="color: #d4af37; font-weight: bold;">{currency} {vendor.get('price', 0):,.0f}</div>
+                        </div>
+                        """, unsafe_allow_html=True)
+
+                # Show if more vendors available
+                if len(vendors) > 4:
+                    st.caption(f"+ {len(vendors) - 4} OTA lainnya tersedia")
+            else:
+                # === FREE USER: Show paywall for vendor comparison ===
+                st.markdown(f"""
+                <div style="background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+                            border: 1px solid #d4af37; border-radius: 10px;
+                            padding: 1rem; text-align: center; margin: 0.5rem 0;">
+                    <div style="color: #d4af37; font-weight: bold; margin-bottom: 0.3rem;">
+                        🔐 Perbandingan Harga {len(vendors)} OTA
                     </div>
-                    """, unsafe_allow_html=True)
+                    <div style="color: #888; font-size: 0.8rem; margin-bottom: 0.5rem;">
+                        Lihat harga dari Booking.com, Agoda, Expedia & lainnya
+                    </div>
+                    <div style="color: #666; font-size: 0.75rem;">
+                        Upgrade ke Premium untuk akses lengkap
+                    </div>
+                </div>
+                """, unsafe_allow_html=True)
 
         # Best deal indicator
         if hotel.get('vendor_name'):
@@ -218,6 +260,30 @@ def render_hotel_list(result: Dict):
         st.success("🟢 Data real-time dari 200+ OTA")
     else:
         st.info("📊 Data demo - Hubungkan API untuk harga live")
+
+    # Check premium access and show upgrade CTA if needed
+    has_premium = False
+    if HAS_ACCESS_CONTROL:
+        try:
+            user = get_current_user()
+            has_premium = has_feature_access(user, Feature.DETAILED_PRICE_COMPARISON)
+        except:
+            pass
+
+    if not has_premium:
+        st.markdown("""
+        <div style="background: linear-gradient(90deg, #1a1a2e 0%, #0d1b2a 100%);
+                    border: 1px solid #d4af37; border-radius: 8px;
+                    padding: 0.8rem; margin: 0.5rem 0;">
+            <span style="color: #d4af37;">✨ <strong>Tip Premium:</strong></span>
+            <span style="color: #ccc; font-size: 0.9rem;">
+                Upgrade untuk melihat perbandingan harga lengkap dari 200+ OTA dan temukan deal terbaik.
+            </span>
+        </div>
+        """, unsafe_allow_html=True)
+        if st.button("🔓 Upgrade ke Premium", key="hotel_upgrade_cta"):
+            st.session_state.current_page = "subscription"
+            st.rerun()
 
     st.caption(f"Check-in: {result.get('check_in')} | Check-out: {result.get('check_out')} | {nights} malam")
 

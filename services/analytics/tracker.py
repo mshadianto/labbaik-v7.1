@@ -442,6 +442,63 @@ class AnalyticsTracker:
             event_label=pillar_name
         )
 
+    def track_whatsapp_gating_click(
+        self,
+        page_name: str = "simulator",
+        simulation_data: Optional[Dict[str, Any]] = None
+    ) -> bool:
+        """
+        Track WhatsApp gating button click (conversion funnel event).
+
+        This tracks when anonymous users click 'Kirim Jadwal Rencana ke WhatsApp Saya'
+        which gates them through login before sending simulation results via WhatsApp.
+
+        Args:
+            page_name: Page where the click occurred
+            simulation_data: Optional simulation parameters for context
+
+        Returns:
+            True if tracking successful
+        """
+        metadata = {
+            'funnel_step': 'whatsapp_gating_click',
+            'user_state': 'anonymous'
+        }
+
+        # Add simulation context if available
+        if simulation_data:
+            metadata['total_cost'] = simulation_data.get('total_cost')
+            metadata['departure_month'] = simulation_data.get('departure_month')
+            metadata['num_pilgrims'] = simulation_data.get('num_pilgrims')
+
+        return self.track_event(
+            event_type='button_click',
+            event_category='whatsapp_gating',
+            event_action='gating_click',
+            event_label='send_wa_simulation',
+            page_name=page_name,
+            metadata=metadata
+        )
+
+    def track_whatsapp_gating_complete(
+        self,
+        page_name: str = "simulator"
+    ) -> bool:
+        """
+        Track successful WhatsApp gating completion (user logged in + WA sent).
+
+        Returns:
+            True if tracking successful
+        """
+        return self.track_event(
+            event_type='conversion',
+            event_category='whatsapp_gating',
+            event_action='gating_complete',
+            event_label='wa_sent_after_login',
+            page_name=page_name,
+            metadata={'funnel_step': 'whatsapp_gating_complete'}
+        )
+
     def get_daily_trend(self, days: int = 7) -> List[Dict]:
         """Get daily visitor trend."""
         if not self.db:
@@ -562,6 +619,27 @@ def track_conversion(conversion_type: str, value: Optional[float] = None) -> boo
     return get_analytics_tracker().track_conversion(conversion_type, value)
 
 
+def track_whatsapp_gating_click(
+    page_name: str = "simulator",
+    simulation_data: Optional[Dict[str, Any]] = None
+) -> bool:
+    """
+    Track WhatsApp gating button click.
+
+    Call this when anonymous user clicks 'Kirim Jadwal Rencana ke WhatsApp Saya'.
+    """
+    return get_analytics_tracker().track_whatsapp_gating_click(page_name, simulation_data)
+
+
+def track_whatsapp_gating_complete(page_name: str = "simulator") -> bool:
+    """
+    Track successful WhatsApp gating completion.
+
+    Call this after user logs in and WhatsApp message is sent.
+    """
+    return get_analytics_tracker().track_whatsapp_gating_complete(page_name)
+
+
 # Export
 __all__ = [
     "AnalyticsTracker",
@@ -572,5 +650,7 @@ __all__ = [
     "track_smart_nudge_show",
     "track_smart_nudge_click",
     "track_feature_usage",
-    "track_conversion"
+    "track_conversion",
+    "track_whatsapp_gating_click",
+    "track_whatsapp_gating_complete",
 ]
