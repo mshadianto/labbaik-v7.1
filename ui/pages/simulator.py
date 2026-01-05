@@ -625,12 +625,344 @@ def calculate_break_even_analysis(
 
 def init_simulator_state():
     """Initialize simulator session state."""
-    
+
     if "sim_history" not in st.session_state:
         st.session_state.sim_history = []
-    
+
     if "sim_saved" not in st.session_state:
         st.session_state.sim_saved = []
+
+    # Group planning state
+    if "sim_group" not in st.session_state:
+        st.session_state.sim_group = None  # Current SimulationGroup
+
+    if "sim_group_members" not in st.session_state:
+        st.session_state.sim_group_members = []  # List[GroupMember]
+
+    if "sim_group_totals" not in st.session_state:
+        st.session_state.sim_group_totals = {}  # Group financial summary
+
+    if "is_group_view" not in st.session_state:
+        st.session_state.is_group_view = False  # Flag for group mode
+
+
+# =============================================================================
+# GROUP PLANNING FUNCTIONS
+# =============================================================================
+
+def check_group_from_url():
+    """
+    Check URL query params for group_id and load group data.
+    Returns SimulationGroup if found, None otherwise.
+    """
+    try:
+        group_code = st.query_params.get("group_id")
+        if not group_code:
+            return None
+
+        from utils.group_manager import (
+            get_group_by_code, get_group_members, calculate_group_totals,
+            add_member_to_group, MemberStatus
+        )
+
+        group = get_group_by_code(group_code)
+        if group:
+            st.session_state.sim_group = group
+            st.session_state.sim_group_members = get_group_members(group.id)
+            st.session_state.sim_group_totals = calculate_group_totals(group.id)
+            st.session_state.is_group_view = True
+
+            # Check if user needs to join the group
+            try:
+                from services.user.user_service import is_logged_in, get_current_user
+                if is_logged_in():
+                    user = get_current_user()
+                    # Check if user is already a member
+                    from utils.group_manager import get_member_by_user_id
+                    existing = get_member_by_user_id(group.id, user.id)
+                    if not existing:
+                        # Auto-add user to group
+                        add_member_to_group(
+                            group_id=group.id,
+                            name=user.name,
+                            user_id=user.id,
+                            phone=getattr(user, 'phone', None),
+                            status=MemberStatus.ACTIVE
+                        )
+                        st.session_state.sim_group_members = get_group_members(group.id)
+                        st.session_state.sim_group_totals = calculate_group_totals(group.id)
+                        st.toast(f"Anda bergabung ke grup '{group.name}'!")
+                else:
+                    # Not logged in - will show login prompt
+                    pass
+            except ImportError:
+                pass
+
+            return group
+
+        return None
+    except Exception as e:
+        import logging
+        logging.error(f"Error loading group from URL: {e}")
+        return None
+
+
+def handle_group_auth_callback():
+    """Handle post-authentication actions for groups."""
+    auth_action = st.session_state.get("auth_action")
+
+    if auth_action == "create_group":
+        # User just logged in to create a group
+        pending = st.session_state.get("pending_group_data")
+        if pending:
+            st.session_state.auth_action = None
+            st.info("Grup Anda siap dibuat. Silakan klik tombol 'Buat Grup' lagi.")
+
+    elif auth_action == "join_group":
+        # User just logged in to join a group
+        group_code = st.query_params.get("group_id")
+        if group_code:
+            from utils.group_manager import get_group_by_code, add_member_to_group, MemberStatus
+            group = get_group_by_code(group_code)
+            if group:
+                try:
+                    from services.user.user_service import get_current_user
+                    user = get_current_user()
+                    add_member_to_group(
+                        group_id=group.id,
+                        name=user.name,
+                        user_id=user.id,
+                        phone=getattr(user, 'phone', None),
+                        status=MemberStatus.ACTIVE
+                    )
+                    st.session_state.auth_action = None
+                    st.success(f"Anda bergabung ke grup '{group.name}'!")
+                except:
+                    pass
+
+
+def render_group_header(group):
+    """Render group info banner at top of simulator."""
+    from utils.group_manager import MemberStatus
+
+    with st.container(border=True):
+        st.markdown(f"""
+        <div style="background: linear-gradient(135deg, #1a472a 0%, #2d5a3d 100%);
+                    padding: 1rem; border-radius: 10px; margin-bottom: 0.5rem;">
+            <h3 style="color: #d4af37; margin: 0;">
+                Rencana Umrah Grup: {group.name}
+            </h3>
+            <p style="color: #ccc; margin: 0.5rem 0 0 0; font-size: 0.9rem;">
+                Kode Grup: <strong>{group.group_code}</strong> |
+                Dibuat oleh: {group.leader_name}
+            </p>
+        </div>
+        """, unsafe_allow_html=True)
+
+        # Show group totals if we have multiple members
+        totals = st.session_state.sim_group_totals
+        members = st.session_state.sim_group_members
+
+        if totals.get("total_members", 0) > 0:
+            col1, col2, col3, col4 = st.columns(4)
+
+            with col1:
+                st.metric("Total Anggota", f"{totals.get('total_members', 0)} orang")
+            with col2:
+                st.metric("Dana Target", format_currency(totals.get('total_target', 0)))
+            with col3:
+                st.metric("Terkumpul", format_currency(totals.get('total_collected', 0)))
+            with col4:
+                st.metric("Kekurangan/Orang", format_currency(totals.get('per_person_remaining', 0)))
+
+            # Progress bar
+            progress = totals.get('progress_percentage', 0) / 100
+            st.progress(min(progress, 1.0), text=f"Terkumpul: {totals.get('progress_percentage', 0):.1f}%")
+
+        # Show members
+        if members:
+            with st.expander(f"Anggota Grup ({len(members)} orang)", expanded=False):
+                for member in members:
+                    status_icon = "✅" if member.status == MemberStatus.ACTIVE else "⏳"
+                    role_badge = "👑" if member.role.value == "leader" else ""
+                    contrib = format_currency(member.contribution_amount) if member.contribution_amount > 0 else "-"
+
+                    col1, col2 = st.columns([3, 1])
+                    with col1:
+                        st.markdown(f"{status_icon} **{member.name}** {role_badge}")
+                    with col2:
+                        st.caption(contrib)
+
+
+def render_group_share_section(group):
+    """Render group sharing options."""
+    from utils.group_manager import generate_share_url, generate_whatsapp_share_link
+
+    st.markdown("### 📤 Bagikan ke Keluarga")
+
+    share_url = generate_share_url(group.group_code)
+    wa_link = generate_whatsapp_share_link(group, share_url)
+
+    col1, col2 = st.columns(2)
+
+    with col1:
+        st.link_button(
+            "📲 Bagikan ke WhatsApp Keluarga",
+            wa_link,
+            use_container_width=True,
+            type="primary"
+        )
+
+    with col2:
+        st.code(f"Kode: {group.group_code}", language=None)
+
+    st.caption(f"Link: {share_url}")
+
+
+def render_create_group_form(params: Dict, cost):
+    """Render form to create a new group from current simulation."""
+
+    st.markdown("---")
+    st.markdown("### 👨‍👩‍👧‍👦 Rencanakan Bersama Keluarga")
+    st.caption("Buat grup untuk berbagi rencana dan pantau tabungan bersama")
+
+    with st.form("create_group_form", clear_on_submit=False):
+        group_name = st.text_input(
+            "Nama Grup",
+            placeholder="Contoh: Keluarga Pak Ahmad",
+            max_chars=50,
+            value=st.session_state.get("pending_group_name", "")
+        )
+
+        target_date = st.date_input(
+            "Target Keberangkatan",
+            value=params.get("departure_date", date.today() + timedelta(days=60))
+        )
+
+        submitted = st.form_submit_button(
+            "🚀 Buat Grup Umrah",
+            use_container_width=True,
+            type="primary"
+        )
+
+        if submitted and group_name:
+            # Check login status
+            try:
+                from services.user.user_service import is_logged_in, get_current_user
+
+                if not is_logged_in():
+                    # Store pending data and redirect to auth
+                    st.session_state.pending_group_data = {
+                        "params": {k: str(v) if isinstance(v, date) else v for k, v in params.items()},
+                        "breakdown": {
+                            "flight": cost.flight,
+                            "visa": cost.visa,
+                            "hotel_makkah": cost.hotel_makkah,
+                            "hotel_madinah": cost.hotel_madinah,
+                            "transport": cost.transport,
+                            "meals": cost.meals,
+                            "mutawif": cost.mutawif,
+                            "insurance": cost.insurance,
+                            "misc": cost.misc,
+                            "total": cost.total,
+                        },
+                        "group_name": group_name,
+                        "target_date": str(target_date),
+                        "cost_per_person": cost.total
+                    }
+                    st.session_state.pending_group_name = group_name
+                    st.session_state.auth_redirect_to = "simulator"
+                    st.session_state.auth_action = "create_group"
+                    st.session_state.current_page = "auth"
+                    st.session_state.auth_mode = "login"
+                    st.rerun()
+                    return
+
+                # User is logged in - create the group
+                user = get_current_user()
+
+                from utils.group_manager import create_group, generate_share_url, generate_whatsapp_share_link
+
+                simulation_params = {k: str(v) if isinstance(v, date) else v for k, v in params.items()}
+                simulation_breakdown = {
+                    "flight": cost.flight,
+                    "visa": cost.visa,
+                    "hotel_makkah": cost.hotel_makkah,
+                    "hotel_madinah": cost.hotel_madinah,
+                    "transport": cost.transport,
+                    "meals": cost.meals,
+                    "mutawif": cost.mutawif,
+                    "insurance": cost.insurance,
+                    "misc": cost.misc,
+                    "total": cost.total,
+                }
+
+                group = create_group(
+                    name=group_name,
+                    leader_id=user.id,
+                    leader_name=user.name,
+                    leader_phone=getattr(user, 'phone', None),
+                    target_date=target_date,
+                    simulation_params=simulation_params,
+                    simulation_breakdown=simulation_breakdown,
+                    cost_per_person=cost.total
+                )
+
+                if group:
+                    st.session_state.sim_group = group
+                    st.session_state.is_group_view = True
+                    st.session_state.pending_group_name = ""
+                    st.session_state.pending_group_data = None
+
+                    # Show success with share options
+                    st.success(f"✅ Grup '{group_name}' berhasil dibuat!")
+                    st.info(f"**Kode Grup:** {group.group_code}")
+
+                    share_url = generate_share_url(group.group_code)
+                    wa_link = generate_whatsapp_share_link(group, share_url)
+
+                    st.link_button(
+                        "📲 Bagikan ke WhatsApp Keluarga",
+                        wa_link,
+                        use_container_width=True,
+                        type="primary"
+                    )
+
+                    st.rerun()
+                else:
+                    st.error("Gagal membuat grup. Silakan coba lagi.")
+
+            except ImportError:
+                st.warning("Fitur login diperlukan untuk membuat grup")
+
+        elif submitted and not group_name:
+            st.warning("Silakan masukkan nama grup")
+
+
+def render_group_join_prompt(group):
+    """Render login prompt for joining a group."""
+
+    st.warning(f"""
+    ### Bergabung ke Grup: {group.name}
+
+    Anda perlu login untuk bergabung ke grup ini dan melihat detail rencana Umrah.
+    """)
+
+    col1, col2 = st.columns(2)
+    with col1:
+        if st.button("Masuk", use_container_width=True, type="primary"):
+            st.session_state.auth_redirect_to = "simulator"
+            st.session_state.auth_action = "join_group"
+            st.session_state.current_page = "auth"
+            st.session_state.auth_mode = "login"
+            st.rerun()
+    with col2:
+        if st.button("Daftar Gratis", use_container_width=True):
+            st.session_state.auth_redirect_to = "simulator"
+            st.session_state.auth_action = "join_group"
+            st.session_state.current_page = "auth"
+            st.session_state.auth_mode = "register"
+            st.rerun()
 
 
 # =============================================================================
@@ -1762,13 +2094,33 @@ def render_simulator_page():
         track_page("simulator")
     except:
         pass
-    
+
     # Initialize state
     init_simulator_state()
-    
+
+    # Check for group link in URL
+    group = check_group_from_url()
+
+    # Handle post-auth callbacks for group actions
+    handle_group_auth_callback()
+
+    # If group found but user not logged in, show join prompt
+    if group:
+        try:
+            from services.user.user_service import is_logged_in
+            if not is_logged_in():
+                render_group_join_prompt(group)
+                return
+        except ImportError:
+            pass
+
     # Header
     st.markdown("# 💰 Simulasi Biaya Umrah")
     st.caption("Hitung estimasi biaya umrah sesuai preferensi Anda")
+
+    # Show group header if viewing a group
+    if st.session_state.is_group_view and st.session_state.sim_group:
+        render_group_header(st.session_state.sim_group)
     
     # Quick info
     with st.container(border=True):
@@ -1905,10 +2257,19 @@ Dengan **Umrah Bareng**, kamu bisa:
     
     # Save/export
     render_save_simulation(params, cost)
-    
+
+    # Group Planning Section
+    if st.session_state.is_group_view and st.session_state.sim_group:
+        # Show share section for existing group
+        st.divider()
+        render_group_share_section(st.session_state.sim_group)
+    else:
+        # Show create group form for new groups
+        render_create_group_form(params, cost)
+
     # Saved simulations
     render_saved_simulations()
-    
+
     # Footer
     st.divider()
     st.caption("💡 Harga bersifat estimasi berdasarkan data terkini dan dapat berubah sewaktu-waktu.")
