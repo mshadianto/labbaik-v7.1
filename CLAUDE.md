@@ -39,6 +39,10 @@ python scripts/init_admin.py
 # Initialize CRM database schema
 python scripts/init_crm_schema.py
 
+# Database migrations
+python scripts/run_analytics_migration.py  # Analytics schema
+python scripts/run_groups_migration.py     # Simulation groups
+
 # Database maintenance
 python scripts/run_optimize_indexes.py
 python scripts/run_cleanup_data.py
@@ -46,23 +50,27 @@ python scripts/run_cleanup_data.py
 
 ### Database Setup (Supabase)
 
-Run migration in Supabase SQL Editor:
+Run migrations in Supabase SQL Editor (in order):
 ```sql
--- Full schema migration
-sql/supabase_migration.sql
-
--- CRM tables only
-sql/travel_crm_schema.sql
+sql/supabase_migration.sql        -- Core tables (users, sessions, visitors)
+sql/analytics_schema.sql          -- Analytics and tracking
+sql/travel_crm_schema.sql         -- CRM (leads, bookings, jamaah, invoices)
+sql/schema_partners.sql           -- Partner system
+sql/price_aggregation_schema.sql  -- Price aggregation
+sql/simulation_groups_schema.sql  -- Group simulation/planning
+sql/optimize_indexes.sql          -- Performance indexes
 ```
 
 ### Umrah Crawler (Separate FastAPI Backend)
 
 ```bash
 cd umrah-crawler
-uvicorn app.main:app --reload      # Run API server
+uvicorn app.main:app --reload      # Run API server (port 8000)
 python -m app.jobs                  # Background job scheduler
-psql $DATABASE_URL < sql/schema.sql # Initialize schema
+python -m app.jobs_v13              # v1.3 jobs (Haramain train, SAPTCO bus)
 ```
+
+**Data Providers:** Amadeus (hotels/flights), Xotelo (hotel prices), Makcorps (hotel comparison), Agoda, Haramain (train), SAPTCO (bus), ECB (forex)
 
 ## Architecture
 
@@ -82,6 +90,8 @@ services/       # Backend services (AI, database, analytics, WhatsApp)
   crm/          # Travel CRM (leads, bookings, jamaah, invoices)
   subscription/ # Premium subscription handling
   partner_api/  # REST API for travel agent partners
+  hotel/        # Hotel price comparison (Makcorps API)
+  scrapers/     # Web scrapers (Traveloka, Tiket.com)
 features/       # Standalone feature modules (SOS, crowd prediction, etc.)
 ui/pages/       # Streamlit page renderers
 ui/components/  # Reusable UI components
@@ -103,6 +113,8 @@ umrah-crawler/  # Separate FastAPI backend for data crawling
 - `services/database/repository.py` - Database singleton with connection pooling
 - `services/user/user_repository.py` - User CRUD with PostgreSQL/SQLite fallback
 - `services/intelligence/` - Name normalization, currency conversion, risk scoring
+- `services/hotel/makcorps.py` - Hotel price comparison across 200+ OTAs
+- `services/price_aggregation/` - Price scraping and normalization
 
 **Configuration:**
 - Primary: Streamlit secrets (`.streamlit/secrets.toml`) and environment variables
@@ -163,8 +175,9 @@ postgresql://postgres.[project-ref]:[password]@aws-0-[region].pooler.supabase.co
 
 **Optional:**
 - `WAHA_API_URL`, `WAHA_SESSION` - WhatsApp integration (WAHA self-hosted)
-- `AMADEUS_API_KEY`, `AMADEUS_API_SECRET` - Amadeus hotel API
+- `AMADEUS_API_KEY`, `AMADEUS_API_SECRET` - Amadeus hotel/flight API
 - `RAPIDAPI_KEY` - RapidAPI key for Xotelo
+- `MAKCORPS_API_KEY` - Makcorps hotel price comparison API
 
 ## Deployment
 
