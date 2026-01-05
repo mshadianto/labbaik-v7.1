@@ -26,13 +26,13 @@ logger = logging.getLogger(__name__)
 # CONSTANTS
 # =============================================================================
 
-# Makcorps City IDs for Umrah destinations
+# Makcorps City IDs for Umrah destinations (verified from API)
 CITY_IDS = {
-    "makkah": "60763",      # Mecca, Saudi Arabia
-    "mecca": "60763",
-    "madinah": "60764",     # Medina, Saudi Arabia
-    "medina": "60764",
-    "jeddah": "60761",      # Jeddah (arrival city)
+    "makkah": "293993",     # Mecca, Saudi Arabia
+    "mecca": "293993",
+    "madinah": "298551",    # Medina, Saudi Arabia
+    "medina": "298551",
+    "jeddah": "298552",     # Jeddah (arrival city)
 }
 
 # Currency
@@ -357,6 +357,22 @@ class MakcorpsClient:
             api_calls_used=self.request_count,
         )
 
+    def _parse_price(self, price_str) -> float:
+        """Parse price string like 'SAR 847' or 'SAR\u00a0847' to float"""
+        if not price_str:
+            return 0.0
+        try:
+            # Convert to string and clean
+            price_clean = str(price_str)
+            # Remove currency codes
+            for curr in ['SAR', 'USD', 'EUR', 'IDR']:
+                price_clean = price_clean.replace(curr, '')
+            # Remove non-breaking space, commas, spaces
+            price_clean = price_clean.replace('\u00a0', '').replace(',', '').replace(' ', '').strip()
+            return float(price_clean) if price_clean else 0.0
+        except:
+            return 0.0
+
     def _parse_hotel(
         self,
         data: Dict,
@@ -377,11 +393,11 @@ class MakcorpsClient:
                 price_key = f"price{i}"
 
                 vendor_name = data.get(vendor_key, "")
-                price = data.get(price_key, 0)
+                price_raw = data.get(price_key)
 
-                if vendor_name and price:
-                    try:
-                        price_float = float(str(price).replace(',', ''))
+                if vendor_name and price_raw:
+                    price_float = self._parse_price(price_raw)
+                    if price_float > 0:
                         vendors.append({
                             'name': vendor_name,
                             'price': price_float,
@@ -390,11 +406,19 @@ class MakcorpsClient:
                         if price_float < cheapest_price:
                             cheapest_price = price_float
                             cheapest_vendor = vendor_name
-                    except:
-                        pass
 
             if cheapest_price == float('inf'):
                 cheapest_price = 0
+
+            # Parse geocode
+            geocode = data.get('geocode', {})
+            lat = float(geocode.get('latitude', 0)) if isinstance(geocode, dict) else 0
+            lon = float(geocode.get('longitude', 0)) if isinstance(geocode, dict) else 0
+
+            # Parse reviews
+            reviews = data.get('reviews', {})
+            rating = float(reviews.get('rating', 0)) if isinstance(reviews, dict) else 0
+            review_count = int(reviews.get('count', 0)) if isinstance(reviews, dict) else 0
 
             return MakcorpsHotel(
                 hotel_id=str(data.get('hotelId', data.get('hotel_id', ''))),
@@ -406,11 +430,11 @@ class MakcorpsClient:
                 vendor_name=cheapest_vendor,
                 vendor_price=cheapest_price,
                 vendors=vendors,
-                rating=float(data.get('reviews', {}).get('rating', 0) if isinstance(data.get('reviews'), dict) else 0),
-                review_count=int(data.get('reviews', {}).get('count', 0) if isinstance(data.get('reviews'), dict) else 0),
+                rating=rating,
+                review_count=review_count,
                 address=data.get('address', ''),
-                latitude=float(data.get('geo', {}).get('lat', 0) if isinstance(data.get('geo'), dict) else 0),
-                longitude=float(data.get('geo', {}).get('lon', 0) if isinstance(data.get('geo'), dict) else 0),
+                latitude=lat,
+                longitude=lon,
                 image_url=data.get('image_url', data.get('img', '')),
             )
 
