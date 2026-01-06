@@ -1,4 +1,4 @@
-# LABBAIK Smart Planner v7.1
+# LABBAIK Smart Planner v7.6
 
 ### Satu-satunya AI Companion untuk Umrah Anda
 
@@ -61,9 +61,9 @@ Persiapan cerdas sebelum berangkat:
 - Tips packing & kesehatan
 
 ### Smart Savings
-Hemat hingga 50% biaya umrah:
+Hemat hingga 30% biaya umrah:
 - Cost Simulator dengan breakdown lengkap
-- Package Comparison dengan weighted scoring
+- **Pusat Harga** - Bandingkan hotel (200+ OTA), penerbangan & paket umrah
 - Smart Nudge untuk penghematan grup
 - Umrah Bareng matching system
 
@@ -84,7 +84,7 @@ Perjalanan yang aman & nyaman:
 |-------|-----------|
 | **AI Chat Assistant** | Tanya jawab seputar umrah dengan AI berbasis RAG (Groq/OpenAI) |
 | **Cost Simulator** | Kalkulasi budget dengan breakdown lengkap & smart nudge |
-| **Package Comparison** | Bandingkan paket umrah dengan weighted scoring |
+| **Pusat Harga** | Bandingkan harga hotel (200+ OTA), penerbangan & paket umrah |
 | **Umrah Bareng** | Social matching untuk umrah berkelompok |
 | **Crowd Prediction** | Prediksi kepadatan Masjidil Haram & Nabawi |
 | **3D Manasik** | Visualisasi tawaf dan sa'i interaktif |
@@ -163,6 +163,7 @@ labbaik-v7/
 │   │   ├── home.py             # Landing page
 │   │   ├── chat.py             # AI Chat
 │   │   ├── simulator.py        # Cost Simulator
+│   │   ├── price_hub.py        # Unified price comparison (hotel/flight/package)
 │   │   ├── umrah_bareng.py     # Social matching
 │   │   ├── analytics_dashboard.py  # Admin analytics
 │   │   └── ...
@@ -176,6 +177,8 @@ labbaik-v7/
 │   │   └── tracker.py          # Event & page tracking
 │   ├── database/               # Database layer
 │   │   └── repository.py       # PostgreSQL connection
+│   ├── hotel/                  # Hotel price comparison (Makcorps API)
+│   ├── price_aggregation/      # Multi-source price aggregation
 │   ├── intelligence/           # Intelligence services
 │   ├── user/                   # User management
 │   └── subscription/           # Premium subscriptions
@@ -297,6 +300,11 @@ ADMIN_PASSWORD = "secure_password"
 # WhatsApp (WAHA) - Optional
 WAHA_API_URL = "http://localhost:3000"
 WAHA_SESSION = "Labbaik"
+
+# Price Comparison APIs - Optional
+MAKCORPS_API_KEY = "your_makcorps_key"  # Hotel price comparison
+AMADEUS_API_KEY = "your_amadeus_key"
+AMADEUS_API_SECRET = "your_amadeus_secret"
 ```
 
 ### Admin Setup
@@ -328,6 +336,7 @@ python scripts/init_admin.py
 | Home & Landing | Y | Y | Y | Y | Y |
 | AI Chat | - | 10/day | Unlimited | Unlimited | Unlimited |
 | Cost Simulator | Y | Y | Y | Y | Y |
+| Pusat Harga | Y | Y | Full OTA | Full OTA | Full OTA |
 | Umrah Bareng | - | Y | Y | Y | Y |
 | Analytics Dashboard | - | - | - | - | Y |
 | Partner Dashboard | - | - | - | Y | Y |
@@ -397,11 +406,12 @@ Internal team emails are excluded from analytics:
 - [x] v7.0 - Core platform & AI Chat
 - [x] v7.1 - Brand refresh "LABBAIK Smart Planner"
 - [x] v7.1.1 - Analytics Dashboard & Smart Nudge
+- [x] v7.5 - Makcorps Hotel API integration
+- [x] v7.6 - Unified Price Hub (hotel, flight, package comparison)
 
 ### Upcoming
 
-- [ ] v7.2 - Enhanced Umrah Bareng matching algorithm
-- [ ] v7.3 - Real-time price aggregation
+- [ ] v7.7 - Enhanced Umrah Bareng matching algorithm
 - [ ] v8.0 - Mobile app (React Native)
 
 ---
