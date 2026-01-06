@@ -25,7 +25,7 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 # PERFORMANCE: CACHING UTILITIES
 # =============================================================================
 
-@st.cache_resource(ttl=300)  # Cache for 5 minutes
+@st.cache_resource(ttl=600)  # Cache for 10 minutes (was 5)
 def get_cached_db_connection():
     """Get cached database connection."""
     try:
@@ -34,7 +34,7 @@ def get_cached_db_connection():
     except:
         return None
 
-@st.cache_data(ttl=60)  # Cache for 1 minute
+@st.cache_data(ttl=300)  # Cache for 5 minutes (was 1)
 def get_cached_visitor_stats():
     """Get cached visitor analytics stats."""
     try:
@@ -94,39 +94,47 @@ st.set_page_config(
 )
 
 # =============================================================================
-# PERFORMANCE: SCROLL TO TOP ON PAGE CHANGE
+# PERFORMANCE: SCROLL TO TOP ON PAGE CHANGE (OPTIMIZED)
 # =============================================================================
 def scroll_to_top():
-    """Inject JavaScript to scroll to top of page."""
-    st.markdown("""
-    <script>
-        window.scrollTo({top: 0, behavior: 'instant'});
-        // Also scroll the main container
-        var main = window.parent.document.querySelector('section.main');
-        if (main) main.scrollTo({top: 0, behavior: 'instant'});
-    </script>
-    """, unsafe_allow_html=True)
+    """Inject JavaScript to scroll to top - ONLY when page changes."""
+    current_page = st.session_state.get("current_page", "home")
+    if st.session_state.get("_last_rendered_page") != current_page:
+        st.markdown("""
+        <script>
+            window.scrollTo({top: 0, behavior: 'instant'});
+            var main = window.parent.document.querySelector('section.main');
+            if (main) main.scrollTo({top: 0, behavior: 'instant'});
+        </script>
+        """, unsafe_allow_html=True)
+        st.session_state._last_rendered_page = current_page
 
-# Open Graph meta tags for social media sharing
-st.markdown("""
+# =============================================================================
+# PERFORMANCE: CACHED META TAGS (inject once per session)
+# =============================================================================
+@st.cache_data
+def get_meta_tags():
+    """Return static meta tags - cached to avoid re-rendering."""
+    return """
 <meta property="og:title" content="LABBAIK Smart Planner - AI-Powered Umrah Companion" />
 <meta property="og:description" content="The Only AI-Powered Umrah Companion You Need. Plan smarter, save up to 30%, travel better with LABBAIK Smart Planner." />
 <meta property="og:image" content="https://labbaik.io/wp-content/uploads/labbaik-og-image.png" />
 <meta property="og:url" content="https://app.labbaik.io" />
 <meta property="og:type" content="website" />
 <meta property="og:site_name" content="LABBAIK Smart Planner" />
-
-<!-- Twitter Card -->
 <meta name="twitter:card" content="summary_large_image" />
 <meta name="twitter:title" content="LABBAIK Smart Planner" />
 <meta name="twitter:description" content="AI-Powered Umrah Companion - Plan Smarter, Save More" />
 <meta name="twitter:image" content="https://labbaik.io/wp-content/uploads/labbaik-og-image.png" />
-
-<!-- Additional SEO -->
 <meta name="description" content="LABBAIK Smart Planner - The Only AI-Powered Umrah Companion You Need. Plan umrah mandiri with AI intelligence and save up to 30%." />
 <meta name="keywords" content="umrah mandiri, umrah planner, AI umrah, umrah hemat, umrah bareng, labbaik" />
 <meta name="author" content="LABBAIK.AI" />
-""", unsafe_allow_html=True)
+"""
+
+# Inject meta tags only once per session
+if "_meta_injected" not in st.session_state:
+    st.markdown(get_meta_tags(), unsafe_allow_html=True)
+    st.session_state._meta_injected = True
 
 # =============================================================================
 # LAZY IMPORTS & FEATURE FLAGS
@@ -835,10 +843,11 @@ def render_page():
     # SCROLL TO TOP - Critical for UX
     scroll_to_top()
 
-    # Track page view
-    if HAS_TRACKING_SERVICE:
+    # Track page view - ONLY when page changes (performance optimization)
+    if HAS_TRACKING_SERVICE and st.session_state.get("_tracked_page") != page:
         try:
             track_page(page)
+            st.session_state._tracked_page = page
         except:
             pass
     

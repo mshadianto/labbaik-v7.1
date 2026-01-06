@@ -273,50 +273,81 @@ class RateLimiter:
 # =============================================================================
 
 class AIServiceFactory:
-    """Factory for creating AI service instances."""
-    
+    """Factory for creating AI service instances with caching for performance."""
+
     _chat_services: Dict[str, type] = {}
     _embedding_services: Dict[str, type] = {}
-    
+    # PERFORMANCE: Cache service instances to avoid recreation
+    _chat_instances: Dict[str, "BaseChatService"] = {}
+    _embedding_instances: Dict[str, "BaseEmbeddingService"] = {}
+
     @classmethod
     def register_chat_service(cls, provider: str, service_class: type):
         """Register a chat service implementation."""
         cls._chat_services[provider.lower()] = service_class
-    
+
     @classmethod
     def register_embedding_service(cls, provider: str, service_class: type):
         """Register an embedding service implementation."""
         cls._embedding_services[provider.lower()] = service_class
-    
+
     @classmethod
     def create_chat_service(
         cls,
         provider: str,
         api_key: str,
+        use_cache: bool = True,
         **kwargs
     ) -> BaseChatService:
-        """Create a chat service instance."""
+        """Create a chat service instance (cached by default for performance)."""
         provider = provider.lower()
         if provider not in cls._chat_services:
             raise ValueError(f"Unknown chat service provider: {provider}")
-        
+
+        # Return cached instance if available and caching enabled
+        cache_key = f"{provider}:{api_key[:8] if api_key else 'none'}"
+        if use_cache and cache_key in cls._chat_instances:
+            return cls._chat_instances[cache_key]
+
         service_class = cls._chat_services[provider]
-        return service_class(api_key=api_key, **kwargs)
-    
+        instance = service_class(api_key=api_key, **kwargs)
+
+        if use_cache:
+            cls._chat_instances[cache_key] = instance
+
+        return instance
+
     @classmethod
     def create_embedding_service(
         cls,
         provider: str,
         api_key: str = "",
+        use_cache: bool = True,
         **kwargs
     ) -> BaseEmbeddingService:
-        """Create an embedding service instance."""
+        """Create an embedding service instance (cached by default for performance)."""
         provider = provider.lower()
         if provider not in cls._embedding_services:
             raise ValueError(f"Unknown embedding service provider: {provider}")
-        
+
+        # Return cached instance if available and caching enabled
+        cache_key = f"{provider}:{api_key[:8] if api_key else 'none'}"
+        if use_cache and cache_key in cls._embedding_instances:
+            return cls._embedding_instances[cache_key]
+
         service_class = cls._embedding_services[provider]
-        return service_class(api_key=api_key, **kwargs)
+        instance = service_class(api_key=api_key, **kwargs)
+
+        if use_cache:
+            cls._embedding_instances[cache_key] = instance
+
+        return instance
+
+    @classmethod
+    def clear_cache(cls):
+        """Clear all cached service instances."""
+        cls._chat_instances.clear()
+        cls._embedding_instances.clear()
     
     @classmethod
     def available_chat_providers(cls) -> List[str]:

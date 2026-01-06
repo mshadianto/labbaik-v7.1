@@ -111,16 +111,16 @@ class DatabaseConnection:
                 logger.warning("No database URL configured")
                 return False
             
-            # Get pool size from settings or use default
-            pool_size = 5
+            # Get pool size from settings or use default (increased for performance)
+            pool_size = 15  # was 5 - increased for better concurrency
             try:
                 from core.config import get_settings
                 pool_size = get_settings().database.pool_size
             except:
                 pass
-            
+
             self._pool = pool.ThreadedConnectionPool(
-                minconn=1,
+                minconn=2,  # was 1 - keep more connections warm
                 maxconn=pool_size,
                 dsn=self._connection_string
             )

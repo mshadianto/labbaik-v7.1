@@ -10,7 +10,9 @@ headless = true
 address = "0.0.0.0"
 enableCORS = false
 enableXsrfProtection = true
-maxUploadSize = 10
+maxUploadSize = 5
+maxMessageSize = 200
+enableStaticServing = true
 
 [browser]
 gatherUsageStats = false
@@ -23,3 +25,6 @@ fastReruns = true
 [client]
 showErrorDetails = false
 toolbarMode = "minimal"
+
+[logger]
+level = "error"
