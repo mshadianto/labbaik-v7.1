@@ -56,10 +56,15 @@ sql/supabase_migration.sql        -- Core tables (users, sessions, visitors)
 sql/analytics_schema.sql          -- Analytics and tracking
 sql/travel_crm_schema.sql         -- CRM (leads, bookings, jamaah, invoices)
 sql/schema_partners.sql           -- Partner system
+sql/schema_v1_3.sql               -- v1.3 schema updates
 sql/price_aggregation_schema.sql  -- Price aggregation
 sql/simulation_groups_schema.sql  -- Group simulation/planning
 sql/optimize_indexes.sql          -- Performance indexes
 ```
+
+### Testing
+
+No automated test suite exists. Manual testing via `streamlit run app.py`.
 
 ### Umrah Crawler (Separate FastAPI Backend)
 
@@ -76,6 +81,7 @@ python -m app.jobs_v13              # v1.3 jobs (Haramain train, SAPTCO bus)
 
 ### Entry Point
 - `app.py` - Main Streamlit application with lazy imports and feature flags. Handles routing, session state, and sidebar navigation.
+- `core/version.py` - Version management (`APP_VERSION`, `get_display_version()`)
 
 ### Directory Structure
 
@@ -131,7 +137,7 @@ The AI layer uses a provider abstraction via `AIServiceFactory`:
 | `GLMChatService` | glm-4, glm-4-plus, glm-4-flash | `zhipuai` |
 | `OpenAIChatService` | gpt-4o-mini | `openai` |
 
-All extend `BaseChatService` from `services/ai/base.py`. Provider selection is available in the chat page sidebar - users can switch between providers in real-time.
+All extend `BaseChatService` from `services/ai/base.py`. Provider selection is available in the chat page sidebar - users can switch between providers in real-time. Additional services: `rag_service.py` (ChromaDB vector search), `speech_service.py` (text-to-speech).
 
 ### Travel CRM System
 
