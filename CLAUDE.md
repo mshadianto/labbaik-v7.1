@@ -99,7 +99,7 @@ services/               # Backend services
   user/                 # User management and access control
   whatsapp/             # WAHA WhatsApp client
 features/               # Standalone feature modules (SOS, crowd prediction, etc.)
-ui/pages/               # Streamlit page renderers
+ui/pages/               # Streamlit page renderers (includes readiness_checker, cost_tracker, tanya_ustadz, doc_checker)
 ui/components/          # Reusable UI components
 data/                   # Static data and knowledge bases
 config/                 # YAML configuration files
@@ -115,7 +115,7 @@ umrah-crawler/          # Separate FastAPI backend for data crawling
 ### Key Patterns
 
 **Feature Flags:** Features are lazy-imported with try/except and `HAS_*` boolean flags in `app.py`. Check these flags before using features. Full list:
-`HAS_ITINERARY`, `HAS_HOTEL_COMPARE`, `HAS_PRICE_HUB`, `HAS_CHECKLIST`, `HAS_CROWD_PREDICTION`, `HAS_SOS`, `HAS_TRACKING`, `HAS_MANASIK`, `HAS_COMPARISON`, `HAS_ANALYTICS`, `HAS_USER_MANAGEMENT`, `HAS_SUBSCRIPTION`, `HAS_PARTNER_SYSTEM`, `HAS_CRM`, `HAS_PRICE_AGGREGATION`, `HAS_WHATSAPP`, `HAS_DOA_PLAYER`, `HAS_PWA`, `HAS_TRACKING_SERVICE`
+`HAS_ITINERARY`, `HAS_HOTEL_COMPARE`, `HAS_PRICE_HUB`, `HAS_CHECKLIST`, `HAS_CROWD_PREDICTION`, `HAS_SOS`, `HAS_TRACKING`, `HAS_MANASIK`, `HAS_COMPARISON`, `HAS_ANALYTICS`, `HAS_USER_MANAGEMENT`, `HAS_SUBSCRIPTION`, `HAS_PARTNER_SYSTEM`, `HAS_CRM`, `HAS_PRICE_AGGREGATION`, `HAS_WHATSAPP`, `HAS_DOA_PLAYER`, `HAS_PWA`, `HAS_TRACKING_SERVICE`, `HAS_READINESS`, `HAS_COST_TRACKER`, `HAS_TANYA_USTADZ`, `HAS_DOC_CHECKER`
 
 **Session State:** All state is managed via `st.session_state`. See `init_session_state()` in `app.py` for all keys including navigation, auth, chat, gamification, SOS, tracking, and more.
 
@@ -225,6 +225,7 @@ CNAME  app  labbaik-v7-production.up.railway.app
 - Feature modules export `render_*_page()` and `render_*_widget()` for sidebar
 - Use `track_page(page_name)` for analytics
 - Gamification: Use `add_xp(amount, reason)` to award points
+- AI service pattern for new pages: `GroqChatService` with `st.secrets.get("GROQ_API_KEY")` then `os.getenv("GROQ_API_KEY")` fallback, call `simple_complete(prompt, system_prompt, max_tokens)`, always include graceful fallback when AI unavailable
 - New features: Add `HAS_*` flag in `app.py`, lazy-import with try/except
 
 ## Commit Message Format

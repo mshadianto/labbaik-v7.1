@@ -58,17 +58,20 @@ Persiapan cerdas sebelum berangkat:
 - AI Chat Assistant untuk konsultasi
 - Panduan manasik lengkap
 - Checklist persiapan dokumen
-- Tips packing & kesehatan
+- **AI Umrah Readiness Score** - Cek kesiapan umrah dengan skor 0-100 dari 4 dimensi (Dokumen, Budget, Kesehatan, Manasik) + rekomendasi AI
+- **Smart Visa & Doc Checker** - Checklist 11 dokumen wajib, cek validitas paspor, timeline persiapan + tips AI per dokumen
 
 ### Smart Savings
 Hemat hingga 30% biaya umrah:
 - Cost Simulator dengan breakdown lengkap
 - **Pusat Harga** - Bandingkan hotel (200+ OTA), penerbangan & paket umrah
+- **Umrah Cost Tracker** - Pantau budget vs pengeluaran aktual di 6 kategori, AI savings insights
 - Smart Nudge untuk penghematan grup
 - Umrah Bareng matching system
 
 ### Smart Journey
 Perjalanan yang aman & nyaman:
+- **Tanya Ustadz AI** - Forum tanya jawab fiqih umrah dengan dalil & rujukan (madzhab Syafi'i)
 - 3D Manasik visualization
 - Crowd Prediction Masjidil Haram
 - SOS Emergency dengan GPS
@@ -88,6 +91,10 @@ Perjalanan yang aman & nyaman:
 | **Umrah Bareng** | Social matching untuk umrah berkelompok |
 | **Crowd Prediction** | Prediksi kepadatan Masjidil Haram & Nabawi |
 | **3D Manasik** | Visualisasi tawaf dan sa'i interaktif |
+| **AI Readiness Score** | Skor kesiapan umrah 0-100 dari 4 dimensi + rekomendasi AI personal |
+| **Cost Tracker** | Budget tracker 6 kategori, expense logging, AI savings insights |
+| **Tanya Ustadz AI** | Q&A fiqih umrah dengan dalil, rujukan kitab (madzhab Syafi'i) |
+| **Smart Doc Checker** | Checklist 11 dokumen, validitas paspor, timeline + tips AI |
 
 ### Premium Features
 
@@ -165,6 +172,10 @@ labbaik-v7/
 │   │   ├── simulator.py        # Cost Simulator
 │   │   ├── price_hub.py        # Unified price comparison (hotel/flight/package)
 │   │   ├── umrah_bareng.py     # Social matching
+│   │   ├── readiness_checker.py    # AI Umrah Readiness Score
+│   │   ├── cost_tracker.py         # Umrah Cost Tracker
+│   │   ├── tanya_ustadz.py         # Tanya Ustadz AI Q&A
+│   │   ├── doc_checker.py          # Smart Visa & Doc Checker
 │   │   ├── analytics_dashboard.py  # Admin analytics
 │   │   └── ...
 │   └── components/             # Reusable components
@@ -337,6 +348,10 @@ python scripts/init_admin.py
 | AI Chat | - | 10/day | Unlimited | Unlimited | Unlimited |
 | Cost Simulator | Y | Y | Y | Y | Y |
 | Pusat Harga | Y | Y | Full OTA | Full OTA | Full OTA |
+| AI Readiness Score | - | Y | Y | Y | Y |
+| Cost Tracker | - | Y | Y | Y | Y |
+| Tanya Ustadz AI | - | Y | Y | Y | Y |
+| Smart Doc Checker | - | Y | Y | Y | Y |
 | Umrah Bareng | - | Y | Y | Y | Y |
 | Analytics Dashboard | - | - | - | - | Y |
 | Partner Dashboard | - | - | - | Y | Y |
@@ -408,10 +423,11 @@ Internal team emails are excluded from analytics:
 - [x] v7.1.1 - Analytics Dashboard & Smart Nudge
 - [x] v7.5 - Makcorps Hotel API integration
 - [x] v7.6 - Unified Price Hub (hotel, flight, package comparison)
+- [x] v7.7 - 4 AI-powered features (Readiness Score, Cost Tracker, Tanya Ustadz, Doc Checker)
 
 ### Upcoming
 
-- [ ] v7.7 - Enhanced Umrah Bareng matching algorithm
+- [ ] v7.8 - Enhanced Umrah Bareng matching algorithm
 - [ ] v8.0 - Mobile app (React Native)
 
 ---
