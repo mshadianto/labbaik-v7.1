@@ -11,6 +11,9 @@ import streamlit as st
 from datetime import datetime, date, timedelta
 from typing import Dict, List
 
+from services.ai.helpers import ai_complete, add_xp_safe
+from ui.components.shared_styles import inject_css, HERO_CSS, CARD_CSS, AI_CARD_CSS, PROGRESS_CSS
+
 # =============================================================================
 # CONSTANTS & DOCUMENT DATABASE
 # =============================================================================
@@ -79,9 +82,7 @@ Jawab singkat (max 200 kata), praktis, dalam Bahasa Indonesia."""
 # =============================================================================
 
 DOC_CHECKER_CSS = """
-<style>
-@import url('https://fonts.googleapis.com/css2?family=Amiri:wght@400;700&display=swap');
-
+/* Page-specific styles for doc checker */
 .doc-hero {
     background: linear-gradient(135deg, #0d1b2a 0%, #1b2a4a 100%);
     padding: 2.5rem 2rem;
@@ -383,7 +384,6 @@ DOC_CHECKER_CSS = """
     font-size: 0.82rem;
     line-height: 1.5;
 }
-</style>
 """
 
 # =============================================================================
@@ -419,29 +419,7 @@ def get_ai_tips(doc_name: str) -> str:
         f"Sertakan langkah-langkah, persyaratan, estimasi biaya dalam Rupiah, "
         f"lokasi pengurusan, dan kesalahan umum yang harus dihindari."
     )
-    system_prompt = DOC_TIPS_SYSTEM_PROMPT
-    response = None
-
-    try:
-        from services.ai.chat_service import GroqChatService
-        import os
-        api_key = ""
-        try:
-            api_key = st.secrets.get("GROQ_API_KEY", "")
-        except Exception:
-            pass
-        if not api_key:
-            api_key = os.getenv("GROQ_API_KEY", "")
-        if api_key:
-            service = GroqChatService(api_key=api_key)
-            service.initialize()
-            response = service.simple_complete(
-                prompt=prompt_text,
-                system_prompt=system_prompt,
-                max_tokens=800
-            )
-    except Exception:
-        response = None
+    response = ai_complete(prompt_text, system_prompt=DOC_TIPS_SYSTEM_PROMPT, max_tokens=800)
 
     if response:
         st.session_state.doc_tips_cache[doc_name] = response
@@ -455,18 +433,8 @@ def get_ai_tips(doc_name: str) -> str:
 # =============================================================================
 
 def add_xp(amount: int, reason: str = ""):
-    """Add XP to the user's gamification score."""
-    st.session_state.xp = st.session_state.get("xp", 0) + amount
-
-    current_level = st.session_state.get("level", 1)
-    xp_per_level = 100
-    new_level = (st.session_state.xp // xp_per_level) + 1
-    if new_level > current_level:
-        st.session_state.level = new_level
-        st.toast(f"Level Up! Level {new_level}")
-
-    if reason:
-        st.toast(f"+{amount} XP: {reason}")
+    """Add XP — delegates to shared helper."""
+    add_xp_safe(amount, reason)
 
 
 # =============================================================================
@@ -475,7 +443,7 @@ def add_xp(amount: int, reason: str = ""):
 
 def render_hero():
     """Render the hero banner at the top of the page."""
-    st.markdown(DOC_CHECKER_CSS, unsafe_allow_html=True)
+    inject_css(HERO_CSS, CARD_CSS, AI_CARD_CSS, PROGRESS_CSS, DOC_CHECKER_CSS)
 
     st.markdown("""
     <div class="doc-hero">

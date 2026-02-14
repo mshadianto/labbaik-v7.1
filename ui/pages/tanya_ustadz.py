@@ -13,6 +13,9 @@ from typing import Dict, List, Optional
 import os
 import re
 
+from services.ai.helpers import ai_complete, add_xp_safe
+from ui.components.shared_styles import inject_css, HERO_CSS, CARD_CSS, EMPTY_STATE_CSS
+
 # =============================================================================
 # CONSTANTS & DATA
 # =============================================================================
@@ -102,9 +105,7 @@ Pastikan API key sudah dikonfigurasi (GROQ_API_KEY) untuk mengaktifkan layanan U
 # =============================================================================
 
 TANYA_USTADZ_CSS = """
-<style>
-@import url('https://fonts.googleapis.com/css2?family=Amiri:wght@400;700&display=swap');
-
+/* Page-specific styles for Tanya Ustadz */
 .ustadz-hero {
     background: linear-gradient(135deg, #0d1b0d 0%, #1a3a1a 50%, #0d2b0d 100%);
     padding: 2.5rem 2rem;
@@ -358,7 +359,6 @@ TANYA_USTADZ_CSS = """
     color: #4ade80;
     font-size: 0.95rem;
 }
-</style>
 """
 
 # =============================================================================
@@ -396,26 +396,7 @@ def get_ai_answer(question: str, category: str) -> str:
 
     prompt_text = f"[Kategori: {category_label}]\n\nPertanyaan:\n{question}"
 
-    response = None
-    try:
-        from services.ai.chat_service import GroqChatService
-        api_key = ""
-        try:
-            api_key = st.secrets.get("GROQ_API_KEY", "")
-        except:
-            pass
-        if not api_key:
-            api_key = os.getenv("GROQ_API_KEY", "")
-        if api_key:
-            service = GroqChatService(api_key=api_key)
-            service.initialize()
-            response = service.simple_complete(
-                prompt=prompt_text,
-                system_prompt=USTADZ_SYSTEM_PROMPT,
-                max_tokens=1500,
-            )
-    except Exception as e:
-        response = None
+    response = ai_complete(prompt_text, system_prompt=USTADZ_SYSTEM_PROMPT, max_tokens=1500)
 
     if response:
         return response
@@ -433,20 +414,8 @@ def get_ai_answer(question: str, category: str) -> str:
 # =============================================================================
 
 def _add_xp(amount: int, reason: str = ""):
-    """Add XP via the main app gamification system."""
-    try:
-        # Use the global add_xp from app.py if available
-        st.session_state.xp = st.session_state.get("xp", 0) + amount
-        current_level = st.session_state.get("level", 1)
-        xp_needed = current_level * 100
-        if st.session_state.xp >= xp_needed and current_level < 10:
-            st.session_state.level = current_level + 1
-            st.session_state.xp = st.session_state.xp - xp_needed
-            st.toast(f"Level Up! Sekarang Level {st.session_state.level}!", icon="🎉")
-        if reason:
-            st.toast(f"+{amount} poin! {reason}", icon="🎯")
-    except Exception:
-        pass
+    """Add XP — delegates to shared helper."""
+    add_xp_safe(amount, reason)
 
 
 # =============================================================================
@@ -455,7 +424,7 @@ def _add_xp(amount: int, reason: str = ""):
 
 def render_hero():
     """Render hero section with disclaimer."""
-    st.markdown(TANYA_USTADZ_CSS, unsafe_allow_html=True)
+    inject_css(HERO_CSS, CARD_CSS, EMPTY_STATE_CSS, TANYA_USTADZ_CSS)
 
     st.markdown("""
     <div class="ustadz-hero">

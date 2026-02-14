@@ -12,64 +12,19 @@ from datetime import datetime
 from typing import Dict, List
 import json
 
+from services.ai.helpers import ai_complete, add_xp_safe
+from ui.components.shared_styles import inject_css, HERO_CSS, CARD_CSS, AI_CARD_CSS, BADGE_CSS
+
 # =============================================================================
 # STYLING
 # =============================================================================
 
 READINESS_CSS = """
-<style>
-@import url('https://fonts.googleapis.com/css2?family=Amiri:wght@400;700&display=swap');
-
+/* Page-specific overrides for readiness checker */
 .readiness-hero {
-    background: linear-gradient(135deg, #1a2a1a 0%, #2d4a2d 100%);
-    padding: 2.5rem 2rem;
-    border-radius: 20px;
-    text-align: center;
-    margin-bottom: 1.5rem;
-    border: 1px solid #4ade80;
-    position: relative;
-    overflow: hidden;
-}
-
-.readiness-hero::before {
-    content: '';
-    position: absolute;
-    top: -50%;
-    left: -50%;
-    width: 200%;
-    height: 200%;
-    background: radial-gradient(circle, rgba(74, 222, 128, 0.05) 0%, transparent 70%);
-    animation: pulse-glow 4s ease-in-out infinite;
-}
-
-@keyframes pulse-glow {
-    0%, 100% { transform: scale(1); opacity: 0.5; }
-    50% { transform: scale(1.1); opacity: 1; }
-}
-
-.readiness-hero h1 {
-    color: #4ade80;
-    margin: 0;
-    font-size: 2.2rem;
-    position: relative;
-    z-index: 1;
-}
-
-.readiness-hero .subtitle {
-    color: #888;
-    font-size: 1rem;
-    margin-top: 0.5rem;
-    position: relative;
-    z-index: 1;
-}
-
-.readiness-hero .ayat {
-    font-family: 'Amiri', serif;
-    color: #d4af37;
-    font-size: 1.3rem;
-    margin-top: 1rem;
-    position: relative;
-    z-index: 1;
+    --hero-bg: linear-gradient(135deg, #1a2a1a 0%, #2d4a2d 100%);
+    --hero-border: #4ade80;
+    --hero-title: #4ade80;
 }
 
 .dimension-card {
@@ -244,56 +199,9 @@ READINESS_CSS = """
     margin-top: 1rem;
 }
 
-.stats-card {
-    text-align: center;
-    padding: 1.25rem;
-    background: linear-gradient(145deg, #1a1a1a 0%, #2d2d2d 100%);
-    border-radius: 15px;
-    border: 1px solid #333;
-}
-
 .stats-card .number {
-    font-size: 2rem;
-    font-weight: bold;
     color: #4ade80;
 }
-
-.stats-card .label {
-    color: #888;
-    font-size: 0.85rem;
-    margin-top: 0.25rem;
-}
-
-.priority-tinggi {
-    display: inline-block;
-    background: #4a1a1a;
-    color: #f87171;
-    padding: 0.15rem 0.6rem;
-    border-radius: 10px;
-    font-size: 0.75rem;
-    font-weight: bold;
-}
-
-.priority-sedang {
-    display: inline-block;
-    background: #4a3a1a;
-    color: #fbbf24;
-    padding: 0.15rem 0.6rem;
-    border-radius: 10px;
-    font-size: 0.75rem;
-    font-weight: bold;
-}
-
-.priority-rendah {
-    display: inline-block;
-    background: #1a3a1a;
-    color: #4ade80;
-    padding: 0.15rem 0.6rem;
-    border-radius: 10px;
-    font-size: 0.75rem;
-    font-weight: bold;
-}
-</style>
 """
 
 # =============================================================================
@@ -634,31 +542,7 @@ def generate_ai_recommendations(score: Dict, answers: Dict) -> str:
 
     prompt_text = "\n".join(prompt_lines)
 
-    response = None
-    try:
-        from services.ai.chat_service import GroqChatService
-        import os
-
-        api_key = ""
-        try:
-            api_key = st.secrets.get("GROQ_API_KEY", "")
-        except Exception:
-            pass
-        if not api_key:
-            api_key = os.getenv("GROQ_API_KEY", "")
-
-        if api_key:
-            service = GroqChatService(api_key=api_key)
-            service.initialize()
-            response = service.simple_complete(
-                prompt=prompt_text,
-                system_prompt=AI_SYSTEM_PROMPT,
-                max_tokens=1024,
-            )
-    except Exception:
-        response = None
-
-    return response
+    return ai_complete(prompt_text, system_prompt=AI_SYSTEM_PROMPT, max_tokens=1024)
 
 
 # =============================================================================
@@ -667,7 +551,7 @@ def generate_ai_recommendations(score: Dict, answers: Dict) -> str:
 
 def render_hero():
     """Render hero section with CSS."""
-    st.markdown(READINESS_CSS, unsafe_allow_html=True)
+    inject_css(HERO_CSS, CARD_CSS, AI_CARD_CSS, BADGE_CSS, READINESS_CSS)
 
     st.markdown("""
     <div class="readiness-hero">
@@ -1101,16 +985,7 @@ def render_readiness_checker_page():
             st.session_state.readiness_recommendations = recs
 
         # Gamification: award XP
-        try:
-            from app import add_xp
-            add_xp(50, "Menyelesaikan Readiness Check")
-        except Exception:
-            # Fallback: try direct session state manipulation
-            try:
-                if "user_xp" in st.session_state:
-                    st.session_state.user_xp = st.session_state.get("user_xp", 0) + 50
-            except Exception:
-                pass
+        add_xp_safe(50, "Menyelesaikan Readiness Check")
 
         # Mark as completed and rerun to show results
         st.session_state.readiness_completed = True

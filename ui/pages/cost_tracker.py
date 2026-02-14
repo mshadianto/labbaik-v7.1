@@ -17,6 +17,9 @@ from datetime import datetime, date
 from typing import Dict, List
 import uuid
 
+from services.ai.helpers import ai_complete, add_xp_safe
+from ui.components.shared_styles import inject_css, HERO_CSS, CARD_CSS, AI_CARD_CSS, PROGRESS_CSS, EMPTY_STATE_CSS
+
 # =============================================================================
 # CONSTANTS & CATEGORIES
 # =============================================================================
@@ -44,70 +47,9 @@ DEFAULT_BUDGETS = {
 # =============================================================================
 
 TRACKER_CSS = """
-<style>
-@import url('https://fonts.googleapis.com/css2?family=Amiri:wght@400;700&display=swap');
-
-.tracker-hero {
-    background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
-    padding: 2.5rem 2rem;
-    border-radius: 20px;
-    text-align: center;
-    margin-bottom: 1.5rem;
-    border: 1px solid #d4af37;
-    position: relative;
-    overflow: hidden;
-}
-
-.tracker-hero::before {
-    content: '';
-    position: absolute;
-    top: -50%;
-    left: -50%;
-    width: 200%;
-    height: 200%;
-    background: radial-gradient(circle at 30% 50%, rgba(212, 175, 55, 0.08) 0%, transparent 50%);
-    pointer-events: none;
-}
-
+/* Page-specific overrides for cost tracker */
 .tracker-hero h1 {
-    color: #d4af37;
-    margin: 0;
-    font-size: 2.2rem;
     font-family: 'Amiri', serif;
-    position: relative;
-}
-
-.tracker-hero .subtitle {
-    color: #94a3b8;
-    font-size: 1rem;
-    margin-top: 0.5rem;
-    position: relative;
-}
-
-.metric-card {
-    background: linear-gradient(145deg, #1a1a2e 0%, #1e293b 100%);
-    border-radius: 16px;
-    padding: 1.25rem;
-    text-align: center;
-    border: 1px solid #334155;
-    transition: border-color 0.2s;
-}
-
-.metric-card:hover {
-    border-color: #d4af37;
-}
-
-.metric-value {
-    font-size: 1.6rem;
-    font-weight: 700;
-    margin: 0.25rem 0;
-}
-
-.metric-label {
-    color: #94a3b8;
-    font-size: 0.82rem;
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
 }
 
 .category-card {
@@ -152,21 +94,6 @@ TRACKER_CSS = """
 .category-budget {
     color: #64748b;
     font-size: 0.78rem;
-}
-
-.progress-track {
-    width: 100%;
-    height: 8px;
-    background: #1e293b;
-    border-radius: 4px;
-    overflow: hidden;
-    position: relative;
-}
-
-.progress-fill {
-    height: 100%;
-    border-radius: 4px;
-    transition: width 0.4s ease;
 }
 
 .progress-pct {
@@ -255,17 +182,6 @@ TRACKER_CSS = """
     border: 1px solid #334155;
 }
 
-.empty-state {
-    text-align: center;
-    padding: 3rem 1rem;
-    color: #64748b;
-}
-
-.empty-state .icon {
-    font-size: 3rem;
-    margin-bottom: 1rem;
-}
-
 .remaining-positive {
     color: #4ade80;
 }
@@ -273,7 +189,6 @@ TRACKER_CSS = """
 .remaining-negative {
     color: #f87171;
 }
-</style>
 """
 
 # =============================================================================
@@ -345,11 +260,8 @@ def get_daily_average() -> float:
 
 
 def add_xp(amount: int, reason: str = ""):
-    """Add XP with gamification feedback."""
-    if "um_xp" in st.session_state:
-        st.session_state.um_xp = st.session_state.get("um_xp", 0) + amount
-    if reason:
-        st.toast(f"+{amount} XP: {reason}")
+    """Add XP — delegates to shared helper."""
+    add_xp_safe(amount, reason)
 
 
 def export_to_text() -> str:
@@ -411,7 +323,7 @@ def export_to_text() -> str:
 
 def render_hero():
     """Render hero section with branding."""
-    st.markdown(TRACKER_CSS, unsafe_allow_html=True)
+    inject_css(HERO_CSS, CARD_CSS, PROGRESS_CSS, EMPTY_STATE_CSS, TRACKER_CSS)
 
     st.markdown("""
     <div class="tracker-hero">
@@ -810,29 +722,7 @@ def render_savings_insights():
                 "langsung diterapkan. Gunakan bahasa Indonesia yang sopan."
             )
 
-            response = None
-            try:
-                from services.ai.chat_service import GroqChatService
-                import os
-
-                api_key = ""
-                try:
-                    api_key = st.secrets.get("GROQ_API_KEY", "")
-                except Exception:
-                    pass
-                if not api_key:
-                    api_key = os.getenv("GROQ_API_KEY", "")
-
-                if api_key:
-                    service = GroqChatService(api_key=api_key)
-                    service.initialize()
-                    response = service.simple_complete(
-                        prompt=prompt_text,
-                        system_prompt=system_prompt,
-                        max_tokens=1024,
-                    )
-            except Exception:
-                response = None
+            response = ai_complete(prompt_text, system_prompt=system_prompt, max_tokens=1024)
 
             if response:
                 st.markdown(f"""

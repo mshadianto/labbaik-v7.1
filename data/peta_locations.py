@@ -9,6 +9,12 @@ fasilitas kesehatan, dan transportasi.
 from enum import Enum
 from typing import List, Dict, Optional
 
+try:
+    import streamlit as st
+    _HAS_ST = True
+except ImportError:
+    _HAS_ST = False
+
 
 # ---------------------------------------------------------------------------
 # Enum Kategori POI
@@ -967,7 +973,7 @@ ALL_POIS: List[Dict] = MAKKAH_POIS + MADINAH_POIS
 # Helper Functions
 # ---------------------------------------------------------------------------
 
-def get_pois_by_city(city: str) -> List[Dict]:
+def _get_pois_by_city(city: str) -> List[Dict]:
     """Ambil semua POI berdasarkan kota.
 
     Args:
@@ -979,7 +985,7 @@ def get_pois_by_city(city: str) -> List[Dict]:
     return [poi for poi in ALL_POIS if poi["city"] == city]
 
 
-def get_pois_by_category(city: str, category: str) -> List[Dict]:
+def _get_pois_by_category(city: str, category: str) -> List[Dict]:
     """Ambil POI berdasarkan kota dan kategori.
 
     Args:
@@ -995,7 +1001,7 @@ def get_pois_by_category(city: str, category: str) -> List[Dict]:
     ]
 
 
-def get_poi_by_id(poi_id: str) -> Optional[Dict]:
+def _get_poi_by_id(poi_id: str) -> Optional[Dict]:
     """Ambil satu POI berdasarkan ID unik.
 
     Args:
@@ -1008,6 +1014,17 @@ def get_poi_by_id(poi_id: str) -> Optional[Dict]:
         if poi["id"] == poi_id:
             return poi
     return None
+
+
+# Apply @st.cache_data when running inside Streamlit
+if _HAS_ST:
+    get_pois_by_city = st.cache_data(_get_pois_by_city)
+    get_pois_by_category = st.cache_data(_get_pois_by_category)
+    get_poi_by_id = st.cache_data(_get_poi_by_id)
+else:
+    get_pois_by_city = _get_pois_by_city
+    get_pois_by_category = _get_pois_by_category
+    get_poi_by_id = _get_poi_by_id
 
 
 # ---------------------------------------------------------------------------

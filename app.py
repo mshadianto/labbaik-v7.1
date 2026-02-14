@@ -532,38 +532,9 @@ def init_session_state():
             "health_conditions": []
         },
 
-        # Hasan.VC Demo Features
-        "readiness_answers": {},
-        "readiness_score": 0,
-        "readiness_dimensions": {"dokumen": 0, "budget": 0, "kesehatan": 0, "manasik": 0},
-        "readiness_recommendations": "",
-        "readiness_completed": False,
-
-        "tracker_budget": {
-            "penerbangan": 0, "hotel": 0, "transportasi": 0,
-            "makan": 0, "belanja": 0, "lainnya": 0
-        },
-        "tracker_expenses": [],
-        "tracker_currency": "IDR",
-        "tracker_budget_set": False,
-
-        "tanya_history": [],
-        "tanya_category": "semua",
-
-        "doc_checklist": {
-            "paspor": "belum", "visa": "belum", "vaksin_meningitis": "belum",
-            "vaksin_covid": "belum", "foto": "belum", "ktp": "belum",
-            "kk": "belum", "buku_nikah": "belum", "surat_mahram": "belum",
-            "asuransi": "belum", "tiket": "belum",
-        },
-        "doc_details": {"paspor_expiry": None, "departure_date": None},
-        "doc_tips_cache": {},
-
-        # Interactive Map
-        "peta_selected_city": "makkah",
-        "peta_selected_categories": ["ibadah", "hotel_area", "kuliner", "money_changer", "kesehatan", "transport"],
-        "peta_selected_poi": None,
-        "peta_ai_tips_cache": {},
+        # Feature-specific state is lazy-initialized by each page's own init function
+        # (e.g. init_readiness_state, init_cost_tracker_state, init_tanya_ustadz_state,
+        #  init_doc_checker_state, init_peta_state)
     }
     
     for key, value in defaults.items():

@@ -11,14 +11,15 @@ import streamlit as st
 import math
 from typing import Dict, List, Optional
 
+from services.ai.helpers import ai_complete, add_xp_safe
+from ui.components.shared_styles import inject_css, HERO_CSS, CARD_CSS, AI_CARD_CSS
+
 # =============================================================================
 # STYLING
 # =============================================================================
 
 PETA_CSS = """
-<style>
-@import url('https://fonts.googleapis.com/css2?family=Amiri:wght@400;700&display=swap');
-
+/* Page-specific styles for peta interaktif */
 .peta-hero {
     background: linear-gradient(135deg, #0d1b2a 0%, #1b2a4a 100%);
     padding: 2.5rem 2rem;
@@ -326,7 +327,6 @@ PETA_CSS = """
     color: #f87171;
     border: 1px solid rgba(220, 20, 60, 0.4);
 }
-</style>
 """
 
 # =============================================================================
@@ -409,13 +409,8 @@ def init_peta_state():
 # =============================================================================
 
 def _add_xp(amount, reason):
-    """Add XP with fallback to direct session state manipulation."""
-    try:
-        from app import add_xp
-        add_xp(amount, reason)
-    except Exception:
-        if "user_xp" in st.session_state:
-            st.session_state.user_xp = st.session_state.get("user_xp", 0) + amount
+    """Add XP — delegates to shared helper."""
+    add_xp_safe(amount, reason)
 
 
 # =============================================================================
@@ -464,7 +459,7 @@ def render_hero():
     """Render hero section with CSS injection and statistics."""
     from data.peta_locations import MAKKAH_POIS, MADINAH_POIS, CATEGORY_INFO
 
-    st.markdown(PETA_CSS, unsafe_allow_html=True)
+    inject_css(HERO_CSS, CARD_CSS, AI_CARD_CSS, PETA_CSS)
 
     total_makkah = len(MAKKAH_POIS)
     total_madinah = len(MADINAH_POIS)
@@ -835,29 +830,7 @@ def generate_ai_tips(poi):
         f"Berikan tips yang lebih detail dan praktis."
     )
 
-    response = None
-    try:
-        from services.ai.chat_service import GroqChatService
-        import os
-
-        api_key = ""
-        try:
-            api_key = st.secrets.get("GROQ_API_KEY", "")
-        except Exception:
-            pass
-        if not api_key:
-            api_key = os.getenv("GROQ_API_KEY", "")
-
-        if api_key:
-            service = GroqChatService(api_key=api_key)
-            service.initialize()
-            response = service.simple_complete(
-                prompt=prompt,
-                system_prompt=AI_SYSTEM_PROMPT,
-                max_tokens=512,
-            )
-    except Exception:
-        response = None
+    response = ai_complete(prompt, system_prompt=AI_SYSTEM_PROMPT, max_tokens=512)
 
     # Cache response if successful
     if response:
