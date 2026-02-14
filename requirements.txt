@@ -39,3 +39,7 @@ email-validator>=2.0.0
 httpx
 gtts
 edge-tts
+
+# Interactive Maps
+folium>=0.14.0
+streamlit-folium>=0.13.0

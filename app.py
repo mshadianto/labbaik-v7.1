@@ -257,6 +257,17 @@ except ImportError:
         st.warning("⚠️ Fitur Doc Checker belum tersedia")
         st.info("Segera hadir: Cek kelengkapan dokumen umrah!")
 
+# Interactive Map (Makkah & Madinah)
+try:
+    from ui.pages.peta_interaktif import render_peta_interaktif_page
+    HAS_PETA = True
+except ImportError:
+    HAS_PETA = False
+    def render_peta_interaktif_page():
+        st.markdown("# 🗺️ Peta Interaktif")
+        st.warning("⚠️ Fitur Peta Interaktif belum tersedia")
+        st.info("Segera hadir: Peta lokasi penting di Makkah & Madinah!")
+
 # Crowd Prediction
 try:
     from features.crowd_prediction import (
@@ -547,6 +558,12 @@ def init_session_state():
         },
         "doc_details": {"paspor_expiry": None, "departure_date": None},
         "doc_tips_cache": {},
+
+        # Interactive Map
+        "peta_selected_city": "makkah",
+        "peta_selected_categories": ["ibadah", "hotel_area", "kuliner", "money_changer", "kesehatan", "transport"],
+        "peta_selected_poi": None,
+        "peta_ai_tips_cache": {},
     }
     
     for key, value in defaults.items():
@@ -770,6 +787,7 @@ def render_sidebar():
                 ("🤖", "AI Assistant", "chat", True, False),
                 ("🧑‍🏫", "Tanya Ustadz", "tanya_ustadz", HAS_TANYA_USTADZ, False),
                 ("📊", "Prediksi Keramaian", "crowd", HAS_CROWD_PREDICTION, False),
+                ("🗺️", "Peta Interaktif", "peta", HAS_PETA, False),
                 ("🤲", "Doa & Dzikir", "doa", HAS_DOA_PLAYER, False),
                 ("📍", "Group Tracking", "tracking", HAS_TRACKING, True),  # Premium
             ]
@@ -997,6 +1015,7 @@ def render_page():
         "cost_tracker": render_cost_tracker_page,
         "tanya_ustadz": render_tanya_ustadz_page,
         "doc_checker": render_doc_checker_page,
+        "peta": render_peta_interaktif_page,
     }
     
     renderer = page_map.get(page, render_home_page)
@@ -1017,6 +1036,7 @@ def render_page():
                 "cost_tracker": "Cost Tracker",
                 "tanya_ustadz": "Tanya Ustadz",
                 "doc_checker": "Doc Checker",
+                "peta": "Peta Interaktif",
             }
             render_access_denied(reason, page_names.get(page, page))
             return
