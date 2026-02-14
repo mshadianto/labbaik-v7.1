@@ -667,27 +667,28 @@ def render_hero():
 
     total_items = len(SAUDI_PRICES)
 
-    st.markdown(f"""
-    <div class="kurs-hero">
-        <div class="bismillah">\u0628\u0633\u0645 \u0627\u0644\u0644\u0647 \u0627\u0644\u0631\u062d\u0645\u0646 \u0627\u0644\u0631\u062d\u064a\u0645</div>
-        <h1>\U0001f3e6 Kalkulator Kurs & Harga</h1>
-        <p class="subtitle">Konversi mata uang dan referensi harga di Arab Saudi untuk jamaah umrah</p>
-        <div class="kurs-stat-row">
-            <div class="kurs-stat-item">
-                <div class="kurs-stat-number">{format_idr(BASE_RATES['SAR_IDR'])}</div>
-                <div class="kurs-stat-label">1 SAR = IDR</div>
-            </div>
-            <div class="kurs-stat-item">
-                <div class="kurs-stat-number">3.75</div>
-                <div class="kurs-stat-label">1 USD = SAR</div>
-            </div>
-            <div class="kurs-stat-item">
-                <div class="kurs-stat-number">{total_items}</div>
-                <div class="kurs-stat-label">Referensi Harga</div>
-            </div>
-        </div>
-    </div>
-    """, unsafe_allow_html=True)
+    st.markdown(
+        f'<div class="kurs-hero">'
+        f'<div class="bismillah">\u0628\u0633\u0645 \u0627\u0644\u0644\u0647 \u0627\u0644\u0631\u062d\u0645\u0646 \u0627\u0644\u0631\u062d\u064a\u0645</div>'
+        f'<h1>\U0001f3e6 Kalkulator Kurs & Harga</h1>'
+        f'<p class="subtitle">Konversi mata uang dan referensi harga di Arab Saudi untuk jamaah umrah</p>'
+        f'<div class="kurs-stat-row">'
+        f'<div class="kurs-stat-item">'
+        f'<div class="kurs-stat-number">{format_idr(BASE_RATES["SAR_IDR"])}</div>'
+        f'<div class="kurs-stat-label">1 SAR = IDR</div>'
+        f'</div>'
+        f'<div class="kurs-stat-item">'
+        f'<div class="kurs-stat-number">3.75</div>'
+        f'<div class="kurs-stat-label">1 USD = SAR</div>'
+        f'</div>'
+        f'<div class="kurs-stat-item">'
+        f'<div class="kurs-stat-number">{total_items}</div>'
+        f'<div class="kurs-stat-label">Referensi Harga</div>'
+        f'</div>'
+        f'</div>'
+        f'</div>',
+        unsafe_allow_html=True,
+    )
 
     st.caption(
         "\u26a0\ufe0f Kurs yang ditampilkan adalah estimasi rata-rata dan dapat berbeda "
@@ -741,13 +742,14 @@ def render_currency_converter():
         result_idr = sar_to_idr(amount_sar)
         result_usd = sar_to_usd(amount_sar)
 
-        st.markdown(f"""
-        <div class="converter-result">
-            <div class="converter-equals">{format_sar(amount_sar)} =</div>
-            <div class="converter-amount">{format_idr(result_idr)}</div>
-            <div class="converter-ref">Referensi: {format_usd(result_usd)}</div>
-        </div>
-        """, unsafe_allow_html=True)
+        st.markdown(
+            f'<div class="converter-result">'
+            f'<div class="converter-equals">{format_sar(amount_sar)} =</div>'
+            f'<div class="converter-amount">{format_idr(result_idr)}</div>'
+            f'<div class="converter-ref">Referensi: {format_usd(result_usd)}</div>'
+            f'</div>',
+            unsafe_allow_html=True,
+        )
 
     else:
         amount_idr = st.number_input(
@@ -765,13 +767,14 @@ def render_currency_converter():
         result_sar = idr_to_sar(amount_idr)
         result_usd = sar_to_usd(result_sar)
 
-        st.markdown(f"""
-        <div class="converter-result">
-            <div class="converter-equals">{format_idr(amount_idr)} =</div>
-            <div class="converter-amount">{format_sar(result_sar)}</div>
-            <div class="converter-ref">Referensi: {format_usd(result_usd)}</div>
-        </div>
-        """, unsafe_allow_html=True)
+        st.markdown(
+            f'<div class="converter-result">'
+            f'<div class="converter-equals">{format_idr(amount_idr)} =</div>'
+            f'<div class="converter-amount">{format_sar(result_sar)}</div>'
+            f'<div class="converter-ref">Referensi: {format_usd(result_usd)}</div>'
+            f'</div>',
+            unsafe_allow_html=True,
+        )
 
     # Award XP on first use
     if not st.session_state.kurs_first_use:
@@ -846,13 +849,14 @@ def render_price_guide():
         cat_color = cat_info.get("color", "#d4af37")
 
         # Category header
-        st.markdown(f"""
-        <div class="price-category-header" style="background: {cat_color}15; border: 1px solid {cat_color}33;">
-            <span>{cat_icon}</span>
-            <span>{cat_label}</span>
-            <span style="color: #64748b; font-size: 0.85rem; font-weight: 400;">({len(items)} item)</span>
-        </div>
-        """, unsafe_allow_html=True)
+        st.markdown(
+            f'<div class="price-category-header" style="background: {cat_color}15; border: 1px solid {cat_color}33;">'
+            f'<span>{cat_icon}</span>'
+            f'<span>{cat_label}</span>'
+            f'<span style="color: #64748b; font-size: 0.85rem; font-weight: 400;">({len(items)} item)</span>'
+            f'</div>',
+            unsafe_allow_html=True,
+        )
 
         # Items
         for item in items:
@@ -867,27 +871,28 @@ def render_price_guide():
             elif item["city"] == "madinah":
                 city_badge = '<span style="color:#60a5fa;font-size:0.75rem;">\U0001f54c Madinah</span>'
 
-            st.markdown(f"""
-            <div class="price-item-card" style="border-left-color: {cat_color};">
-                <div class="price-item-header">
-                    <div>
-                        <p class="price-item-name">{item['name']}</p>
-                        <p class="price-item-name-ar">{item['name_ar']}</p>
-                    </div>
-                    <div style="display:flex;gap:0.5rem;align-items:center;">
-                        {city_badge}
-                        <span class="{level['class']}">{level['label']}</span>
-                    </div>
-                </div>
-                <div class="price-item-values">
-                    <span class="price-sar">{format_num(item['price_min'])}-{format_num(item['price_max'])} SAR</span>
-                    <span style="color:#64748b;">|</span>
-                    <span class="price-idr">{format_idr(idr_min)} - {format_idr(idr_max)}</span>
-                    <span style="color:#64748b;font-size:0.8rem;">/ {item['unit']}</span>
-                </div>
-                <p class="price-item-notes">{item['notes']}</p>
-            </div>
-            """, unsafe_allow_html=True)
+            card_html = (
+                f'<div class="price-item-card" style="border-left-color: {cat_color};">'
+                f'<div class="price-item-header">'
+                f'<div>'
+                f'<p class="price-item-name">{item["name"]}</p>'
+                f'<p class="price-item-name-ar">{item["name_ar"]}</p>'
+                f'</div>'
+                f'<div style="display:flex;gap:0.5rem;align-items:center;">'
+                f'{city_badge}'
+                f'<span class="{level["class"]}">{level["label"]}</span>'
+                f'</div>'
+                f'</div>'
+                f'<div class="price-item-values">'
+                f'<span class="price-sar">{format_num(item["price_min"])}-{format_num(item["price_max"])} SAR</span>'
+                f'<span style="color:#64748b;">|</span>'
+                f'<span class="price-idr">{format_idr(idr_min)} - {format_idr(idr_max)}</span>'
+                f'<span style="color:#64748b;font-size:0.8rem;">/ {item["unit"]}</span>'
+                f'</div>'
+                f'<p class="price-item-notes">{item["notes"]}</p>'
+                f'</div>'
+            )
+            st.markdown(card_html, unsafe_allow_html=True)
 
     st.caption(f"Menampilkan {len(filtered_prices)} dari {len(SAUDI_PRICES)} item referensi harga.")
 
@@ -903,12 +908,13 @@ def render_tips_and_analysis():
     st.markdown("### \U0001f4a1 Tips Penukaran Uang")
 
     for tip in MONEY_CHANGER_TIPS:
-        st.markdown(f"""
-        <div class="tips-card">
-            <h4>{tip['title']}</h4>
-            <p>{tip['desc']}</p>
-        </div>
-        """, unsafe_allow_html=True)
+        st.markdown(
+            f'<div class="tips-card">'
+            f'<h4>{tip["title"]}</h4>'
+            f'<p>{tip["desc"]}</p>'
+            f'</div>',
+            unsafe_allow_html=True,
+        )
 
     st.divider()
 
@@ -933,28 +939,31 @@ def render_tips_and_analysis():
     mcol1, mcol2, mcol3 = st.columns(3)
 
     with mcol1:
-        st.markdown(f"""
-        <div class="metric-card">
-            <div class="metric-label">Budget IDR</div>
-            <div class="metric-value" style="color:#d4af37;">{format_idr(float(budget_idr))}</div>
-        </div>
-        """, unsafe_allow_html=True)
+        st.markdown(
+            f'<div class="metric-card">'
+            f'<div class="metric-label">Budget IDR</div>'
+            f'<div class="metric-value" style="color:#d4af37;">{format_idr(float(budget_idr))}</div>'
+            f'</div>',
+            unsafe_allow_html=True,
+        )
 
     with mcol2:
-        st.markdown(f"""
-        <div class="metric-card">
-            <div class="metric-label">Setara SAR</div>
-            <div class="metric-value" style="color:#4ade80;">{format_sar(budget_sar)}</div>
-        </div>
-        """, unsafe_allow_html=True)
+        st.markdown(
+            f'<div class="metric-card">'
+            f'<div class="metric-label">Setara SAR</div>'
+            f'<div class="metric-value" style="color:#4ade80;">{format_sar(budget_sar)}</div>'
+            f'</div>',
+            unsafe_allow_html=True,
+        )
 
     with mcol3:
-        st.markdown(f"""
-        <div class="metric-card">
-            <div class="metric-label">Setara USD</div>
-            <div class="metric-value" style="color:#60a5fa;">{format_usd(budget_usd)}</div>
-        </div>
-        """, unsafe_allow_html=True)
+        st.markdown(
+            f'<div class="metric-card">'
+            f'<div class="metric-label">Setara USD</div>'
+            f'<div class="metric-value" style="color:#60a5fa;">{format_usd(budget_usd)}</div>'
+            f'</div>',
+            unsafe_allow_html=True,
+        )
 
     st.markdown("")
 
@@ -966,15 +975,16 @@ def render_tips_and_analysis():
         alloc_sar = budget_sar * pct / 100
         alloc_idr = sar_to_idr(alloc_sar)
 
-        st.markdown(f"""
-        <div class="budget-breakdown-item">
-            <div class="budget-breakdown-label">{cat_info['label']}</div>
-            <div class="budget-breakdown-value">
-                <div class="budget-breakdown-pct">{pct}% &mdash; {format_sar(alloc_sar)}</div>
-                <div class="budget-breakdown-amount">{format_idr(alloc_idr)}</div>
-            </div>
-        </div>
-        """, unsafe_allow_html=True)
+        st.markdown(
+            f'<div class="budget-breakdown-item">'
+            f'<div class="budget-breakdown-label">{cat_info["label"]}</div>'
+            f'<div class="budget-breakdown-value">'
+            f'<div class="budget-breakdown-pct">{pct}% &mdash; {format_sar(alloc_sar)}</div>'
+            f'<div class="budget-breakdown-amount">{format_idr(alloc_idr)}</div>'
+            f'</div>'
+            f'</div>',
+            unsafe_allow_html=True,
+        )
 
     st.divider()
 
@@ -1027,12 +1037,13 @@ def render_tips_and_analysis():
             )
 
             if response:
-                st.markdown(f"""
-                <div class="ai-card">
-                    <h3>\U0001f9e0 Hasil Analisis AI</h3>
-                    <p>{_markdown_to_html_simple(response)}</p>
-                </div>
-                """, unsafe_allow_html=True)
+                st.markdown(
+                    f'<div class="ai-card">'
+                    f'<h3>\U0001f9e0 Hasil Analisis AI</h3>'
+                    f'<p>{_markdown_to_html_simple(response)}</p>'
+                    f'</div>',
+                    unsafe_allow_html=True,
+                )
 
                 if not st.session_state.kurs_ai_analysis_done:
                     st.session_state.kurs_ai_analysis_done = True
@@ -1047,11 +1058,12 @@ def render_tips_and_analysis():
 
 def render_budget_fallback(budget_sar: float):
     """Render static budget tips when AI is unavailable."""
-    st.markdown("""
-    <div class="ai-card" style="border-color: #d4af37;">
-        <h3 style="color: #d4af37;">\U0001f4a1 Saran Budget</h3>
-    </div>
-    """, unsafe_allow_html=True)
+    st.markdown(
+        '<div class="ai-card" style="border-color: #d4af37;">'
+        '<h3 style="color: #d4af37;">\U0001f4a1 Saran Budget</h3>'
+        '</div>',
+        unsafe_allow_html=True,
+    )
 
     if budget_sar < 500:
         st.markdown(
