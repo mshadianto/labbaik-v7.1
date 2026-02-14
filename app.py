@@ -268,6 +268,17 @@ except ImportError:
         st.warning("⚠️ Fitur Peta Interaktif belum tersedia")
         st.info("Segera hadir: Peta lokasi penting di Makkah & Madinah!")
 
+# Kalkulator Kurs & Harga
+try:
+    from ui.pages.kurs_calculator import render_kurs_calculator_page
+    HAS_KURS = True
+except ImportError:
+    HAS_KURS = False
+    def render_kurs_calculator_page():
+        st.markdown("# 🏦 Kalkulator Kurs & Harga")
+        st.warning("⚠️ Fitur Kalkulator Kurs belum tersedia")
+        st.info("Segera hadir: Konversi kurs dan referensi harga di Saudi!")
+
 # Crowd Prediction
 try:
     from features.crowd_prediction import (
@@ -748,6 +759,14 @@ def render_sidebar():
                     st.session_state.current_page = "cost_tracker"
                     st.rerun()
 
+            # Kalkulator Kurs
+            if HAS_KURS:
+                is_kurs = st.session_state.get("current_page") == "kurs_calculator"
+                if st.button("🏦 Kalkulator Kurs", key="p2_kurs_calculator", use_container_width=True,
+                            type="primary" if is_kurs else "secondary"):
+                    st.session_state.current_page = "kurs_calculator"
+                    st.rerun()
+
         # =====================================================================
         # SMART JOURNEY - Perjalanan Cerdas
         # =====================================================================
@@ -987,6 +1006,7 @@ def render_page():
         "tanya_ustadz": render_tanya_ustadz_page,
         "doc_checker": render_doc_checker_page,
         "peta": render_peta_interaktif_page,
+        "kurs_calculator": render_kurs_calculator_page,
     }
     
     renderer = page_map.get(page, render_home_page)
@@ -1008,6 +1028,7 @@ def render_page():
                 "tanya_ustadz": "Tanya Ustadz",
                 "doc_checker": "Doc Checker",
                 "peta": "Peta Interaktif",
+                "kurs_calculator": "Kalkulator Kurs & Harga",
             }
             render_access_denied(reason, page_names.get(page, page))
             return
