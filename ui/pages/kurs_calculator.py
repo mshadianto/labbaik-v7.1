@@ -609,13 +609,20 @@ def format_idr(amount: float) -> str:
 
 
 def format_sar(amount: float) -> str:
-    """Format amount as Saudi Riyal."""
-    return f"{amount:,.2f} SAR"
+    """Format amount as Saudi Riyal with dot separator (Indonesian style)."""
+    formatted = f"{amount:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
+    return f"{formatted} SAR"
 
 
 def format_usd(amount: float) -> str:
-    """Format amount as US Dollar."""
-    return f"${amount:,.2f}"
+    """Format amount as US Dollar with dot separator (Indonesian style)."""
+    formatted = f"{amount:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
+    return f"${formatted}"
+
+
+def format_num(amount) -> str:
+    """Format a number with Indonesian dot separator (e.g. 1.000, 5.000)."""
+    return f"{int(amount):,}".replace(",", ".")
 
 
 def get_price_level(price_avg: float) -> Dict:
@@ -667,7 +674,7 @@ def render_hero():
         <p class="subtitle">Konversi mata uang dan referensi harga di Arab Saudi untuk jamaah umrah</p>
         <div class="kurs-stat-row">
             <div class="kurs-stat-item">
-                <div class="kurs-stat-number">Rp 4.250</div>
+                <div class="kurs-stat-number">{format_idr(BASE_RATES['SAR_IDR'])}</div>
                 <div class="kurs-stat-label">1 SAR = IDR</div>
             </div>
             <div class="kurs-stat-item">
@@ -723,7 +730,7 @@ def render_currency_converter():
         for i, quick_amt in enumerate(QUICK_AMOUNTS_SAR):
             with qcols[i]:
                 if st.button(
-                    f"{quick_amt} SAR",
+                    f"{format_num(quick_amt)} SAR",
                     key=f"quick_sar_{quick_amt}",
                     use_container_width=True,
                 ):
@@ -873,7 +880,7 @@ def render_price_guide():
                     </div>
                 </div>
                 <div class="price-item-values">
-                    <span class="price-sar">{item['price_min']}-{item['price_max']} SAR</span>
+                    <span class="price-sar">{format_num(item['price_min'])}-{format_num(item['price_max'])} SAR</span>
                     <span style="color:#64748b;">|</span>
                     <span class="price-idr">{format_idr(idr_min)} - {format_idr(idr_max)}</span>
                     <span style="color:#64748b;font-size:0.8rem;">/ {item['unit']}</span>
