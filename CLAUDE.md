@@ -6,19 +6,11 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 LABBAIK AI is a Streamlit-based AI platform for Umrah (Islamic pilgrimage) planning. It helps Indonesian Muslims plan their Umrah journey with features like AI chat, cost simulation, group matching, Travel CRM, and emergency SOS.
 
-**Tech Stack:** Python 3.9+, Streamlit, PostgreSQL (Supabase), Groq/GLM-4/OpenAI LLM, ChromaDB for RAG
+**Tech Stack:** Python 3.9+, Streamlit, PostgreSQL (Supabase/Neon), Groq/GLM-4/OpenAI LLM, ChromaDB for RAG
 
-## Domain Structure
+**Domains:** `labbaik.io` (Hostinger/WordPress landing page), `app.labbaik.io` (Railway/Streamlit app)
 
-| URL | Platform | Purpose |
-|-----|----------|---------|
-| `https://labbaik.io` | Hostinger (WordPress) | Landing page, marketing, SEO |
-| `https://app.labbaik.io` | Railway (Streamlit) | Main AI application |
-
-**Email Addresses:**
-- `admin@labbaik.io` - Admin login
-- `founder@labbaik.io` - Business contact
-- `salam@labbaik.io` - Customer support
+**Team emails (excluded from analytics):** `admin@labbaik.io`, `founder@labbaik.io`, `salam@labbaik.io`
 
 ## Common Commands
 
@@ -86,46 +78,63 @@ python -m app.jobs_v13              # v1.3 jobs (Haramain train, SAPTCO bus)
 ### Directory Structure
 
 ```
-core/           # Configuration, constants, exceptions, logging
-services/       # Backend services (AI, database, analytics, WhatsApp)
-  ai/           # LLM services (Groq, GLM-4, OpenAI) with provider abstraction
-  database/     # PostgreSQL connection pool and repository pattern
-  intelligence/ # Name normalization, pricing, risk scores
-  umrah/        # Hotel/transport data fetching from multiple APIs
-  user/         # User management and access control
-  crm/          # Travel CRM (leads, bookings, jamaah, invoices)
-  subscription/ # Premium subscription handling
-  partner_api/  # REST API for travel agent partners
-  hotel/        # Hotel price comparison (Makcorps API)
-  scrapers/     # Web scrapers (Traveloka, Tiket.com)
-features/       # Standalone feature modules (SOS, crowd prediction, etc.)
-ui/pages/       # Streamlit page renderers
-ui/components/  # Reusable UI components
-data/           # Static data and knowledge bases
-config/         # YAML configuration files
-sql/            # Database schemas and migrations
-scripts/        # Utility and initialization scripts
-umrah-crawler/  # Separate FastAPI backend for data crawling
+core/                   # Configuration, constants, exceptions, logging
+services/               # Backend services
+  ai/                   # LLM services (Groq, GLM-4, OpenAI) with provider abstraction
+  analytics/            # Event/page tracking, visitor analytics, dashboard
+  auth/                 # Authentication (auth_service.py)
+  cost/                 # Cost calculator
+  crm/                  # Travel CRM (leads, bookings, jamaah, invoices)
+  database/             # PostgreSQL connection pool and repository pattern
+  hotel/                # Hotel price comparison (Makcorps API)
+  intelligence/         # Name normalization, pricing, risk scores, geo clustering
+  notification/         # Notification service
+  partner_api/          # REST API for travel agent partners
+  price/                # Live prices, monitoring, price repository
+  price_aggregation/    # Multi-source price aggregation, caching, scheduling
+  referral/             # Referral/rewards system
+  scrapers/             # Web scrapers (Traveloka, Tiket.com) with rate limiting
+  subscription/         # Premium subscription handling
+  umrah/                # Hotel/transport data fetching from multiple APIs
+  user/                 # User management and access control
+  whatsapp/             # WAHA WhatsApp client
+features/               # Standalone feature modules (SOS, crowd prediction, etc.)
+ui/pages/               # Streamlit page renderers
+ui/components/          # Reusable UI components
+data/                   # Static data and knowledge bases
+config/                 # YAML configuration files
+sql/                    # Database schemas and migrations
+scripts/                # Utility and initialization scripts
+umrah-crawler/          # Separate FastAPI backend for data crawling
+  app/amadeus/          # Amadeus API client (auth, hotels, flights, transfers)
+  app/providers/        # Data providers (Agoda, Xotelo, Makcorps, Haramain, SAPTCO, ECB forex)
+  app/services/         # Healthcheck, itinerary generation
+  app/utils/            # HTTP helpers, normalization, rate limiting
 ```
 
 ### Key Patterns
 
-**Feature Flags:** Features are lazy-imported with try/except and `HAS_*` boolean flags (e.g., `HAS_CROWD_PREDICTION`). Check these flags before using features. See the imports section in `app.py` for the full list.
+**Feature Flags:** Features are lazy-imported with try/except and `HAS_*` boolean flags in `app.py`. Check these flags before using features. Full list:
+`HAS_ITINERARY`, `HAS_HOTEL_COMPARE`, `HAS_PRICE_HUB`, `HAS_CHECKLIST`, `HAS_CROWD_PREDICTION`, `HAS_SOS`, `HAS_TRACKING`, `HAS_MANASIK`, `HAS_COMPARISON`, `HAS_ANALYTICS`, `HAS_USER_MANAGEMENT`, `HAS_SUBSCRIPTION`, `HAS_PARTNER_SYSTEM`, `HAS_CRM`, `HAS_PRICE_AGGREGATION`, `HAS_WHATSAPP`, `HAS_DOA_PLAYER`, `HAS_PWA`, `HAS_TRACKING_SERVICE`
 
 **Session State:** All state is managed via `st.session_state`. See `init_session_state()` in `app.py` for all keys including navigation, auth, chat, gamification, SOS, tracking, and more.
 
+**Singletons:** Both `DatabaseConnection` (`services/database/repository.py`) and `ConfigManager` (`core/config.py`) use the singleton pattern via `__new__`. Access via `get_db()` and `get_settings()` respectively.
+
 **Service Layer:**
 - `services/ai/chat_service.py` - Multi-provider chat (Groq, GLM-4, OpenAI) with rate limiting
-- `services/database/repository.py` - Database singleton with connection pooling
+- `services/database/repository.py` - Database singleton with connection pooling (`get_db()`)
 - `services/user/user_repository.py` - User CRUD with PostgreSQL/SQLite fallback
-- `services/intelligence/` - Name normalization, currency conversion, risk scoring
+- `services/intelligence/` - Name normalization, currency conversion, risk scoring, geo clustering, season calendar
 - `services/hotel/makcorps.py` - Hotel price comparison across 200+ OTAs
-- `services/price_aggregation/` - Price scraping and normalization
+- `services/price_aggregation/` - Multi-source price scraping, normalization, caching, n8n adapter
+- `services/analytics/tracker.py` - Event and page tracking (`track_page()`)
 
 **Configuration:**
 - Primary: Streamlit secrets (`.streamlit/secrets.toml`) and environment variables
 - Secondary: `config/settings.yaml` (env vars override YAML values)
-- Use `get_settings()` from `core/config.py` to access configuration
+- Use `get_settings()` from `core/config.py` — returns a `Settings` dataclass with typed sub-configs: `DatabaseConfig`, `AIConfig`, `AuthConfig`, `UIConfig`, `UmrahDataConfig`, `PluginConfig`, `LoggingConfig`
+- Environment: Set `LABBAIK_ENV` to `development`/`staging`/`production`/`testing`
 
 ### AI Services
 
@@ -137,7 +146,7 @@ The AI layer uses a provider abstraction via `AIServiceFactory`:
 | `GLMChatService` | glm-4, glm-4-plus, glm-4-flash | `zhipuai` |
 | `OpenAIChatService` | gpt-4o-mini | `openai` |
 
-All extend `BaseChatService` from `services/ai/base.py`. Provider selection is available in the chat page sidebar - users can switch between providers in real-time. Additional services: `rag_service.py` (ChromaDB vector search), `speech_service.py` (text-to-speech).
+All extend `BaseChatService` from `services/ai/base.py`. `AIServiceFactory` creates and caches service instances — use `create_chat_service(provider, api_key)`. Provider selection is available in the chat page sidebar. Additional services: `rag_service.py` (ChromaDB vector search with `all-MiniLM-L6-v2` embeddings), `speech_service.py` (text-to-speech via gTTS/edge-tts).
 
 ### Travel CRM System
 
@@ -154,13 +163,13 @@ UI pages: `ui/pages/crm_*.py`
 Role hierarchy (see `services/user/access_control.py`):
 - GUEST (0) → FREE (1) → PREMIUM (2) → PARTNER (3) → ADMIN (4)
 
-Use `check_page_access(page)` to verify permissions before rendering premium features.
+Use `check_page_access(page)` to verify permissions before rendering premium features. The `Feature` enum in `access_control.py` maps individual capabilities (e.g., `UNLIMITED_CHAT`, `GROUP_TRACKING`) to minimum required roles via the `FEATURE_ROLES` dict.
 
 ### Database
 
-PostgreSQL (Supabase) with connection pooling. Uses pooler URL (port 6543) for serverless compatibility.
+PostgreSQL (Supabase or Neon) with connection pooling via psycopg2. `DatabaseConnection` is a singleton — use `get_db()` from `services/database/repository.py`. Resolves the connection string from `DATABASE_URL` env var first, then falls back to Streamlit secrets.
 
-Connection string format:
+Supabase pooler URL format (port 6543):
 ```
 postgresql://postgres.[project-ref]:[password]@aws-0-[region].pooler.supabase.com:6543/postgres
 ```
