@@ -209,6 +209,54 @@ except ImportError:
         st.warning("⚠️ Fitur Smart Checklist belum tersedia")
         st.info("Segera hadir: Checklist packing Umrah yang dipersonalisasi!")
 
+# =============================================================================
+# Hasan.VC Demo Features
+# =============================================================================
+
+# AI Umrah Readiness Score
+try:
+    from ui.pages.readiness_checker import render_readiness_checker_page
+    HAS_READINESS = True
+except ImportError:
+    HAS_READINESS = False
+    def render_readiness_checker_page():
+        st.markdown("# 🎯 AI Umrah Readiness Score")
+        st.warning("⚠️ Fitur AI Readiness Score belum tersedia")
+        st.info("Segera hadir: Cek kesiapan umrah Anda dengan AI!")
+
+# Umrah Cost Tracker
+try:
+    from ui.pages.cost_tracker import render_cost_tracker_page
+    HAS_COST_TRACKER = True
+except ImportError:
+    HAS_COST_TRACKER = False
+    def render_cost_tracker_page():
+        st.markdown("# 💰 Umrah Cost Tracker")
+        st.warning("⚠️ Fitur Cost Tracker belum tersedia")
+        st.info("Segera hadir: Pantau pengeluaran umrah real-time!")
+
+# Community Tanya Ustadz AI
+try:
+    from ui.pages.tanya_ustadz import render_tanya_ustadz_page
+    HAS_TANYA_USTADZ = True
+except ImportError:
+    HAS_TANYA_USTADZ = False
+    def render_tanya_ustadz_page():
+        st.markdown("# 🤲 Tanya Ustadz AI")
+        st.warning("⚠️ Fitur Tanya Ustadz belum tersedia")
+        st.info("Segera hadir: Forum tanya jawab fiqih umrah!")
+
+# Smart Visa & Doc Checker
+try:
+    from ui.pages.doc_checker import render_doc_checker_page
+    HAS_DOC_CHECKER = True
+except ImportError:
+    HAS_DOC_CHECKER = False
+    def render_doc_checker_page():
+        st.markdown("# 📋 Smart Visa & Doc Checker")
+        st.warning("⚠️ Fitur Doc Checker belum tersedia")
+        st.info("Segera hadir: Cek kelengkapan dokumen umrah!")
+
 # Crowd Prediction
 try:
     from features.crowd_prediction import (
@@ -472,6 +520,33 @@ def init_session_state():
             "season": "normal",
             "health_conditions": []
         },
+
+        # Hasan.VC Demo Features
+        "readiness_answers": {},
+        "readiness_score": 0,
+        "readiness_dimensions": {"dokumen": 0, "budget": 0, "kesehatan": 0, "manasik": 0},
+        "readiness_recommendations": "",
+        "readiness_completed": False,
+
+        "tracker_budget": {
+            "penerbangan": 0, "hotel": 0, "transportasi": 0,
+            "makan": 0, "belanja": 0, "lainnya": 0
+        },
+        "tracker_expenses": [],
+        "tracker_currency": "IDR",
+        "tracker_budget_set": False,
+
+        "tanya_history": [],
+        "tanya_category": "semua",
+
+        "doc_checklist": {
+            "paspor": "belum", "visa": "belum", "vaksin_meningitis": "belum",
+            "vaksin_covid": "belum", "foto": "belum", "ktp": "belum",
+            "kk": "belum", "buku_nikah": "belum", "surat_mahram": "belum",
+            "asuransi": "belum", "tiket": "belum",
+        },
+        "doc_details": {"paspor_expiry": None, "departure_date": None},
+        "doc_tips_cache": {},
     }
     
     for key, value in defaults.items():
@@ -620,6 +695,8 @@ def render_sidebar():
                 ("📋", "Smart Checklist", "checklist", HAS_CHECKLIST),
                 ("📖", "Panduan Manasik", "umrah_mandiri", True),
                 ("🕋", "Manasik 3D", "manasik", HAS_MANASIK),
+                ("🎯", "Readiness Score", "readiness", HAS_READINESS),
+                ("📄", "Doc Checker", "doc_checker", HAS_DOC_CHECKER),
             ]
 
             for icon, label, page_key, is_available in pilar1_items:
@@ -675,6 +752,14 @@ def render_sidebar():
                 st.session_state.current_page = "booking"
                 st.rerun()
 
+            # Cost Tracker
+            if HAS_COST_TRACKER:
+                is_tracker = st.session_state.get("current_page") == "cost_tracker"
+                if st.button("💳 Cost Tracker", key="p2_cost_tracker", use_container_width=True,
+                            type="primary" if is_tracker else "secondary"):
+                    st.session_state.current_page = "cost_tracker"
+                    st.rerun()
+
         # =====================================================================
         # SMART JOURNEY - Perjalanan Cerdas
         # =====================================================================
@@ -683,6 +768,7 @@ def render_sidebar():
 
             pilar3_items = [
                 ("🤖", "AI Assistant", "chat", True, False),
+                ("🧑‍🏫", "Tanya Ustadz", "tanya_ustadz", HAS_TANYA_USTADZ, False),
                 ("📊", "Prediksi Keramaian", "crowd", HAS_CROWD_PREDICTION, False),
                 ("🤲", "Doa & Dzikir", "doa", HAS_DOA_PLAYER, False),
                 ("📍", "Group Tracking", "tracking", HAS_TRACKING, True),  # Premium
@@ -905,6 +991,12 @@ def render_page():
 
         # v7.6 Unified Price Hub
         "price_hub": render_price_hub_page,
+
+        # Hasan.VC Demo Features
+        "readiness": render_readiness_checker_page,
+        "cost_tracker": render_cost_tracker_page,
+        "tanya_ustadz": render_tanya_ustadz_page,
+        "doc_checker": render_doc_checker_page,
     }
     
     renderer = page_map.get(page, render_home_page)
@@ -921,6 +1013,10 @@ def render_page():
                 "analytics": "Analytics Dashboard",
                 "whatsapp": "WhatsApp Settings",
                 "partner_dashboard": "Partner Dashboard",
+                "readiness": "AI Readiness Score",
+                "cost_tracker": "Cost Tracker",
+                "tanya_ustadz": "Tanya Ustadz",
+                "doc_checker": "Doc Checker",
             }
             render_access_denied(reason, page_names.get(page, page))
             return
