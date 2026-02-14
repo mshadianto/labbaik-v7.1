@@ -779,6 +779,7 @@ def render_sidebar():
                 ("📊", "Prediksi Keramaian", "crowd", HAS_CROWD_PREDICTION, False),
                 ("🗺️", "Peta Interaktif", "peta", HAS_PETA, False),
                 ("🤲", "Doa & Dzikir", "doa", HAS_DOA_PLAYER, False),
+                ("🗓️", "Itinerary Builder", "itinerary", HAS_ITINERARY, False),
                 ("📍", "Group Tracking", "tracking", HAS_TRACKING, True),  # Premium
             ]
 
