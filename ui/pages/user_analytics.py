@@ -16,6 +16,11 @@ from services.user.user_service import get_current_user, is_logged_in, require_r
 
 def render_user_analytics_page():
     """Main user analytics dashboard"""
+    try:
+        from services.analytics import track_page
+        track_page("user_analytics")
+    except Exception:
+        pass
     st.markdown("## Dashboard Pengguna")
     st.markdown("Analitik pengguna terdaftar dan potensi konversi")
 

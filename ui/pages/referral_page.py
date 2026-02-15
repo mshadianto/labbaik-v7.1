@@ -11,6 +11,11 @@ from services.user import get_current_user, is_logged_in
 
 def render_referral_page():
     """Main referral page"""
+    try:
+        from services.analytics import track_page
+        track_page("referral")
+    except Exception:
+        pass
     st.markdown("## Program Referral")
     st.markdown("Ajak teman, dapatkan Premium gratis!")
 

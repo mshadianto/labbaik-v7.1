@@ -115,6 +115,11 @@ ANALYTICS_CSS = """
 
 def render_analytics_dashboard():
     """Render comprehensive analytics dashboard (admin only)."""
+    try:
+        from services.analytics import track_page
+        track_page("analytics")
+    except Exception:
+        pass
 
     # Check admin access
     user = st.session_state.get('user')

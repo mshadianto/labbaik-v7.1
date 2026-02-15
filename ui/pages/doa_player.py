@@ -1188,6 +1188,11 @@ def _render_hero():
 
 def render_doa_player_page():
     """Full doa player page."""
+    try:
+        from services.analytics import track_page
+        track_page("doa")
+    except Exception:
+        pass
 
     # Inject all CSS via the shared pattern
     inject_css(HERO_CSS, CARD_CSS, AI_CARD_CSS, BADGE_CSS, DOA_CSS)

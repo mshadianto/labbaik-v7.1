@@ -14,9 +14,12 @@ Features:
 import streamlit as st
 import os
 import sys
+import logging
 from datetime import datetime, timedelta
 from functools import lru_cache
 import time
+
+logger = logging.getLogger(__name__)
 
 # Add current directory to path
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
@@ -25,13 +28,14 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 # PERFORMANCE: CACHING UTILITIES
 # =============================================================================
 
-@st.cache_resource(ttl=600)  # Cache for 10 minutes (was 5)
+@st.cache_resource(ttl=600)  # Cache for 10 minutes
 def get_cached_db_connection():
     """Get cached database connection."""
     try:
         from services.database.repository import get_db
         return get_db()
-    except:
+    except Exception as e:
+        logger.warning(f"Database connection unavailable: {e}")
         return None
 
 @st.cache_data(ttl=300)  # Cache for 5 minutes (was 1)
@@ -55,8 +59,8 @@ def get_cached_visitor_stats():
                     'last_update': result.get('last_update'),
                     'source': 'database'
                 }
-    except:
-        pass
+    except Exception as e:
+        logger.debug(f"Visitor stats unavailable: {e}")
     return {'source': 'offline'}
 
 # Import version info
@@ -566,8 +570,8 @@ def track_visitor():
         if HAS_TRACKING_SERVICE:
             try:
                 track_page("home")
-            except:
-                pass
+            except Exception as e:
+                logger.debug(f"Visitor tracking failed: {e}")
 
 
 # =============================================================================
@@ -586,16 +590,19 @@ def get_level_title(level: int) -> str:
 def add_xp(amount: int, reason: str = ""):
     """Add XP and check for level up."""
     st.session_state.xp = st.session_state.get("xp", 0) + amount
-    
-    # Check level up
+
+    # Check level up (loop to handle multiple level-ups at once)
     current_level = st.session_state.get("level", 1)
-    xp_needed = current_level * 100
-    
-    if st.session_state.xp >= xp_needed and current_level < 10:
-        st.session_state.level = current_level + 1
-        st.session_state.xp = st.session_state.xp - xp_needed
-        st.toast(f"🎉 Level Up! Sekarang Level {st.session_state.level}!", icon="⬆️")
-    
+    while current_level < 10:
+        xp_needed = current_level * 100
+        if st.session_state.xp >= xp_needed:
+            st.session_state.xp -= xp_needed
+            current_level += 1
+            st.session_state.level = current_level
+            st.toast(f"🎉 Level Up! Sekarang Level {current_level}!", icon="⬆️")
+        else:
+            break
+
     if reason:
         st.toast(f"🎯 +{amount} poin! {reason}", icon="✨")
 
@@ -917,7 +924,7 @@ def render_sidebar():
         <div style="text-align: center; padding: 1rem 0;">
             <p style="color: #666; font-size: 0.75rem;">
                 {get_display_version()}<br>
-                © 2025 MS Hadianto
+                © 2026 MS Hadianto
             </p>
             <p style="color: #444; font-size: 0.65rem;">
                 Platform Umrah Cerdas Indonesia<br>
@@ -938,13 +945,13 @@ def render_page():
     # SCROLL TO TOP - Critical for UX
     scroll_to_top()
 
-    # Track page view - ONLY when page changes (performance optimization)
+    # Track page view - fires when page changes
     if HAS_TRACKING_SERVICE and st.session_state.get("_tracked_page") != page:
         try:
             track_page(page)
             st.session_state._tracked_page = page
-        except:
-            pass
+        except Exception as e:
+            logger.debug(f"Page tracking failed for '{page}': {e}")
     
     # Page routing map
     page_map = {
@@ -1037,7 +1044,7 @@ def render_page():
     try:
         renderer()
     except Exception as e:
-        # Improved Error Handling UI
+        logger.error(f"Error rendering page '{page}': {e}", exc_info=True)
         st.error(f"❌ Terjadi kesalahan saat memuat halaman: {str(e)}")
         st.info("Sistem telah mencatat error ini. Silakan kembali ke Beranda.")
         

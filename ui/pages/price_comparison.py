@@ -244,6 +244,11 @@ def _build_source_badge_html(source_name: str, size: str = "small") -> str:
 
 def render_price_comparison_page():
     """Render the price comparison page."""
+    try:
+        from services.analytics import track_page
+        track_page("price_comparison")
+    except Exception:
+        pass
 
     # Inject shared + page-specific CSS
     inject_css(HERO_CSS, CARD_CSS, AI_CARD_CSS, BADGE_CSS, PRICE_COMPARISON_CSS)

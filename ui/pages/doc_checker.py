@@ -840,6 +840,11 @@ def render_timeline():
 
 def render_doc_checker_page():
     """Main entry point for the Smart Visa & Doc Checker page."""
+    try:
+        from services.analytics import track_page
+        track_page("doc_checker")
+    except Exception:
+        pass
 
     # Initialize state
     init_doc_checker_state()

@@ -4,7 +4,6 @@ LABBAIK Smart Planner - Dynamic Version Management
 Centralized version control for the entire application.
 """
 
-from datetime import datetime
 from typing import Dict, Any
 
 # =============================================================================
@@ -88,41 +87,12 @@ CHANGELOG = [
     },
     {
         "version": "7.1.0",
-        "date": "2026-01-03",
+        "date": "2026-01-02",
         "changes": [
             "3-Pillar sidebar navigation structure",
             "Smart nudge in Budget Optimizer for Umrah Bareng",
             "Domain migration to labbaik.io",
             "GLM-4 (Zhipu AI) integration for chat",
-        ]
-    },
-    {
-        "version": "7.3.0",
-        "date": "2025-12-26",
-        "changes": [
-            "Role-based access control for all pages and features",
-            "Premium subscription system with multiple plans",
-            "Referral system for viral growth with rewards",
-            "Chat rate limiting based on user role",
-            "Premium feature gating with upgrade CTAs",
-            "Promo code support for subscriptions",
-        ]
-    },
-    {
-        "version": "7.2.0",
-        "date": "2025-12-26",
-        "changes": [
-            "User registration and login system",
-            "User access levels (Guest, Free, Premium, Partner, Admin)",
-            "User analytics dashboard for tracking potential customers",
-            "Database storage for user management",
-            "Profile management with Umrah preferences",
-        ]
-    },
-    {
-        "version": "7.1.0",
-        "date": "2024-12-26",
-        "changes": [
             "Live price updates for Umrah packages",
             "Scenario planning with Monte Carlo simulation",
             "WhatsApp bot integration",
@@ -132,12 +102,17 @@ CHANGELOG = [
     },
     {
         "version": "7.0.0",
-        "date": "2024-12-25",
+        "date": "2025-12-26",
         "changes": [
+            "Role-based access control for all pages and features",
+            "Premium subscription system with multiple plans",
+            "Referral system for viral growth with rewards",
+            "Chat rate limiting based on user role",
+            "User registration and login system",
+            "User access levels (Guest, Free, Premium, Partner, Admin)",
+            "User analytics dashboard for tracking potential customers",
             "Complete Umrah guide with 20+ doas",
             "Audio doa with male/female Arabic voices",
-            "Ecosystem strategy and API specification",
-            "Historical sites database",
         ]
     },
     {
@@ -149,6 +124,8 @@ CHANGELOG = [
             "Group tracking feature",
             "Crowd prediction widget",
             "Smart package comparison",
+            "Ecosystem strategy and API specification",
+            "Historical sites database",
         ]
     },
 ]

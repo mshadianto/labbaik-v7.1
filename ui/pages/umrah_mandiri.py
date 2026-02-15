@@ -1393,6 +1393,11 @@ def render_dyor():
 
 def render_umrah_mandiri_page():
     """Main entry point for Umrah Mandiri page."""
+    try:
+        from services.analytics import track_page
+        track_page("umrah_mandiri")
+    except Exception:
+        pass
 
     # Initialize state
     init_umrah_mandiri_state()

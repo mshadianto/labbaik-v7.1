@@ -7,6 +7,7 @@ secrets management, and YAML configuration support.
 
 from __future__ import annotations
 import os
+import threading
 import yaml
 from pathlib import Path
 from typing import Any, Dict, Optional, List
@@ -264,9 +265,14 @@ class Settings:
     def from_dict(cls, data: Dict[str, Any]) -> "Settings":
         """Create settings from dictionary."""
         env_str = os.getenv("LABBAIK_ENV", data.get("environment", "development"))
+        try:
+            environment = Environment(env_str.lower())
+        except ValueError:
+            logger.warning(f"Invalid LABBAIK_ENV '{env_str}', defaulting to development")
+            environment = Environment.DEVELOPMENT
 
         return cls(
-            environment=Environment(env_str.lower()),
+            environment=environment,
             debug=data.get("debug", False),
             database=DatabaseConfig.from_dict(data.get("database", {})),
             ai=AIConfig.from_dict(data.get("ai", {})),
@@ -309,15 +315,18 @@ class Settings:
 
 class ConfigManager:
     """
-    Configuration manager with singleton pattern.
+    Configuration manager with thread-safe singleton pattern.
     Provides centralized access to application settings.
     """
     _instance: Optional["ConfigManager"] = None
     _settings: Optional[Settings] = None
-    
+    _lock: threading.Lock = threading.Lock()
+
     def __new__(cls) -> "ConfigManager":
         if cls._instance is None:
-            cls._instance = super().__new__(cls)
+            with cls._lock:
+                if cls._instance is None:
+                    cls._instance = super().__new__(cls)
         return cls._instance
     
     def load(self, config_path: str | Path = "config/settings.yaml") -> Settings:

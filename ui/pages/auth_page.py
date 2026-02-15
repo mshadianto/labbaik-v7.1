@@ -277,6 +277,11 @@ def render_user_profile():
 
 def render_auth_page():
     """Main auth page renderer"""
+    try:
+        from services.analytics import track_page
+        track_page("auth")
+    except Exception:
+        pass
     st.markdown("""
         <style>
         .auth-container {

@@ -12,6 +12,11 @@ from services.user import get_current_user, is_logged_in, UserRole
 
 def render_api_docs_page():
     """Main API documentation page"""
+    try:
+        from services.analytics import track_page
+        track_page("api_docs")
+    except Exception:
+        pass
     st.markdown("## Partner API Documentation")
     st.markdown("REST API untuk integrasi sistem booking partner")
 

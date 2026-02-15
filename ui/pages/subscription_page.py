@@ -20,6 +20,11 @@ def format_price(amount: int) -> str:
 
 def render_subscription_page():
     """Main subscription page"""
+    try:
+        from services.analytics import track_page
+        track_page("subscription")
+    except Exception:
+        pass
     st.markdown("## Upgrade ke Premium")
 
     user = get_current_user()

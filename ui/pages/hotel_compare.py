@@ -346,6 +346,11 @@ def render_api_status():
 
 def render_hotel_compare_page():
     """Main hotel comparison page"""
+    try:
+        from services.analytics import track_page
+        track_page("hotel_compare")
+    except Exception:
+        pass
 
     # Page header
     st.markdown("""

@@ -831,6 +831,11 @@ def render_ai_packing_tips(profile: Dict, checklist: Dict, checked_items: Dict):
 
 def render_smart_checklist_page():
     """Main entry point for Smart Checklist page."""
+    try:
+        from services.analytics import track_page
+        track_page("checklist")
+    except Exception:
+        pass
 
     # Initialize state
     init_checklist_state()
