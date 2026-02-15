@@ -302,3 +302,6 @@ def render_referral_widget():
     if st.button("Lihat Detail", key="ref_widget_btn", use_container_width=True):
         st.session_state.current_page = "referral"
         st.rerun()
+
+
+__all__ = ["render_referral_page", "render_referral_widget"]

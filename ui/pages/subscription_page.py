@@ -384,3 +384,6 @@ def render_subscription_widget():
         if st.button("Upgrade Premium", key="sidebar_upgrade", use_container_width=True, type="secondary"):
             st.session_state.current_page = "subscription"
             st.rerun()
+
+
+__all__ = ["render_subscription_page", "render_subscription_widget"]

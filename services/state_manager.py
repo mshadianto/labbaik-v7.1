@@ -5,6 +5,7 @@ Centralized state management integrating all services
 with Streamlit session state.
 """
 
+import logging
 import streamlit as st
 from datetime import datetime
 from typing import Dict, List, Any, Optional, Callable, Tuple
@@ -28,7 +29,7 @@ try:
     SERVICES_AVAILABLE = True
 except ImportError:
     SERVICES_AVAILABLE = False
-    print("⚠️ Data services not available, using local state only")
+    logging.getLogger(__name__).info("Data services not available, using local state only")
 
 
 # =============================================================================
@@ -452,7 +453,7 @@ class StateManager:
             try:
                 callback(st.session_state.get(key))
             except Exception as e:
-                print(f"Callback error: {e}")
+                logging.getLogger(__name__).debug(f"Callback error: {e}")
     
     # =========================================================================
     # UTILITY METHODS

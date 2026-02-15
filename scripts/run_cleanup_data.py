@@ -23,7 +23,7 @@ def run_cleanup():
         try:
             import streamlit as st
             db_url = st.secrets.get("DATABASE_URL")
-        except:
+        except Exception:
             pass
 
     if not db_url:
@@ -125,7 +125,7 @@ def run_cleanup():
                 cursor.execute(f"SELECT COUNT(*) FROM {table}")
                 total = cursor.fetchone()[0]
                 print(f"  {table}: {total} records")
-            except:
+            except Exception:
                 pass
 
         # Show table sizes

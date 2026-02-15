@@ -6,6 +6,7 @@ Referral tracking and rewards for viral growth.
 
 import sqlite3
 import os
+import logging
 import secrets
 import string
 from dataclasses import dataclass, field
@@ -13,6 +14,8 @@ from datetime import datetime
 from typing import Optional, List, Dict, Any
 from contextlib import contextmanager
 from enum import Enum
+
+logger = logging.getLogger(__name__)
 
 
 # Database path
@@ -336,7 +339,7 @@ class ReferralService:
                 user_service.repo.update(user)
 
         except Exception as e:
-            print(f"Error applying reward: {e}")
+            logger.error(f"Error applying reward: {e}")
 
     def _check_milestones(self, user_id: int):
         """Check and award milestone bonuses"""

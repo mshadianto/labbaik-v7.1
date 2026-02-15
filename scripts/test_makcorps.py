@@ -10,7 +10,7 @@ import requests
 try:
     import streamlit as st
     API_KEY = st.secrets.get("MAKCORPS_API_KEY") or os.getenv("MAKCORPS_API_KEY")
-except:
+except Exception:
     API_KEY = os.getenv("MAKCORPS_API_KEY")
 
 API_BASE_URL = "https://api.makcorps.com"

@@ -14,6 +14,9 @@ from enum import Enum
 import random
 import string
 import hashlib
+import logging
+
+logger = logging.getLogger(__name__)
 
 # =============================================================================
 # DATABASE CONNECTION
@@ -57,7 +60,7 @@ class Database:
     def connect(self) -> bool:
         """Establish database connection."""
         if self._mode == DatabaseMode.MOCK:
-            print("📦 Using MOCK database mode")
+            logger.info("Using MOCK database mode")
             return True
         
         try:
@@ -67,12 +70,12 @@ class Database:
                 
                 db_url = os.environ.get("DATABASE_URL")
                 self._connection = psycopg2.pool.SimpleConnectionPool(1, 10, db_url)
-                print("✅ Connected to PostgreSQL")
+                logger.info("Connected to PostgreSQL")
                 return True
                 
         except Exception as e:
-            print(f"❌ Database connection failed: {e}")
-            print("📦 Falling back to MOCK mode")
+            logger.warning(f"Database connection failed: {e}")
+            logger.info("Falling back to MOCK mode")
             self._mode = DatabaseMode.MOCK
             return True
         

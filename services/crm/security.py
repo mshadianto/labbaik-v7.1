@@ -254,9 +254,11 @@ def get_csrf_secret() -> str:
     """Get CSRF secret key from environment or generate one."""
     secret = os.getenv("CSRF_SECRET_KEY")
     if not secret:
-        # Fallback to session-based secret (less secure but works without env var)
-        secret = "labbaik-csrf-fallback-key-change-in-production"
-        logger.warning("CSRF_SECRET_KEY not set, using fallback. Set this in production!")
+        # Generate a random per-process secret (not hardcoded)
+        if not hasattr(get_csrf_secret, "_fallback"):
+            get_csrf_secret._fallback = secrets.token_hex(32)
+            logger.warning("CSRF_SECRET_KEY not set, using random fallback. Set this in production!")
+        secret = get_csrf_secret._fallback
     return secret
 
 

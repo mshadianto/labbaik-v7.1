@@ -11,7 +11,7 @@ try:
     import streamlit as st
     API_KEY = st.secrets.get("AMADEUS_API_KEY") or os.getenv("AMADEUS_API_KEY")
     API_SECRET = st.secrets.get("AMADEUS_API_SECRET") or os.getenv("AMADEUS_API_SECRET")
-except:
+except Exception:
     API_KEY = os.getenv("AMADEUS_API_KEY") or os.getenv("AMADEUS_CLIENT_ID")
     API_SECRET = os.getenv("AMADEUS_API_SECRET") or os.getenv("AMADEUS_CLIENT_SECRET")
 

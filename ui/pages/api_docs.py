@@ -443,3 +443,6 @@ def render_api_console():
         X-RateLimit-Remaining: 999
         ```
         """)
+
+
+__all__ = ["render_api_docs_page"]

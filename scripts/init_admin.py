@@ -39,7 +39,7 @@ def get_credentials():
                 email = email or st.secrets.get("ADMIN_EMAIL")
                 password = password or st.secrets.get("ADMIN_PASSWORD")
                 name = name or st.secrets.get("ADMIN_NAME", "Admin")
-        except:
+        except Exception:
             pass
 
     # Prompt if still not set

@@ -63,7 +63,7 @@ TRACKING_CODE = '''
     try:
         from services.analytics import track_page
         track_page("{page_name}")
-    except:
+    except Exception:
         pass
 '''
 

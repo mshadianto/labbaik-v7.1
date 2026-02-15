@@ -6,9 +6,12 @@ Database operations for subscription management.
 
 import sqlite3
 import os
+import logging
 from datetime import datetime
 from typing import Optional, List, Dict, Any
 from contextlib import contextmanager
+
+logger = logging.getLogger(__name__)
 
 from services.subscription.subscription_service import (
     Subscription, SubscriptionPlan, SubscriptionStatus
@@ -156,7 +159,7 @@ class SubscriptionRepository:
                 sub.id = cursor.lastrowid
                 return sub
             except Exception as e:
-                print(f"Error creating subscription: {e}")
+                logger.error(f"Error creating subscription: {e}")
                 return None
 
     def get_by_id(self, sub_id: int) -> Optional[Subscription]:

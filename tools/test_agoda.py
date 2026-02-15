@@ -64,7 +64,7 @@ def get_api_key() -> str:
             import streamlit as st
             if hasattr(st, 'secrets'):
                 key = st.secrets.get("RAPIDAPI_KEY")
-        except:
+        except Exception:
             pass
 
     return key

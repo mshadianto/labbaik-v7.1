@@ -6,10 +6,13 @@ Uses PostgreSQL (Supabase) when DATABASE_URL is available, SQLite as fallback.
 """
 
 import os
+import logging
 from datetime import datetime
 from typing import Optional, List, Dict, Any
 from contextlib import contextmanager
 import streamlit as st
+
+logger = logging.getLogger(__name__)
 
 # Import user models
 from services.user.user_service import User, UserRole, UserStatus
@@ -40,16 +43,16 @@ if USE_POSTGRES:
     try:
         import psycopg2
         from psycopg2.extras import RealDictCursor
-        print(f"[DB] Using PostgreSQL: {DATABASE_URL[:50]}...")
+        logger.info(f"Using PostgreSQL: {DATABASE_URL[:50]}...")
     except ImportError:
-        print("[DB] psycopg2 not available, falling back to SQLite")
+        logger.info("psycopg2 not available, falling back to SQLite")
         USE_POSTGRES = False
 
 if not USE_POSTGRES:
     import sqlite3
     # Database path for SQLite fallback
     DB_PATH = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), "data", "labbaik.db")
-    print(f"[DB] Using SQLite: {DB_PATH}")
+    logger.info(f"Using SQLite: {DB_PATH}")
 
 
 def ensure_db_dir():
@@ -242,11 +245,11 @@ class UserRepository:
                     """, (admin_email, admin_name, password_hash, now, now))
 
                 conn.commit()
-                print(f"[AUTO] Admin user created: {admin_email}")
+                logger.info(f"Admin user created: {admin_email}")
 
         except Exception as e:
             # Silently fail - don't break app startup
-            print(f"[WARN] Auto-admin creation failed: {e}")
+            logger.warning(f"Auto-admin creation failed: {e}")
 
     def _row_to_user(self, row) -> User:
         """Convert database row to User object"""
@@ -357,7 +360,7 @@ class UserRepository:
                 conn.commit()
                 return user
             except Exception as e:
-                print(f"[ERROR] Create user failed: {e}")
+                logger.error(f"Create user failed: {e}")
                 return None
 
     def get_by_id(self, user_id: int) -> Optional[User]:

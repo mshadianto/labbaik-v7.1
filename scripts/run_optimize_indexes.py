@@ -23,7 +23,7 @@ def run_optimize_indexes():
         try:
             import streamlit as st
             db_url = st.secrets.get("DATABASE_URL")
-        except:
+        except Exception:
             pass
 
     if not db_url:

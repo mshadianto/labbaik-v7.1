@@ -97,10 +97,11 @@ services/               # Backend services
   subscription/         # Premium subscription handling
   umrah/                # Hotel/transport data fetching from multiple APIs
   user/                 # User management and access control
+  audio/                # TTS service (edge-tts, gTTS) shared by doa_player & umrah_complete
   whatsapp/             # WAHA WhatsApp client
 features/               # Standalone feature modules (SOS, crowd prediction, etc.)
-ui/pages/               # Streamlit page renderers (includes readiness_checker, cost_tracker, tanya_ustadz, doc_checker)
-ui/components/          # Reusable UI components
+ui/pages/               # Streamlit page renderers (includes readiness_checker, cost_tracker, tanya_ustadz, doc_checker, peta_interaktif, kurs_calculator)
+ui/components/          # Reusable UI components (shared_styles, price_widgets, crm_helpers)
 data/                   # Static data and knowledge bases
 config/                 # YAML configuration files
 sql/                    # Database schemas and migrations

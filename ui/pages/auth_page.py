@@ -350,3 +350,6 @@ def render_user_badge():
                 <span>{user.name.split()[0]}</span>
             </div>
         """, unsafe_allow_html=True)
+
+
+__all__ = ["render_auth_page", "render_login_widget", "render_user_badge"]

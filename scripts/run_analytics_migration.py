@@ -17,7 +17,7 @@ def get_database_url():
         import streamlit as st
         if hasattr(st, 'secrets') and 'DATABASE_URL' in st.secrets:
             return st.secrets['DATABASE_URL']
-    except:
+    except Exception:
         pass
 
     # Try environment variable

@@ -723,13 +723,13 @@ def _row_to_group(row: Dict) -> SimulationGroup:
     if row.get('simulation_params'):
         try:
             sim_params = json.loads(row['simulation_params']) if isinstance(row['simulation_params'], str) else row['simulation_params']
-        except:
+        except (json.JSONDecodeError, TypeError):
             pass
 
     if row.get('simulation_breakdown'):
         try:
             sim_breakdown = json.loads(row['simulation_breakdown']) if isinstance(row['simulation_breakdown'], str) else row['simulation_breakdown']
-        except:
+        except (json.JSONDecodeError, TypeError):
             pass
 
     return SimulationGroup(

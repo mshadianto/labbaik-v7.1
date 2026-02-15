@@ -922,6 +922,9 @@ def render_partner_login():
             st.info("Hubungi tim LABBAIK AI untuk pendaftaran partner.")
 
 
+__all__ = ["render_partner_dashboard", "render_partner_login"]
+
+
 # Run page
 if __name__ == "__main__":
     render_partner_dashboard()

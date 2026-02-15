@@ -456,3 +456,6 @@ def render_conversion_funnel():
                 </div>
             </div>
         """, unsafe_allow_html=True)
+
+
+__all__ = ["render_user_analytics_page"]
