@@ -7,6 +7,8 @@ Referral program UI for viral growth.
 import streamlit as st
 from services.referral import get_referral_service, ReferralReward
 from services.user import get_current_user, is_logged_in
+from services.ai.helpers import ai_complete, add_xp_safe
+from ui.components.shared_styles import inject_css, HERO_CSS, CARD_CSS, BADGE_CSS, PROGRESS_CSS, AI_CARD_CSS
 
 
 def render_referral_page():
@@ -16,8 +18,15 @@ def render_referral_page():
         track_page("referral")
     except Exception:
         pass
-    st.markdown("## Program Referral")
-    st.markdown("Ajak teman, dapatkan Premium gratis!")
+
+    inject_css(HERO_CSS, CARD_CSS, BADGE_CSS, PROGRESS_CSS, AI_CARD_CSS)
+
+    st.markdown("""
+        <div class="page-hero">
+            <h1>🎁 Program Referral</h1>
+            <div class="subtitle">Ajak teman, dapatkan Premium gratis!</div>
+        </div>
+    """, unsafe_allow_html=True)
 
     user = get_current_user()
 
@@ -77,11 +86,9 @@ def render_referral_code(code: str):
 
     # Code display
     st.markdown(f"""
-        <div style="background: linear-gradient(135deg, #FFD700 0%, #FFA500 100%);
-                    padding: 1.5rem; border-radius: 16px; text-align: center;
-                    margin: 1rem 0;">
-            <div style="font-size: 0.9rem; color: #333;">Kode Referral</div>
-            <div style="font-size: 2.5rem; font-weight: bold; color: #000;
+        <div class="dark-card" style="text-align: center; border: 1px solid #d4af37;">
+            <div style="font-size: 0.9rem; color: #888;">Kode Referral</div>
+            <div style="font-size: 2.5rem; font-weight: bold; color: #d4af37;
                         letter-spacing: 4px; margin: 0.5rem 0;">
                 {code}
             </div>
@@ -101,6 +108,9 @@ def render_referral_code(code: str):
         if st.button("Copy Link", use_container_width=True, type="primary"):
             st.toast("Link berhasil disalin!")
             # Note: Actual clipboard copy requires JavaScript
+            if not st.session_state.get("referral_share_xp_awarded"):
+                add_xp_safe(10, "Membagikan kode referral")
+                st.session_state.referral_share_xp_awarded = True
 
     # Share buttons
     st.markdown("**Bagikan via:**")
@@ -116,6 +126,25 @@ def render_referral_code(code: str):
         st.link_button("Telegram", f"https://t.me/share/url?url={share_link}", use_container_width=True)
     with col3:
         st.link_button("Twitter", f"https://twitter.com/intent/tweet?text={wa_text}", use_container_width=True)
+
+    # AI Tips
+    if not st.session_state.get("referral_tips_xp_awarded"):
+        add_xp_safe(5, "Melihat tips referral")
+        st.session_state.referral_tips_xp_awarded = True
+
+    tips = ai_complete(
+        "Berikan 3 tips singkat dan praktis untuk mengajak teman mendaftar program referral umrah. "
+        "Format: nomor dan tips (tanpa markdown). Bahasa Indonesia.",
+        system_prompt="Kamu adalah ahli marketing digital untuk travel umrah.",
+        max_tokens=300,
+    )
+    if tips:
+        st.markdown(f"""
+            <div class="ai-card">
+                <h4>🤖 Tips AI: Cara Efektif Mengajak Teman</h4>
+                <p>{tips}</p>
+            </div>
+        """, unsafe_allow_html=True)
 
 
 def render_stats(stats: dict):
@@ -151,23 +180,23 @@ def render_how_it_works():
     st.markdown("### Cara Kerja")
 
     st.markdown("""
-    <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem; margin: 1rem 0;">
-        <div style="background: rgba(255,255,255,0.05); padding: 1rem; border-radius: 12px; text-align: center;">
-            <div style="font-size: 2rem;">1️⃣</div>
-            <div style="font-weight: bold; margin: 0.5rem 0;">Bagikan Kode</div>
-            <div style="font-size: 0.85rem; color: #888;">Kirim kode referral ke teman via WhatsApp, sosmed, dll</div>
+        <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem; margin: 1rem 0;">
+            <div class="dark-card" style="text-align: center;">
+                <div style="font-size: 2rem;">1️⃣</div>
+                <div style="font-weight: bold; margin: 0.5rem 0;">Bagikan Kode</div>
+                <div style="font-size: 0.85rem; color: #888;">Kirim kode referral ke teman via WhatsApp, sosmed, dll</div>
+            </div>
+            <div class="dark-card" style="text-align: center;">
+                <div style="font-size: 2rem;">2️⃣</div>
+                <div style="font-weight: bold; margin: 0.5rem 0;">Teman Daftar</div>
+                <div style="font-size: 0.85rem; color: #888;">Teman memasukkan kode saat registrasi</div>
+            </div>
+            <div class="dark-card" style="text-align: center;">
+                <div style="font-size: 2rem;">3️⃣</div>
+                <div style="font-weight: bold; margin: 0.5rem 0;">Dapat Reward</div>
+                <div style="font-size: 0.85rem; color: #888;">Anda dapat Premium gratis!</div>
+            </div>
         </div>
-        <div style="background: rgba(255,255,255,0.05); padding: 1rem; border-radius: 12px; text-align: center;">
-            <div style="font-size: 2rem;">2️⃣</div>
-            <div style="font-weight: bold; margin: 0.5rem 0;">Teman Daftar</div>
-            <div style="font-size: 0.85rem; color: #888;">Teman memasukkan kode saat registrasi</div>
-        </div>
-        <div style="background: rgba(255,255,255,0.05); padding: 1rem; border-radius: 12px; text-align: center;">
-            <div style="font-size: 2rem;">3️⃣</div>
-            <div style="font-weight: bold; margin: 0.5rem 0;">Dapat Reward</div>
-            <div style="font-size: 0.85rem; color: #888;">Anda dapat Premium gratis!</div>
-        </div>
-    </div>
     """, unsafe_allow_html=True)
 
     st.markdown("### Rewards")
@@ -241,8 +270,8 @@ def render_milestones(total_referrals: int):
                     <span>{icon} {target} Referral</span>
                     <span style="color: {color};">+{reward.reward_days} hari</span>
                 </div>
-                <div style="background: rgba(255,255,255,0.1); border-radius: 4px; height: 8px; margin-top: 0.5rem;">
-                    <div style="background: {color}; width: {progress}%; height: 100%; border-radius: 4px;"></div>
+                <div class="progress-track">
+                    <div class="progress-fill" style="background: {color}; width: {progress}%;"></div>
                 </div>
                 <div style="font-size: 0.8rem; color: #888; margin-top: 0.25rem;">
                     {total_referrals}/{target} referral

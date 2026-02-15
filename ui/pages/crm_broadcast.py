@@ -10,6 +10,9 @@ import logging
 
 logger = logging.getLogger(__name__)
 
+from services.ai.helpers import ai_complete, add_xp_safe
+from ui.components.shared_styles import inject_css, HERO_CSS, CARD_CSS, AI_CARD_CSS
+
 
 def init_session_state():
     """Initialize session state."""
@@ -36,6 +39,29 @@ def render_broadcast_templates():
 
     except Exception as e:
         logger.error(f"Failed to load templates: {e}")
+
+    st.markdown("---")
+    if st.button("🤖 Generate Template AI", use_container_width=True):
+        with st.spinner("Membuat template..."):
+            template = ai_complete(
+                "Buatkan 1 template pesan WhatsApp broadcast untuk travel umrah. "
+                "Tema: promo paket umrah. Gunakan placeholder {name} untuk nama penerima. "
+                "Singkat, menarik, dan profesional. Bahasa Indonesia.",
+                system_prompt="Kamu adalah copywriter untuk travel umrah.",
+                max_tokens=300,
+            )
+            if template:
+                st.markdown(f"""
+                    <div class="ai-card">
+                        <h4>🤖 Template Hasil AI</h4>
+                        <p>{template}</p>
+                    </div>
+                """, unsafe_allow_html=True)
+                if not st.session_state.get("crm_broadcast_ai_xp"):
+                    st.session_state.crm_broadcast_ai_xp = True
+                    add_xp_safe(10, "Generate template broadcast AI")
+            else:
+                st.info("AI tidak tersedia saat ini")
 
 
 def render_create_broadcast():
@@ -118,6 +144,7 @@ def render_create_broadcast():
 
                     if broadcast_id:
                         st.success("Broadcast berhasil dibuat!")
+                        add_xp_safe(10, "Membuat broadcast baru")
 
                         # Get recipient count
                         if target_type == "all_leads":
@@ -246,9 +273,18 @@ def render_crm_broadcast_page():
 
     init_session_state()
 
+    inject_css(HERO_CSS, CARD_CSS, AI_CARD_CSS)
+
+    st.markdown("""
+        <div class="page-hero">
+            <h1>📢 WhatsApp Broadcast</h1>
+            <div class="subtitle">Kirim pesan broadcast ke leads dan jamaah</div>
+        </div>
+    """, unsafe_allow_html=True)
+
     col1, col2 = st.columns([3, 1])
     with col1:
-        st.markdown("# 📢 WhatsApp Broadcast")
+        pass
     with col2:
         if st.button("➕ Buat Broadcast", type="primary", use_container_width=True):
             st.session_state.broadcast_view = "create"

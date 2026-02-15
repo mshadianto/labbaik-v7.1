@@ -10,12 +10,10 @@ import logging
 
 logger = logging.getLogger(__name__)
 
+from services.ai.helpers import ai_complete, add_xp_safe
+from ui.components.shared_styles import inject_css, HERO_CSS, CARD_CSS, AI_CARD_CSS
 
-def format_rupiah(amount: int) -> str:
-    """Format as Rupiah."""
-    if amount is None:
-        return "-"
-    return f"Rp {amount:,.0f}".replace(",", ".")
+from ui.components.crm_helpers import format_rupiah
 
 
 def init_session_state():
@@ -126,6 +124,7 @@ def render_add_competitor_price():
 
                     if price_id:
                         st.success("Data harga berhasil disimpan!")
+                        add_xp_safe(10, "Menambahkan data kompetitor")
                         st.rerun()
                     else:
                         st.error("Gagal menyimpan data")
@@ -246,12 +245,29 @@ def render_market_insights():
     with col2:
         st.markdown("**Rekomendasi**")
 
-        st.markdown("""
-        - Pantau harga kompetitor secara berkala
-        - Sesuaikan harga saat low/high season
-        - Tawarkan value lebih, bukan hanya harga murah
-        - Gunakan data untuk negosiasi dengan supplier
-        """)
+        insight = ai_complete(
+            "Berikan 4 rekomendasi singkat strategi harga untuk travel umrah "
+            "berdasarkan analisis kompetitor. Format: bullet points. Bahasa Indonesia.",
+            system_prompt="Kamu adalah business strategist untuk industri travel umrah.",
+            max_tokens=300,
+        )
+        if insight:
+            st.markdown(f"""
+                <div class="ai-card">
+                    <h4>🤖 Rekomendasi AI</h4>
+                    <p>{insight}</p>
+                </div>
+            """, unsafe_allow_html=True)
+            if not st.session_state.get("crm_competitor_ai_xp"):
+                st.session_state.crm_competitor_ai_xp = True
+                add_xp_safe(10, "Menggunakan AI analisis kompetitor")
+        else:
+            st.markdown("""
+            - Pantau harga kompetitor secara berkala
+            - Sesuaikan harga saat low/high season
+            - Tawarkan value lebih, bukan hanya harga murah
+            - Gunakan data untuk negosiasi dengan supplier
+            """)
 
 
 def render_crm_competitors_page():
@@ -264,8 +280,14 @@ def render_crm_competitors_page():
 
     init_session_state()
 
-    st.markdown("# 📈 Monitor Harga Kompetitor")
-    st.caption("Pantau dan bandingkan harga paket umrah kompetitor")
+    inject_css(HERO_CSS, CARD_CSS, AI_CARD_CSS)
+
+    st.markdown("""
+        <div class="page-hero">
+            <h1>📈 Monitor Harga Kompetitor</h1>
+            <div class="subtitle">Pantau dan bandingkan harga paket umrah kompetitor</div>
+        </div>
+    """, unsafe_allow_html=True)
 
     st.markdown("---")
 

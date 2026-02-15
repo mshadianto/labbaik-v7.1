@@ -11,6 +11,8 @@ from services.subscription import (
     SubscriptionService, get_subscription_service
 )
 from services.user import get_current_user, is_logged_in, UserRole
+from services.ai.helpers import ai_complete, add_xp_safe
+from ui.components.shared_styles import inject_css, HERO_CSS, CARD_CSS, AI_CARD_CSS, BADGE_CSS
 
 
 def format_price(amount: int) -> str:
@@ -25,7 +27,18 @@ def render_subscription_page():
         track_page("subscription")
     except Exception:
         pass
-    st.markdown("## Upgrade ke Premium")
+    inject_css(HERO_CSS, CARD_CSS, AI_CARD_CSS, BADGE_CSS)
+
+    if not st.session_state.get("subscription_view_xp_awarded"):
+        add_xp_safe(5, "Melihat paket Premium")
+        st.session_state.subscription_view_xp_awarded = True
+
+    st.markdown("""
+        <div class="page-hero">
+            <h1>⭐ Upgrade ke Premium</h1>
+            <div class="subtitle">Akses penuh semua fitur LABBAIK AI untuk perjalanan umrah terbaik</div>
+        </div>
+    """, unsafe_allow_html=True)
 
     user = get_current_user()
 
@@ -114,6 +127,20 @@ def render_premium_benefits():
         - Early access fitur baru
         """)
 
+    recommendation = ai_complete(
+        "Berikan rekomendasi singkat (3-4 kalimat) mengapa jamaah umrah sebaiknya menggunakan "
+        "fitur Premium untuk perencanaan umrah mereka. Bahasa Indonesia, persuasif tapi jujur.",
+        system_prompt="Kamu adalah advisor perjalanan umrah yang berpengalaman.",
+        max_tokens=200,
+    )
+    if recommendation:
+        st.markdown(f"""
+            <div class="ai-card">
+                <h4>🤖 Rekomendasi AI</h4>
+                <p>{recommendation}</p>
+            </div>
+        """, unsafe_allow_html=True)
+
 
 def render_pricing_plans(user, current_sub):
     """Show pricing plan cards"""
@@ -151,12 +178,10 @@ def render_pricing_plans(user, current_sub):
             badge = '<div style="background: #FFD700; color: #000; padding: 2px 8px; border-radius: 4px; font-size: 0.7rem; margin-bottom: 8px;">POPULER</div>' if is_popular else ""
 
             st.markdown(f"""
-                <div style="background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
-                            border: 2px solid {border_color}; border-radius: 16px;
-                            padding: 1.5rem; text-align: center;">
+                <div class="dark-card" style="text-align: center; border: 2px solid {border_color};">
                     {badge}
                     <h3 style="margin: 0; color: #fff;">{plan.display_name}</h3>
-                    <div style="font-size: 2rem; font-weight: bold; color: #FFD700; margin: 1rem 0;">
+                    <div style="font-size: 2rem; font-weight: bold; color: #d4af37; margin: 1rem 0;">
                         {format_price(price)}
                     </div>
                     <div style="color: #888; font-size: 0.85rem;">
@@ -175,6 +200,9 @@ def render_pricing_plans(user, current_sub):
                 st.session_state.selected_plan = plan
                 st.session_state.promo_code = promo_code if discount > 0 else None
                 st.session_state.show_payment = True
+                if not st.session_state.get("subscription_select_xp_awarded"):
+                    add_xp_safe(15, "Memilih paket Premium")
+                    st.session_state.subscription_select_xp_awarded = True
                 st.rerun()
 
     # Lifetime option
@@ -199,6 +227,9 @@ def render_pricing_plans(user, current_sub):
             st.session_state.selected_plan = lifetime
             st.session_state.promo_code = promo_code if discount > 0 else None
             st.session_state.show_payment = True
+            if not st.session_state.get("subscription_select_xp_awarded"):
+                add_xp_safe(15, "Memilih paket Premium")
+                st.session_state.subscription_select_xp_awarded = True
             st.rerun()
 
     # Payment modal

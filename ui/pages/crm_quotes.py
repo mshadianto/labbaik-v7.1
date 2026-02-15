@@ -128,20 +128,7 @@ def escape(text):
     return html_module.escape(str(text))
 
 
-def format_rupiah(amount: int) -> str:
-    """Format as Rupiah."""
-    if amount is None:
-        return "-"
-    return f"Rp {amount:,.0f}".replace(",", ".")
-
-
-def format_date(dt) -> str:
-    """Format date."""
-    if dt is None:
-        return "-"
-    if isinstance(dt, str):
-        return dt[:10]
-    return dt.strftime("%d %b %Y")
+from ui.components.crm_helpers import format_rupiah, format_date
 
 
 def _markdown_to_html_simple(text: str) -> str:

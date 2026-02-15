@@ -10,12 +10,15 @@ import logging
 
 logger = logging.getLogger(__name__)
 
+from services.ai.helpers import ai_complete, add_xp_safe
+from ui.components.shared_styles import inject_css, HERO_CSS, CARD_CSS, AI_CARD_CSS
+
+from ui.components.crm_helpers import format_rupiah as _format_rupiah
+
 
 def format_rupiah(amount: int) -> str:
-    """Format as Rupiah."""
-    if amount is None:
-        return "Rp 0"
-    return f"Rp {amount:,.0f}".replace(",", ".")
+    """Format as Rupiah (CRM analytics uses 'Rp 0' default)."""
+    return _format_rupiah(amount, default="Rp 0")
 
 
 def format_number(num: int) -> str:
@@ -404,8 +407,18 @@ def render_crm_analytics_page():
     except:
         pass
 
-    st.markdown("# 📊 Dashboard Analytics")
-    st.caption("Overview performa CRM dan penjualan")
+    inject_css(HERO_CSS, CARD_CSS, AI_CARD_CSS)
+
+    if not st.session_state.get("crm_analytics_view_xp"):
+        st.session_state.crm_analytics_view_xp = True
+        add_xp_safe(10, "Mengakses analitik CRM")
+
+    st.markdown("""
+        <div class="page-hero">
+            <h1>📊 Dashboard Analytics</h1>
+            <div class="subtitle">Overview performa CRM dan penjualan</div>
+        </div>
+    """, unsafe_allow_html=True)
 
     st.markdown("---")
 
@@ -448,6 +461,27 @@ def render_crm_analytics_page():
 
     # Upcoming departures
     render_upcoming_departures()
+
+    # AI Summary
+    st.markdown("---")
+    if st.button("🤖 Rangkuman AI", use_container_width=True):
+        with st.spinner("Menganalisis data CRM..."):
+            summary = ai_complete(
+                "Berikan 3-4 rekomendasi aksi untuk meningkatkan performa CRM travel umrah. "
+                "Fokus pada: konversi lead, retensi jamaah, dan optimasi revenue. "
+                "Format: nomor dan rekomendasi singkat. Bahasa Indonesia.",
+                system_prompt="Kamu adalah CRM consultant untuk industri travel umrah.",
+                max_tokens=400,
+            )
+            if summary:
+                st.markdown(f"""
+                    <div class="ai-card">
+                        <h4>🤖 Rekomendasi AI untuk Meningkatkan Performa</h4>
+                        <p>{summary}</p>
+                    </div>
+                """, unsafe_allow_html=True)
+            else:
+                st.info("AI tidak tersedia saat ini")
 
 
 __all__ = ["render_crm_analytics_page"]

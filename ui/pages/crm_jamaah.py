@@ -10,14 +10,10 @@ import logging
 
 logger = logging.getLogger(__name__)
 
+from services.ai.helpers import ai_complete, add_xp_safe
+from ui.components.shared_styles import inject_css, HERO_CSS, CARD_CSS, AI_CARD_CSS
 
-def format_date(dt) -> str:
-    """Format date."""
-    if dt is None:
-        return "-"
-    if isinstance(dt, str):
-        return dt[:10]
-    return dt.strftime("%d %b %Y")
+from ui.components.crm_helpers import format_date
 
 
 def init_session_state():
@@ -243,6 +239,7 @@ def render_add_jamaah_form():
                             details={"full_name": full_name.strip(), "phone": validated_phone}
                         )
                         st.success("Jamaah berhasil ditambahkan!")
+                        add_xp_safe(15, "Menambahkan data jamaah baru")
                         st.session_state.jamaah_view = "list"
                         st.rerun()
                     else:
@@ -441,10 +438,19 @@ def render_crm_jamaah_page():
 
     init_session_state()
 
-    # Header
+    inject_css(HERO_CSS, CARD_CSS, AI_CARD_CSS)
+
+    # Hero
+    st.markdown("""
+        <div class="page-hero">
+            <h1>👥 Database Jamaah</h1>
+            <div class="subtitle">Kelola data jamaah dan dokumen perjalanan</div>
+        </div>
+    """, unsafe_allow_html=True)
+
     col1, col2 = st.columns([3, 1])
     with col1:
-        st.markdown("# 👥 Database Jamaah")
+        pass
     with col2:
         if st.button("➕ Tambah Jamaah", type="primary", use_container_width=True):
             st.session_state.jamaah_view = "add"
@@ -464,6 +470,30 @@ def render_crm_jamaah_page():
         render_jamaah_detail(st.session_state.selected_jamaah)
     else:
         render_jamaah_list()
+
+        # AI Insights
+        st.markdown("---")
+        if st.button("🤖 Analisis Data Jamaah", use_container_width=True):
+            with st.spinner("Menganalisis data jamaah..."):
+                insight = ai_complete(
+                    "Berikan 3 tips singkat untuk mengelola database jamaah umrah secara efektif. "
+                    "Termasuk tips tentang kelengkapan dokumen, follow-up, dan retensi jamaah. "
+                    "Format: nomor dan tips. Bahasa Indonesia.",
+                    system_prompt="Kamu adalah CRM expert untuk travel umrah.",
+                    max_tokens=400,
+                )
+                if insight:
+                    st.markdown(f"""
+                        <div class="ai-card">
+                            <h4>🤖 Tips Manajemen Jamaah</h4>
+                            <p>{insight}</p>
+                        </div>
+                    """, unsafe_allow_html=True)
+                    if not st.session_state.get("crm_jamaah_ai_xp"):
+                        st.session_state.crm_jamaah_ai_xp = True
+                        add_xp_safe(10, "Menggunakan AI analisis jamaah")
+                else:
+                    st.info("AI tidak tersedia saat ini")
 
 
 __all__ = ["render_crm_jamaah_page"]
