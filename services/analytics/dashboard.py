@@ -277,7 +277,7 @@ def render_hourly_chart(dashboard: AnalyticsDashboard):
             <div style="background: linear-gradient(135deg, #1a1a1a, #2d2d2d); padding: 1rem; border-radius: 10px; border-left: 4px solid #d4af37;">
                 <div style="color: #d4af37; font-size: 0.8rem;">🌅 Pagi</div>
                 <div style="color: white; font-size: 1.5rem; font-weight: bold;">08:00 - 11:00</div>
-                <div style="color: #888; font-size: 0.75rem;">Setelah Subuh</div>
+                <div style="color: #b0b0b0; font-size: 0.75rem;">Setelah Subuh</div>
             </div>
             """, unsafe_allow_html=True)
         
@@ -286,7 +286,7 @@ def render_hourly_chart(dashboard: AnalyticsDashboard):
             <div style="background: linear-gradient(135deg, #1a1a1a, #2d2d2d); padding: 1rem; border-radius: 10px; border-left: 4px solid #d4af37;">
                 <div style="color: #d4af37; font-size: 0.8rem;">☀️ Siang</div>
                 <div style="color: white; font-size: 1.5rem; font-weight: bold;">12:00 - 14:00</div>
-                <div style="color: #888; font-size: 0.75rem;">Waktu Dzuhur</div>
+                <div style="color: #b0b0b0; font-size: 0.75rem;">Waktu Dzuhur</div>
             </div>
             """, unsafe_allow_html=True)
         
@@ -295,7 +295,7 @@ def render_hourly_chart(dashboard: AnalyticsDashboard):
             <div style="background: linear-gradient(135deg, #1a1a1a, #2d2d2d); padding: 1rem; border-radius: 10px; border-left: 4px solid #d4af37;">
                 <div style="color: #d4af37; font-size: 0.8rem;">🌙 Malam</div>
                 <div style="color: white; font-size: 1.5rem; font-weight: bold;">20:00 - 22:00</div>
-                <div style="color: #888; font-size: 0.75rem;">Setelah Isya</div>
+                <div style="color: #b0b0b0; font-size: 0.75rem;">Setelah Isya</div>
             </div>
             """, unsafe_allow_html=True)
 
@@ -383,7 +383,7 @@ def render_device_flow(dashboard: AnalyticsDashboard):
         for src, arrow, dst, pct in flows:
             st.markdown(f"""
             <div style="background: #1a1a1a; padding: 0.75rem; border-radius: 10px; margin-bottom: 0.5rem; display: flex; align-items: center; justify-content: space-between;">
-                <span style="color: #888;">{src}</span>
+                <span style="color: #b0b0b0;">{src}</span>
                 <span style="color: #d4af37;">{arrow}</span>
                 <span style="color: white;">{dst}</span>
                 <span style="color: #d4af37; font-weight: bold;">{pct}</span>

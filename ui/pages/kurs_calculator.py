@@ -63,7 +63,7 @@ KURS_CSS = """
 }
 
 .kurs-hero .subtitle {
-    color: #888;
+    color: #b0b0b0;
     font-size: 1rem;
     margin-top: 0.5rem;
     position: relative;
@@ -139,7 +139,7 @@ KURS_CSS = """
 }
 
 .converter-equals {
-    color: #888;
+    color: #b0b0b0;
     font-size: 0.9rem;
     margin-bottom: 0.25rem;
 }

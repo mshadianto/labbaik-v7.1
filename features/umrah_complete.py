@@ -190,10 +190,10 @@ def render_miqat_info(miqat: Miqat):
     st.markdown(f"""
     <div style="background: #1a1a2e; padding: 1rem; border-radius: 10px; margin: 0.5rem 0; border-left: 4px solid #d4af37;">
         <h4 style="color: #d4af37; margin: 0;">{miqat.name}</h4>
-        <p style="color: #888; margin: 0.3rem 0;">{miqat.name_ar}</p>
+        <p style="color: #b0b0b0; margin: 0.3rem 0;">{miqat.name_ar}</p>
         <p style="color: white; margin: 0.5rem 0;">📍 {miqat.location}</p>
         <p style="color: #aaa; margin: 0;">Untuk: {miqat.for_travelers_from}</p>
-        <p style="color: #888; font-size: 0.9rem;">Jarak ke Makkah: {miqat.distance_to_makkah}</p>
+        <p style="color: #b0b0b0; font-size: 0.9rem;">Jarak ke Makkah: {miqat.distance_to_makkah}</p>
     </div>
     """, unsafe_allow_html=True)
 
@@ -205,12 +205,12 @@ def render_historical_site(site: HistoricalSite):
     <div style="background: #1a1a2e; padding: 1rem; border-radius: 10px; margin: 0.5rem 0; border-left: 4px solid {city_color};">
         <div style="display: flex; justify-content: space-between;">
             <h4 style="color: {city_color}; margin: 0;">{site.name}</h4>
-            <span style="color: #888;">{site.city}</span>
+            <span style="color: #b0b0b0;">{site.city}</span>
         </div>
-        <p style="color: #888; margin: 0.3rem 0;">{site.name_ar}</p>
+        <p style="color: #b0b0b0; margin: 0.3rem 0;">{site.name_ar}</p>
         <p style="color: white; margin: 0.5rem 0;">{site.description}</p>
         <p style="color: #aaa; font-style: italic;">✨ {site.significance}</p>
-        <p style="color: #888; font-size: 0.85rem;">💡 {site.visiting_tips}</p>
+        <p style="color: #b0b0b0; font-size: 0.85rem;">💡 {site.visiting_tips}</p>
     </div>
     """, unsafe_allow_html=True)
 

@@ -56,7 +56,7 @@ PETA_CSS = """
 }
 
 .peta-hero .subtitle {
-    color: #888;
+    color: #b0b0b0;
     font-size: 1rem;
     margin-top: 0.5rem;
     position: relative;
@@ -177,7 +177,7 @@ PETA_CSS = """
 }
 
 .peta-stats-card .label {
-    color: #888;
+    color: #b0b0b0;
     font-size: 0.8rem;
     margin-top: 0.25rem;
 }
@@ -212,7 +212,7 @@ PETA_CSS = """
 }
 
 .peta-poi-title-ar {
-    color: #888;
+    color: #b0b0b0;
     font-size: 0.85rem;
     direction: rtl;
     font-family: 'Amiri', serif;
@@ -633,7 +633,7 @@ def create_map(city, filtered_pois):
         popup_html = f"""
         <div style="font-family: Arial, sans-serif; min-width: 220px; max-width: 280px;">
             <h4 style="margin: 0 0 4px 0; color: {poi['color']};">{poi['icon']} {poi['name']}</h4>
-            <p style="margin: 0 0 8px 0; font-size: 0.8rem; color: #888; direction: rtl;">{poi['name_ar']}</p>
+            <p style="margin: 0 0 8px 0; font-size: 0.8rem; color: #b0b0b0; direction: rtl;">{poi['name_ar']}</p>
             <p style="margin: 0 0 6px 0; font-size: 0.85rem;">{poi['description']}</p>
             <div style="background: #f5f5f5; padding: 8px; border-radius: 6px; margin: 8px 0;">
                 <strong>Jarak ke {city_config['reference_name']}:</strong> {dist['distance_km']:.2f} km<br>

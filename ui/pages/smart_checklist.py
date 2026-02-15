@@ -52,7 +52,7 @@ CHECKLIST_CSS = """
 }
 
 .category-progress {
-    color: #888;
+    color: #b0b0b0;
     font-size: 0.9rem;
 }
 
@@ -93,7 +93,7 @@ CHECKLIST_CSS = """
 }
 
 .progress-label {
-    color: #888;
+    color: #b0b0b0;
     font-size: 0.9rem;
 }
 
@@ -298,7 +298,7 @@ CHECKLIST_DATA = {
     "lainnya": {
         "title": "Lain-lain",
         "icon": "\U0001f527",
-        "color": "#888",
+        "color": "#b0b0b0",
         "items": [
             {"id": "payung", "name": "Payung Lipat", "priority": "penting", "gender": "all"},
             {"id": "botol_minum", "name": "Botol Minum (untuk Zamzam)", "priority": "wajib", "gender": "all"},
@@ -819,7 +819,7 @@ def render_ai_packing_tips(profile: Dict, checklist: Dict, checked_items: Dict):
     else:
         st.markdown(
             '<div class="ai-card" style="border-color:#555;opacity:0.7;">'
-            '<p style="color:#888;text-align:center;">Klik tombol di atas untuk mendapatkan tips packing '
+            '<p style="color:#b0b0b0;text-align:center;">Klik tombol di atas untuk mendapatkan tips packing '
             'yang dipersonalisasi berdasarkan profil Anda.</p>'
             '</div>',
             unsafe_allow_html=True,
@@ -954,7 +954,7 @@ def render_smart_checklist_page():
     st.markdown(
         '<div class="share-box">'
         '<h3 style="color:#4ade80;margin-top:0;">\U0001f4e4 Bagikan Progress Anda!</h3>'
-        f'<p style="color:#888;">Progress packing: <strong>{pct}%</strong> ({done}/{total} item)</p>'
+        f'<p style="color:#b0b0b0;">Progress packing: <strong>{pct}%</strong> ({done}/{total} item)</p>'
         '<p style="color:#666;font-size:0.85rem;">'
         'Screenshot dan share ke grup WhatsApp keluarga! \U0001f4f1'
         '</p>'

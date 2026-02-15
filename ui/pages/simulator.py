@@ -33,7 +33,7 @@ SIMULATOR_CSS = """
     --hero-bg: linear-gradient(135deg, #0d1b2a 0%, #1b2a4a 100%);
     --hero-border: #d4af37;
     --hero-title: #d4af37;
-    --hero-subtitle: #888;
+    --hero-subtitle: #b0b0b0;
 }
 
 .sim-confidence-bar {
@@ -69,7 +69,7 @@ SIMULATOR_CSS = """
 
 .sim-percentile .label {
     font-size: 0.8rem;
-    color: #888;
+    color: #b0b0b0;
 }
 
 .sim-percentile .value {
@@ -131,7 +131,7 @@ SIMULATOR_CSS = """
 }
 
 .sim-discount-tier .tier-count {
-    color: #888;
+    color: #b0b0b0;
 }
 
 .sim-discount-tier .tier-pct {

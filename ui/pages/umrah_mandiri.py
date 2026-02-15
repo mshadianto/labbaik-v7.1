@@ -411,7 +411,7 @@ def render_hero():
         '<div class="hero-mandiri">'
         '<div class="arabic">\u0644\u064e\u0628\u0651\u064e\u064a\u0652\u0643\u064e \u0627\u0644\u0644\u0651\u064e\u0647\u064f\u0645\u0651\u064e \u0644\u064e\u0628\u0651\u064e\u064a\u0652\u0643\u064e</div>'
         '<h1>Umrah Mandiri</h1>'
-        '<p style="color:#888;">Panduan Lengkap DIY Umrah + Official Resources</p>'
+        '<p style="color:#b0b0b0;">Panduan Lengkap DIY Umrah + Official Resources</p>'
         f'<p style="color:#d4af37;margin-top:0.5rem;">{level_icon} Level {level_num}: {level_name}</p>'
         '</div>',
         unsafe_allow_html=True,
@@ -748,7 +748,7 @@ def render_tab_countdown():
                 f'<div class="countdown-box">{months}</div>'
                 f'<div class="countdown-box">{weeks}</div>'
                 f'<div class="countdown-box">{days}</div>'
-                '<div style="display:flex;justify-content:center;gap:2rem;margin-top:0.5rem;color:#888;">'
+                '<div style="display:flex;justify-content:center;gap:2rem;margin-top:0.5rem;color:#b0b0b0;">'
                 '<span>BULAN</span>'
                 '<span>MINGGU</span>'
                 '<span>HARI</span>'
@@ -1259,7 +1259,7 @@ def render_tab_badges():
                     '<div class="achievement-badge">'
                     f'<div style="font-size:2rem;">{ach["icon"]}</div>'
                     f'<div><b>{ach["name"]}</b></div>'
-                    f'<small style="color:#888;">{ach["desc"]}</small>'
+                    f'<small style="color:#b0b0b0;">{ach["desc"]}</small>'
                     f'<div style="color:#d4af37;">+{ach["xp"]} XP</div>'
                     '</div>',
                     unsafe_allow_html=True,
@@ -1310,7 +1310,7 @@ def render_tab_savings():
         st.markdown(
             '<div style="text-align:center;padding:1rem;">'
             f'<div style="font-size:4rem;color:#d4af37;">{pct}%</div>'
-            '<div style="color:#888;">Tercapai</div>'
+            '<div style="color:#b0b0b0;">Tercapai</div>'
             '</div>',
             unsafe_allow_html=True,
         )

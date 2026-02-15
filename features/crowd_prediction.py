@@ -255,7 +255,7 @@ def render_crowd_widget(location: str = "makkah", compact: bool = False):
                     <div>
                         <div style="color: #d4af37; font-size: 0.9rem;">Status Saat Ini ({current['time']} WAS)</div>
                         <div style="color: white; font-size: 2rem; font-weight: bold;">{current['description']}</div>
-                        <div style="color: #888; font-size: 0.9rem;">Level: {current['level']}% | {current['current_prayer']}</div>
+                        <div style="color: #b0b0b0; font-size: 0.9rem;">Level: {current['level']}% | {current['current_prayer']}</div>
                     </div>
                 </div>
                 <div style="margin-top: 1rem; padding: 0.75rem; background: rgba(212, 175, 55, 0.1); border-radius: 10px; border-left: 3px solid #d4af37;">
@@ -272,13 +272,13 @@ def render_crowd_widget(location: str = "makkah", compact: bool = False):
                 "ramadan": ("🌙 Ramadan", "#8b5cf6"),
                 "hajj": ("🕋 Musim Haji", "#ef4444"),
             }
-            season_label, season_color = season_labels.get(current['season'], ("📅 Regular", "#888"))
+            season_label, season_color = season_labels.get(current['season'], ("📅 Regular", "#b0b0b0"))
             
             st.markdown(f"""
             <div style="background: #1a1a1a; padding: 1rem; border-radius: 15px; text-align: center; height: 100%;">
                 <div style="color: {season_color}; font-size: 2rem;">📊</div>
                 <div style="color: white; font-size: 0.9rem; margin-top: 0.5rem;">{season_label}</div>
-                <div style="color: #888; font-size: 0.75rem; margin-top: 0.25rem;">Multiplier aktif</div>
+                <div style="color: #b0b0b0; font-size: 0.75rem; margin-top: 0.25rem;">Multiplier aktif</div>
             </div>
             """, unsafe_allow_html=True)
 
@@ -309,7 +309,7 @@ def render_24h_forecast(location: str = "makkah"):
             <div style="background: linear-gradient(135deg, #1a1a1a, #2d2d2d); padding: 1rem; border-radius: 15px; text-align: center; border: 1px solid #22c55e;">
                 <div style="color: #22c55e; font-size: 1.5rem; font-weight: bold;">{time_slot['hour_label']}</div>
                 <div style="color: white; font-size: 0.9rem;">{time_slot['description']}</div>
-                <div style="color: #888; font-size: 0.75rem;">Level: {time_slot['level']}%</div>
+                <div style="color: #b0b0b0; font-size: 0.75rem;">Level: {time_slot['level']}%</div>
             </div>
             """, unsafe_allow_html=True)
 
@@ -328,9 +328,9 @@ def render_weekly_heatmap(location: str = "makkah"):
     html = '<div style="overflow-x: auto;"><table style="width: 100%; border-collapse: collapse; font-size: 0.7rem;">'
     
     # Header row (hours)
-    html += '<tr><th style="padding: 4px; color: #888;"></th>'
+    html += '<tr><th style="padding: 4px; color: #b0b0b0;"></th>'
     for h in range(0, 24, 2):
-        html += f'<th style="padding: 4px; color: #888;">{h:02d}</th>'
+        html += f'<th style="padding: 4px; color: #b0b0b0;">{h:02d}</th>'
     html += '</tr>'
     
     # Data rows
@@ -430,7 +430,7 @@ def render_crowd_prediction_page():
             st.markdown(f"""
             <div style="background: #1a1a1a; padding: 1rem; border-radius: 10px; margin-bottom: 0.5rem;">
                 <div style="color: #d4af37; font-weight: bold;">{title}</div>
-                <div style="color: #888; font-size: 0.85rem;">{desc}</div>
+                <div style="color: #b0b0b0; font-size: 0.85rem;">{desc}</div>
             </div>
             """, unsafe_allow_html=True)
 

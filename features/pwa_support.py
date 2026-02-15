@@ -347,7 +347,7 @@ OFFLINE_HTML = """
         }
         
         .subtitle {
-            color: #888;
+            color: #b0b0b0;
             margin-bottom: 2rem;
         }
         
@@ -433,7 +433,7 @@ OFFLINE_HTML = """
         }
         
         .translation {
-            color: #888;
+            color: #b0b0b0;
             font-style: italic;
             font-size: 0.9rem;
         }
@@ -461,7 +461,7 @@ OFFLINE_HTML = """
         </ul>
     </div>
     
-    <button class="retry-btn" onclick="location.reload()">
+    <button class="retry-btn" onclick="location.reload()" aria-label="Coba muat ulang halaman">
         🔄 Coba Lagi
     </button>
     
@@ -624,7 +624,7 @@ def render_install_button():
     
     install_html = """
     <div id="install-container" style="display: none;">
-        <button onclick="window.installLabbaik()" style="
+        <button onclick="window.installLabbaik()" aria-label="Install aplikasi LABBAIK AI" style="
             background: linear-gradient(135deg, #d4af37, #f4d03f);
             color: #0a0a0a;
             border: none;

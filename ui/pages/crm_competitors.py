@@ -245,12 +245,13 @@ def render_market_insights():
     with col2:
         st.markdown("**Rekomendasi**")
 
-        insight = ai_complete(
-            "Berikan 4 rekomendasi singkat strategi harga untuk travel umrah "
-            "berdasarkan analisis kompetitor. Format: bullet points. Bahasa Indonesia.",
-            system_prompt="Kamu adalah business strategist untuk industri travel umrah.",
-            max_tokens=300,
-        )
+        with st.spinner("Menganalisis kompetitor..."):
+            insight = ai_complete(
+                "Berikan 4 rekomendasi singkat strategi harga untuk travel umrah "
+                "berdasarkan analisis kompetitor. Format: bullet points. Bahasa Indonesia.",
+                system_prompt="Kamu adalah business strategist untuk industri travel umrah.",
+                max_tokens=300,
+            )
         if insight:
             st.markdown(f"""
                 <div class="ai-card">

@@ -385,7 +385,7 @@ def render_user_list():
                     <div style="color: #aaa;">{user.email}</div>
                     <div style="color: {role_color};">{user.role.display_name}</div>
                     <div style="color: {status_color};">●</div>
-                    <div style="color: #888;">{join_date}</div>
+                    <div style="color: #b0b0b0;">{join_date}</div>
                 </div>
             """, unsafe_allow_html=True)
 

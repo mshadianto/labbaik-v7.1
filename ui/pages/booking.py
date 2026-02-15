@@ -59,7 +59,7 @@ BOOKING_CSS = """
 }
 
 .booking-hero .subtitle {
-    color: #888;
+    color: #b0b0b0;
     font-size: 1rem;
     margin-top: 0.5rem;
     position: relative;

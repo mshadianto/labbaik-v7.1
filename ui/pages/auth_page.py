@@ -4,6 +4,7 @@ LABBAIK AI - Authentication Page
 User registration and login UI.
 """
 
+import re
 import streamlit as st
 from typing import Optional
 from services.user import (
@@ -14,6 +15,38 @@ from services.user.user_service import (
     get_current_user, set_current_user, is_logged_in
 )
 from ui.components.shared_styles import inject_css, HERO_CSS, CARD_CSS
+
+
+# =============================================================================
+# VALIDATION HELPERS
+# =============================================================================
+
+def validate_email(email: str):
+    """Validate email format. Returns (is_valid, error_message)."""
+    if not email:
+        return False, "Email wajib diisi"
+    pattern = r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$'
+    if not re.match(pattern, email):
+        return False, "Format email tidak valid (contoh: nama@email.com)"
+    return True, ""
+
+
+def get_password_strength(password: str):
+    """Return (score 0-4, label, color) for password strength."""
+    if not password:
+        return 0, "", "#333"
+    score = 0
+    if len(password) >= 6:
+        score += 1
+    if len(password) >= 8:
+        score += 1
+    if re.search(r'[A-Z]', password) and re.search(r'[a-z]', password):
+        score += 1
+    if re.search(r'[0-9!@#$%^&*(),.?":{}|<>]', password):
+        score += 1
+    labels = {0: "Terlalu pendek", 1: "Sangat lemah", 2: "Lemah", 3: "Sedang", 4: "Kuat"}
+    colors = {0: "#b0b0b0", 1: "#ef4444", 2: "#f97316", 3: "#eab308", 4: "#22c55e"}
+    return score, labels[score], colors[score]
 
 # Indonesian provinces for dropdown
 PROVINCES = [
@@ -66,6 +99,10 @@ def render_login_form():
         if submit:
             if not email or not password:
                 st.error("Email dan password wajib diisi")
+                return
+            email_valid, email_err = validate_email(email)
+            if not email_valid:
+                st.error(email_err)
                 return
 
             service = get_user_service()
@@ -145,6 +182,19 @@ def render_register_form():
                 st.error("Nama, email, dan password wajib diisi")
                 return
 
+            email_valid, email_err = validate_email(email)
+            if not email_valid:
+                st.error(email_err)
+                return
+
+            if len(password) < 6:
+                st.error("Password minimal 6 karakter")
+                return
+
+            score, label, color = get_password_strength(password)
+            if score < 2:
+                st.warning(f"Password Anda '{label}'. Disarankan kombinasi huruf besar, kecil, dan angka.")
+
             # Map selection back to values
             budget_val = None
             for val, label in BUDGET_RANGES:
@@ -179,6 +229,17 @@ def render_register_form():
                 st.rerun()
             else:
                 st.error(message)
+
+    # Password tip
+    st.markdown("""
+    <div style="background: #1a1a2e; border: 1px solid #333; border-radius: 8px;
+                padding: 0.75rem; margin-top: 0.5rem;">
+        <div style="color: #b0b0b0; font-size: 0.8rem;">
+            <strong style="color: #d4af37;">Tips password kuat:</strong>
+            Minimal 6 karakter, kombinasi huruf besar + kecil + angka/simbol
+        </div>
+    </div>
+    """, unsafe_allow_html=True)
 
     st.markdown("---")
     st.markdown("Sudah punya akun?")

@@ -50,7 +50,7 @@ ITINERARY_CSS = """
 }
 
 .itinerary-hero .subtitle {
-    color: #888;
+    color: #b0b0b0;
     font-size: 1rem;
 }
 
@@ -105,7 +105,7 @@ ITINERARY_CSS = """
 }
 
 .activity-desc {
-    color: #888;
+    color: #b0b0b0;
     font-size: 0.85rem;
     margin-top: 0.25rem;
 }
@@ -154,7 +154,7 @@ ITINERARY_CSS = """
 }
 
 .stat-mini .label {
-    color: #888;
+    color: #b0b0b0;
     font-size: 0.8rem;
 }
 
@@ -952,7 +952,7 @@ def render_day_schedule(day: dict, day_date: date):
         f'<div class="day-card">'
         f'<div class="day-header">'
         f'\U0001f4c5 {day["title"]} \u2014 {day_date.strftime("%A, %d %b %Y")}'
-        f'<span style="margin-left:auto;font-size:0.9rem;color:#888;">\U0001f4cd {day["location"]}</span>'
+        f'<span style="margin-left:auto;font-size:0.9rem;color:#b0b0b0;">\U0001f4cd {day["location"]}</span>'
         f'</div>',
         unsafe_allow_html=True,
     )
@@ -1197,7 +1197,7 @@ def render_transport_comparison(start_date, route):
             total_m = opt["total_time_min"] % 60
             total_str = f"{total_h}j {total_m}m" if total_h else f"{total_m}m"
             notes_str = ", ".join(opt.get("notes", []))
-            notes_html = f'<div style="color:#888;font-size:0.8rem;margin-top:0.5rem;">{notes_str}</div>' if notes_str else ""
+            notes_html = f'<div style="color:#b0b0b0;font-size:0.8rem;margin-top:0.5rem;">{notes_str}</div>' if notes_str else ""
 
             st.markdown(
                 f'<div class="{css_class}">'

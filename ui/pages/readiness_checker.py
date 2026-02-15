@@ -124,7 +124,7 @@ READINESS_CSS = """
 }
 
 .gauge-sublabel {
-    color: #888;
+    color: #b0b0b0;
     font-size: 0.85rem;
     margin-top: 0.25rem;
 }
@@ -853,7 +853,7 @@ def render_export_section(score: Dict):
         """
         <div class="export-box">
             <h3 style="color:#4ade80;margin-top:0;">Simpan Hasil Anda</h3>
-            <p style="color:#888;">Download hasil readiness check untuk referensi pribadi</p>
+            <p style="color:#b0b0b0;">Download hasil readiness check untuk referensi pribadi</p>
         </div>
         """,
         unsafe_allow_html=True,

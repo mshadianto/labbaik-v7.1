@@ -87,7 +87,7 @@ def render_referral_code(code: str):
     # Code display
     st.markdown(f"""
         <div class="dark-card" style="text-align: center; border: 1px solid #d4af37;">
-            <div style="font-size: 0.9rem; color: #888;">Kode Referral</div>
+            <div style="font-size: 0.9rem; color: #b0b0b0;">Kode Referral</div>
             <div style="font-size: 2.5rem; font-weight: bold; color: #d4af37;
                         letter-spacing: 4px; margin: 0.5rem 0;">
                 {code}
@@ -132,12 +132,13 @@ def render_referral_code(code: str):
         add_xp_safe(5, "Melihat tips referral")
         st.session_state.referral_tips_xp_awarded = True
 
-    tips = ai_complete(
-        "Berikan 3 tips singkat dan praktis untuk mengajak teman mendaftar program referral umrah. "
-        "Format: nomor dan tips (tanpa markdown). Bahasa Indonesia.",
-        system_prompt="Kamu adalah ahli marketing digital untuk travel umrah.",
-        max_tokens=300,
-    )
+    with st.spinner("Memuat data referral..."):
+        tips = ai_complete(
+            "Berikan 3 tips singkat dan praktis untuk mengajak teman mendaftar program referral umrah. "
+            "Format: nomor dan tips (tanpa markdown). Bahasa Indonesia.",
+            system_prompt="Kamu adalah ahli marketing digital untuk travel umrah.",
+            max_tokens=300,
+        )
     if tips:
         st.markdown(f"""
             <div class="ai-card">
@@ -184,17 +185,17 @@ def render_how_it_works():
             <div class="dark-card" style="text-align: center;">
                 <div style="font-size: 2rem;">1️⃣</div>
                 <div style="font-weight: bold; margin: 0.5rem 0;">Bagikan Kode</div>
-                <div style="font-size: 0.85rem; color: #888;">Kirim kode referral ke teman via WhatsApp, sosmed, dll</div>
+                <div style="font-size: 0.85rem; color: #b0b0b0;">Kirim kode referral ke teman via WhatsApp, sosmed, dll</div>
             </div>
             <div class="dark-card" style="text-align: center;">
                 <div style="font-size: 2rem;">2️⃣</div>
                 <div style="font-weight: bold; margin: 0.5rem 0;">Teman Daftar</div>
-                <div style="font-size: 0.85rem; color: #888;">Teman memasukkan kode saat registrasi</div>
+                <div style="font-size: 0.85rem; color: #b0b0b0;">Teman memasukkan kode saat registrasi</div>
             </div>
             <div class="dark-card" style="text-align: center;">
                 <div style="font-size: 2rem;">3️⃣</div>
                 <div style="font-weight: bold; margin: 0.5rem 0;">Dapat Reward</div>
-                <div style="font-size: 0.85rem; color: #888;">Anda dapat Premium gratis!</div>
+                <div style="font-size: 0.85rem; color: #b0b0b0;">Anda dapat Premium gratis!</div>
             </div>
         </div>
     """, unsafe_allow_html=True)
@@ -216,7 +217,7 @@ def render_how_it_works():
                         border-radius: 8px; margin: 0.5rem 0;">
                 <div>
                     <div style="font-weight: bold;">{action}</div>
-                    <div style="font-size: 0.8rem; color: #888;">{desc}</div>
+                    <div style="font-size: 0.8rem; color: #b0b0b0;">{desc}</div>
                 </div>
                 <div style="color: #FFD700; font-weight: bold;">{reward}</div>
             </div>
@@ -241,7 +242,7 @@ def render_referral_history(referrals: list):
                         padding: 0.5rem; border-bottom: 1px solid rgba(255,255,255,0.1);">
                 <div>
                     <div>{ref['name']}</div>
-                    <div style="font-size: 0.8rem; color: #888;">{ref['email']}</div>
+                    <div style="font-size: 0.8rem; color: #b0b0b0;">{ref['email']}</div>
                 </div>
                 <div style="font-size: 0.85rem; color: #4CAF50;">{status}</div>
             </div>
@@ -273,7 +274,7 @@ def render_milestones(total_referrals: int):
                 <div class="progress-track">
                     <div class="progress-fill" style="background: {color}; width: {progress}%;"></div>
                 </div>
-                <div style="font-size: 0.8rem; color: #888; margin-top: 0.25rem;">
+                <div style="font-size: 0.8rem; color: #b0b0b0; margin-top: 0.25rem;">
                     {total_referrals}/{target} referral
                 </div>
             </div>
@@ -295,7 +296,7 @@ def render_referral_widget():
                     border-radius: 8px; text-align: center;">
             <div style="font-size: 0.75rem; color: #FFD700;">Kode Referral</div>
             <div style="font-weight: bold;">{stats['code']}</div>
-            <div style="font-size: 0.7rem; color: #888;">{stats['total_referrals']} referral</div>
+            <div style="font-size: 0.7rem; color: #b0b0b0;">{stats['total_referrals']} referral</div>
         </div>
     """, unsafe_allow_html=True)
 

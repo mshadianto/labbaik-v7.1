@@ -40,7 +40,7 @@ def render_api_docs_page():
             <div style="background: rgba(33,150,243,0.1); padding: 1rem; border-radius: 12px; text-align: center;">
                 <div style="font-size: 2rem;">🔑</div>
                 <div style="font-weight: bold;">Authentication</div>
-                <div style="font-size: 0.8rem; color: #888;">API Key based auth</div>
+                <div style="font-size: 0.8rem; color: #b0b0b0;">API Key based auth</div>
             </div>
         """, unsafe_allow_html=True)
     with col2:
@@ -48,7 +48,7 @@ def render_api_docs_page():
             <div style="background: rgba(76,175,80,0.1); padding: 1rem; border-radius: 12px; text-align: center;">
                 <div style="font-size: 2rem;">📦</div>
                 <div style="font-weight: bold;">RESTful</div>
-                <div style="font-size: 0.8rem; color: #888;">JSON responses</div>
+                <div style="font-size: 0.8rem; color: #b0b0b0;">JSON responses</div>
             </div>
         """, unsafe_allow_html=True)
     with col3:
@@ -56,7 +56,7 @@ def render_api_docs_page():
             <div style="background: rgba(255,152,0,0.1); padding: 1rem; border-radius: 12px; text-align: center;">
                 <div style="font-size: 2rem;">🔔</div>
                 <div style="font-weight: bold;">Webhooks</div>
-                <div style="font-size: 0.8rem; color: #888;">Real-time events</div>
+                <div style="font-size: 0.8rem; color: #b0b0b0;">Real-time events</div>
             </div>
         """, unsafe_allow_html=True)
 
@@ -225,7 +225,7 @@ def render_authentication_docs():
                                 border-radius: 8px; margin: 0.5rem 0;">
                         <div>
                             <code>{key.key_prefix}...</code>
-                            <span style="color: #888; margin-left: 1rem;">{key.name}</span>
+                            <span style="color: #b0b0b0; margin-left: 1rem;">{key.name}</span>
                         </div>
                         <div style="color: {status_color};">● {key.status.value}</div>
                     </div>

@@ -112,7 +112,7 @@ PRICE_HUB_CSS = """
 }
 
 .vendor-chip .vendor-name {
-    color: #888;
+    color: #b0b0b0;
     font-size: 0.75rem;
 }
 
@@ -148,7 +148,7 @@ PRICE_HUB_CSS = """
 }
 
 .tab-empty p {
-    color: #888;
+    color: #b0b0b0;
 }
 
 /* AI analysis section */

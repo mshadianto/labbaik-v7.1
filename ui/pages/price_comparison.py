@@ -161,7 +161,7 @@ PRICE_COMPARISON_CSS = """
 }
 
 .price-summary-card .label {
-    color: #888;
+    color: #b0b0b0;
     font-size: 0.8rem;
     margin-top: 0.25rem;
 }
@@ -786,7 +786,7 @@ def _render_ai_fallback(offers: List[AggregatedOffer], result: Dict[str, Any]):
         '<div class="ai-card" style="border-color: #d4af37;">'
         '<h4 style="color: #d4af37; margin-top:0;">💡 Ringkasan Harga</h4>'
         '<p>' + tips_html + '</p>'
-        '<p style="color:#888;font-size:0.8rem;margin-top:0.75rem;">'
+        '<p style="color:#b0b0b0;font-size:0.8rem;margin-top:0.75rem;">'
         'AI tidak tersedia saat ini. Ini adalah analisis otomatis berdasarkan data.</p>'
         '</div>'
     )

@@ -415,7 +415,7 @@ def render_member_card(member: GroupMember, compact: bool = False):
             <span style="font-size: 1.5rem; margin-right: 0.5rem;">{member.avatar}</span>
             <div style="flex: 1;">
                 <div style="color: white; font-weight: bold;">{member.name} {"👑" if member.is_leader else ""}</div>
-                <div style="color: #888; font-size: 0.75rem;">{icon} {label} • {member.last_location}</div>
+                <div style="color: #b0b0b0; font-size: 0.75rem;">{icon} {label} • {member.last_location}</div>
             </div>
         </div>
         """, unsafe_allow_html=True)
@@ -430,12 +430,12 @@ def render_member_card(member: GroupMember, compact: bool = False):
                             {member.name} {"👑" if member.is_leader else ""}
                         </div>
                         <div style="color: {color}; font-size: 0.9rem;">{icon} {label}</div>
-                        <div style="color: #888; font-size: 0.8rem;">📍 {member.last_location} • {time_str}</div>
+                        <div style="color: #b0b0b0; font-size: 0.8rem;">📍 {member.last_location} • {time_str}</div>
                     </div>
                 </div>
                 <div style="text-align: right;">
                     <div style="color: {battery_color};">{battery_icon} {member.battery_level}%</div>
-                    <div style="color: #888; font-size: 0.75rem;">📱 {member.phone[-4:]}</div>
+                    <div style="color: #b0b0b0; font-size: 0.75rem;">📱 {member.phone[-4:]}</div>
                 </div>
             </div>
         </div>
@@ -454,7 +454,7 @@ def render_group_header(group: TravelGroup):
             <div>
                 <div style="color: #d4af37; font-size: 0.9rem;">Rombongan</div>
                 <div style="color: white; font-size: 1.5rem; font-weight: bold;">{group.name}</div>
-                <div style="color: #888; font-size: 0.85rem;">📍 {group.current_city} • 🏨 {group.hotel_makkah}</div>
+                <div style="color: #b0b0b0; font-size: 0.85rem;">📍 {group.current_city} • 🏨 {group.hotel_makkah}</div>
             </div>
             <div style="text-align: center; background: #2d2d2d; padding: 1rem; border-radius: 15px;">
                 <div style="color: #d4af37; font-size: 0.8rem;">Kode Grup</div>
@@ -557,7 +557,7 @@ def render_tracking_map(group: TravelGroup):
             <div style="display: flex; justify-content: space-between; align-items: center;">
                 <div>
                     <div style="color: #d4af37; font-weight: bold;">📍 {location}</div>
-                    <div style="color: #888; font-size: 0.85rem;">{member_names}</div>
+                    <div style="color: #b0b0b0; font-size: 0.85rem;">{member_names}</div>
                 </div>
                 <div style="font-size: 1.2rem;">{status_icons}</div>
             </div>
@@ -702,7 +702,7 @@ def render_tracking_mini_widget():
         <div style="background: linear-gradient(135deg, #1a1a1a, #2d2d2d); padding: 1rem; border-radius: 15px; border: 1px solid #d4af37;">
             <div style="color: #d4af37; font-size: 0.8rem; margin-bottom: 0.5rem;">📍 Rombongan</div>
             <div style="color: white; font-weight: bold; margin-bottom: 0.5rem;">{group.name}</div>
-            <div style="display: flex; justify-content: space-between; color: #888; font-size: 0.8rem;">
+            <div style="display: flex; justify-content: space-between; color: #b0b0b0; font-size: 0.8rem;">
                 <span>🟢 {stats.get('online', 0) + stats.get('checked_in', 0)}</span>
                 <span>🟡 {stats.get('away', 0)}</span>
                 <span>⚫ {stats.get('offline', 0)}</span>

@@ -71,7 +71,7 @@ HOME_PAGE_CSS = """
     text-align: center;
 }
 .gold-text { color: #d4af37; }
-.muted-text { color: #888; }
+.muted-text { color: #b0b0b0; }
 
 /* Hero section v6 */
 .hero-section-v6 {
@@ -95,7 +95,7 @@ HOME_PAGE_CSS = """
     color: #d4af37;
 }
 .tagline-v6 { font-size: 1rem; color: #d4af37; }
-.subtitle-v6 { font-size: 0.85rem; color: #888; margin-bottom: 0.8rem; }
+.subtitle-v6 { font-size: 0.85rem; color: #b0b0b0; margin-bottom: 0.8rem; }
 .version-badge-v6 {
     display: inline-block;
     background: linear-gradient(135deg, #d4af37 0%, #f4d03f 100%);
@@ -113,13 +113,29 @@ HOME_PAGE_CSS = """
     text-align: center;
 }
 .stat-icon-v6 { font-size: 1.3rem; }
-.stat-label-v6 { font-size: 0.7rem; color: #888; }
+.stat-label-v6 { font-size: 0.7rem; color: #b0b0b0; }
 .stat-value-v6 { font-size: 1.1rem; font-weight: bold; color: #d4af37; }
 
 /* Pulse animation for live indicator */
 @keyframes pulse {
     0%, 100% { opacity: 1; }
     50% { opacity: 0.5; }
+}
+
+/* Home page responsive overrides */
+@media (max-width: 768px) {
+    .hero-section-v6 { padding: 1.2rem 0.8rem; }
+    .brand-name-v6 { font-size: 1.5rem; letter-spacing: 0.15rem; }
+    .arabic-calligraphy-v6 { font-size: 1.3rem; }
+    .version-badge-v6 { font-size: 0.7rem; padding: 0.2rem 0.6rem; }
+    .stat-card-v6 { padding: 0.4rem; }
+    .stat-icon-v6 { font-size: 1rem; }
+    .stat-value-v6 { font-size: 0.8rem; }
+    .stat-label-v6 { font-size: 0.55rem; }
+    .gold-card { padding: 0.8rem; border-radius: 10px; }
+}
+@media (max-width: 480px) {
+    .brand-name-v6 { font-size: 1.2rem; letter-spacing: 0.1rem; }
 }
 """
 
@@ -211,7 +227,7 @@ def render_public_highlights_section():
     st.markdown("""
     <div style="text-align: center; margin-bottom: 1.5rem;">
         <h2 style="color: #d4af37; margin-bottom: 0.5rem;">🌟 Kenapa LABBAIK Smart Planner?</h2>
-        <p style="color: #888;">Platform AI #1 untuk perencanaan umrah di Indonesia</p>
+        <p style="color: #b0b0b0;">Platform AI #1 untuk perencanaan umrah di Indonesia</p>
     </div>
     """, unsafe_allow_html=True)
 
@@ -232,7 +248,7 @@ def render_public_highlights_section():
                         border: 1px solid #d4af37; border-radius: 15px; padding: 1.5rem; text-align: center; min-height: 180px;">
                 <div style="font-size: 2.5rem;">{icon}</div>
                 <div style="font-size: 1.1rem; font-weight: bold; color: #d4af37; margin: 0.5rem 0;">{title}</div>
-                <div style="color: #888; font-size: 0.85rem;">{desc}</div>
+                <div style="color: #b0b0b0; font-size: 0.85rem;">{desc}</div>
             </div>
             """, unsafe_allow_html=True)
 
@@ -262,7 +278,7 @@ def render_public_highlights_section():
                 <span style="font-size: 1.3rem; margin-right: 0.8rem;">{icon}</span>
                 <div>
                     <div style="color: #fafafa; font-weight: bold; font-size: 0.9rem;">{title}</div>
-                    <div style="color: #888; font-size: 0.8rem;">{desc}</div>
+                    <div style="color: #b0b0b0; font-size: 0.8rem;">{desc}</div>
                 </div>
             </div>
             """, unsafe_allow_html=True)
@@ -288,7 +304,7 @@ def render_public_highlights_section():
                 <span style="font-size: 1.5rem; margin-right: 1rem;">{num}</span>
                 <div>
                     <div style="color: #d4af37; font-weight: bold;">{title}</div>
-                    <div style="color: #888; font-size: 0.8rem;">{desc}</div>
+                    <div style="color: #b0b0b0; font-size: 0.8rem;">{desc}</div>
                 </div>
             </div>
             """, unsafe_allow_html=True)
@@ -323,7 +339,7 @@ def render_visitor_stats_section():
     header_html = (
         '<div style="text-align: center; margin-bottom: 1.5rem;">'
         '<h2 style="color: #d4af37; margin-bottom: 0.5rem;">📊 Statistik Platform</h2>'
-        '<p style="color: #888;">Antusiasme jamaah terhadap LABBAIK AI</p>'
+        '<p style="color: #b0b0b0;">Antusiasme jamaah terhadap LABBAIK AI</p>'
         '<span style="background: ' + badge_bg + '; color: white; padding: 0.25rem 0.75rem; '
         'border-radius: 20px; font-size: 0.75rem;">' + status_badge + '</span>'
         '</div>'
@@ -339,7 +355,7 @@ def render_visitor_stats_section():
                     border: 1px solid #d4af37; border-radius: 15px; padding: 1.5rem; text-align: center;">
             <div style="font-size: 2.5rem;">👥</div>
             <div style="font-size: 2rem; font-weight: bold; color: #d4af37;">{stats['total_visitors']:,}</div>
-            <div style="color: #888; font-size: 0.85rem;">Total Pengunjung</div>
+            <div style="color: #b0b0b0; font-size: 0.85rem;">Total Pengunjung</div>
         </div>
         """, unsafe_allow_html=True)
     
@@ -349,7 +365,7 @@ def render_visitor_stats_section():
                     border: 1px solid #d4af37; border-radius: 15px; padding: 1.5rem; text-align: center;">
             <div style="font-size: 2.5rem;">👁️</div>
             <div style="font-size: 2rem; font-weight: bold; color: #d4af37;">{stats['total_views']:,}</div>
-            <div style="color: #888; font-size: 0.85rem;">Total Page Views</div>
+            <div style="color: #b0b0b0; font-size: 0.85rem;">Total Page Views</div>
         </div>
         """, unsafe_allow_html=True)
     
@@ -359,7 +375,7 @@ def render_visitor_stats_section():
                     border: 1px solid #d4af37; border-radius: 15px; padding: 1.5rem; text-align: center;">
             <div style="font-size: 2.5rem;">📅</div>
             <div style="font-size: 2rem; font-weight: bold; color: #d4af37;">{stats.get('visitors_today', 47)}</div>
-            <div style="color: #888; font-size: 0.85rem;">Hari Ini</div>
+            <div style="color: #b0b0b0; font-size: 0.85rem;">Hari Ini</div>
         </div>
         """, unsafe_allow_html=True)
     
@@ -369,7 +385,7 @@ def render_visitor_stats_section():
                     border: 1px solid #d4af37; border-radius: 15px; padding: 1.5rem; text-align: center;">
             <div style="font-size: 2.5rem;">📈</div>
             <div style="font-size: 2rem; font-weight: bold; color: #d4af37;">{stats.get('visitors_week', 312)}</div>
-            <div style="color: #888; font-size: 0.85rem;">Minggu Ini</div>
+            <div style="color: #b0b0b0; font-size: 0.85rem;">Minggu Ini</div>
         </div>
         """, unsafe_allow_html=True)
     
@@ -444,7 +460,7 @@ def render_visitor_stats_section():
         for icon, label, value in metrics:
             st.markdown(f"""
             <div style="display: flex; justify-content: space-between; padding: 0.6rem 0; border-bottom: 1px solid #333;">
-                <span style="color: #888;">{icon} {label}</span>
+                <span style="color: #b0b0b0;">{icon} {label}</span>
                 <span style="color: #d4af37; font-weight: bold;">{value}</span>
             </div>
             """, unsafe_allow_html=True)
@@ -459,7 +475,7 @@ def render_visitor_stats_section():
         'padding: 0.5rem 1rem; border-radius: 20px; border: 1px solid #333;">'
         '<span style="width: 8px; height: 8px; background: ' + indicator_color + '; border-radius: 50%; '
         'margin-right: 0.5rem; animation: pulse 2s infinite;"></span>'
-        '<span style="color: #888; font-size: 0.85rem;">' + indicator_text + '</span>'
+        '<span style="color: #b0b0b0; font-size: 0.85rem;">' + indicator_text + '</span>'
         '</span>'
         '</div>'
     )
@@ -579,7 +595,7 @@ def render_price_intelligence_section():
         st.markdown("""
         <div style="text-align: center; margin-bottom: 1.5rem;">
             <h2 style="color: #d4af37; margin-bottom: 0.5rem;">💰 Harga Paket Umrah Terkini</h2>
-            <p style="color: #888;">Data live dari berbagai travel agent</p>
+            <p style="color: #b0b0b0;">Data live dari berbagai travel agent</p>
         </div>
         """, unsafe_allow_html=True)
         
@@ -719,7 +735,7 @@ def render_3_pilar_framework():
              border-top: 4px solid #d4af37; border: 1px solid #333;">
             <div style="font-size: 3rem;">📋</div>
             <h3 style="color: #d4af37; margin: 0.5rem 0;">{SMART_PREP}</h3>
-            <p style="color: #888; font-size: 0.9rem;">Persiapan cerdas dengan panduan AI personal & checklist otomatis</p>
+            <p style="color: #b0b0b0; font-size: 0.9rem;">Persiapan cerdas dengan panduan AI personal & checklist otomatis</p>
         </div>
         """, unsafe_allow_html=True)
 
@@ -730,7 +746,7 @@ def render_3_pilar_framework():
              border-top: 4px solid #d4af37; border: 1px solid #333;">
             <div style="font-size: 3rem;">💰</div>
             <h3 style="color: #d4af37; margin: 0.5rem 0;">{SMART_SAVINGS}</h3>
-            <p style="color: #888; font-size: 0.9rem;">Optimasi budget cerdas, hemat hingga jutaan rupiah</p>
+            <p style="color: #b0b0b0; font-size: 0.9rem;">Optimasi budget cerdas, hemat hingga jutaan rupiah</p>
         </div>
         """, unsafe_allow_html=True)
 
@@ -741,7 +757,7 @@ def render_3_pilar_framework():
              border-top: 4px solid #d4af37; border: 1px solid #333;">
             <div style="font-size: 3rem;">🕌</div>
             <h3 style="color: #d4af37; margin: 0.5rem 0;">{SMART_JOURNEY}</h3>
-            <p style="color: #888; font-size: 0.9rem;">AI companion 24/7 selama di Tanah Suci</p>
+            <p style="color: #b0b0b0; font-size: 0.9rem;">AI companion 24/7 selama di Tanah Suci</p>
         </div>
         """, unsafe_allow_html=True)
     
@@ -850,7 +866,7 @@ def render_package_preview():
                 <div style="font-size: 2rem;">{info['icon']}</div>
                 <div style="color: #d4af37; font-size: 1.1rem; font-weight: bold; margin: 0.5rem 0;">{info['name']}</div>
                 <div style="color: #fafafa; font-size: 1.3rem; font-weight: bold;">Rp {info['range']}</div>
-                <div style="color: #888; font-size: 0.8rem; margin-top: 0.5rem;">{info['desc']}</div>
+                <div style="color: #b0b0b0; font-size: 0.8rem; margin-top: 0.5rem;">{info['desc']}</div>
             </div>
             """, unsafe_allow_html=True)
 
@@ -929,7 +945,7 @@ def render_upcoming_trips():
                     border: 1px solid #d4af37; border-radius: 15px; padding: 1.5rem; text-align: center;">
             <div style="font-size: 3rem;">👥</div>
             <div style="color: #d4af37; font-size: 1.2rem; font-weight: bold; margin: 0.5rem 0;">Umrah Bareng</div>
-            <div style="color: #888; font-size: 0.85rem; margin-bottom: 1rem;">Hemat hingga 30% dengan berbagi biaya</div>
+            <div style="color: #b0b0b0; font-size: 0.85rem; margin-bottom: 1rem;">Hemat hingga 30% dengan berbagi biaya</div>
             <div style="background: #333; padding: 0.5rem; border-radius: 8px;">
                 <div style="color: #fafafa; font-size: 0.8rem;">💡 Tips: Buat trip 3-6 bulan sebelum keberangkatan</div>
             </div>

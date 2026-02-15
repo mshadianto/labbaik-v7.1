@@ -614,7 +614,7 @@ def render_sos_page():
             <div style="background: linear-gradient(135deg, #1a1a1a, #2d2d2d); padding: 1rem; border-radius: 15px; border: 1px solid #d4af37;">
                 <div style="color: #d4af37; font-weight: bold; margin-bottom: 0.5rem;">🚨 Saudi Emergency</div>
                 <div style="color: white; font-size: 2rem; font-weight: bold;">911</div>
-                <div style="color: #888; font-size: 0.8rem;">Polisi, Ambulans, Pemadam</div>
+                <div style="color: #b0b0b0; font-size: 0.8rem;">Polisi, Ambulans, Pemadam</div>
             </div>
             """, unsafe_allow_html=True)
         
@@ -623,7 +623,7 @@ def render_sos_page():
             <div style="background: linear-gradient(135deg, #1a1a1a, #2d2d2d); padding: 1rem; border-radius: 15px; border: 1px solid #d4af37;">
                 <div style="color: #d4af37; font-weight: bold; margin-bottom: 0.5rem;">🇮🇩 KBRI Riyadh</div>
                 <div style="color: white; font-size: 1.2rem; font-weight: bold;">+966-11-488-2800</div>
-                <div style="color: #888; font-size: 0.8rem;">Kedutaan Besar RI</div>
+                <div style="color: #b0b0b0; font-size: 0.8rem;">Kedutaan Besar RI</div>
             </div>
             """, unsafe_allow_html=True)
 

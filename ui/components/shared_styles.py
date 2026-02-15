@@ -60,7 +60,7 @@ HERO_CSS = """
 }
 
 .page-hero .subtitle {
-    color: var(--hero-subtitle, #888);
+    color: var(--hero-subtitle, #b0b0b0);
     font-size: 1rem;
     margin-top: 0.5rem;
     position: relative;
@@ -117,7 +117,7 @@ CARD_CSS = """
 }
 
 .stat-card .label {
-    color: #888;
+    color: #b0b0b0;
     font-size: 0.8rem;
     margin-top: 0.25rem;
 }
@@ -143,7 +143,7 @@ CARD_CSS = """
 }
 
 .metric-label {
-    color: #94a3b8;
+    color: #b8c5d4;
     font-size: 0.82rem;
     text-transform: uppercase;
     letter-spacing: 0.5px;
@@ -212,7 +212,7 @@ EMPTY_STATE_CSS = """
 .empty-state {
     text-align: center;
     padding: 2.5rem 1rem;
-    color: #64748b;
+    color: #8e9fb3;
 }
 
 .empty-state .icon, .empty-state .empty-icon {
@@ -223,7 +223,7 @@ EMPTY_STATE_CSS = """
 
 .empty-state .empty-text {
     font-size: 0.95rem;
-    color: #94a3b8;
+    color: #b8c5d4;
 }
 """
 
@@ -267,16 +267,94 @@ BADGE_CSS = """
 
 
 # =============================================================================
+# RESPONSIVE: Mobile breakpoints
+# =============================================================================
+
+RESPONSIVE_CSS = """
+/* Tablet and below */
+@media (max-width: 768px) {
+    .page-hero { padding: 1.5rem 1rem; border-radius: 12px; margin-bottom: 1rem; }
+    .page-hero h1 { font-size: 1.5rem; }
+    .page-hero .subtitle { font-size: 0.85rem; }
+    .page-hero .ayat, .page-hero .arabic, .page-hero .bismillah { font-size: 1rem; }
+
+    .dark-card { padding: 1rem; border-radius: 10px; }
+    .stat-card { padding: 0.8rem; }
+    .stat-card .number { font-size: 1.3rem; }
+    .metric-card { padding: 0.8rem; }
+    .metric-value { font-size: 1.2rem; }
+    .ai-card { padding: 1rem; }
+    .empty-state { padding: 1.5rem 0.5rem; }
+    .empty-state .icon, .empty-state .empty-icon { font-size: 2rem; }
+
+    .stButton > button { min-height: 44px; font-size: 0.9rem; }
+    div[data-testid="stHorizontalBlock"] { gap: 0.5rem; }
+    [data-testid="column"] { padding: 0 0.25rem; }
+}
+
+/* Small phone */
+@media (max-width: 480px) {
+    .page-hero h1 { font-size: 1.3rem; }
+    .stat-card .number { font-size: 1.1rem; }
+    .metric-value { font-size: 1rem; }
+
+    div[data-testid="stHorizontalBlock"] { flex-wrap: wrap; }
+    div[data-testid="stHorizontalBlock"] > div[data-testid="column"] {
+        flex: 1 1 100%; min-width: 100%;
+    }
+}
+"""
+
+
+# =============================================================================
+# ACCESSIBILITY: Contrast, focus, skip link, reduced motion
+# =============================================================================
+
+ACCESSIBILITY_CSS = """
+/* Skip-to-content (hidden until focused) */
+.skip-to-content {
+    position: absolute; top: -100px; left: 0;
+    background: #d4af37; color: #000;
+    padding: 0.75rem 1.5rem; z-index: 10000;
+    font-weight: bold; font-size: 1rem;
+    text-decoration: none; border-radius: 0 0 8px 0;
+    transition: top 0.2s ease;
+}
+.skip-to-content:focus { top: 0; }
+
+/* Focus-visible outlines for keyboard nav */
+.stButton > button:focus-visible,
+a:focus-visible, input:focus-visible,
+select:focus-visible, textarea:focus-visible,
+[tabindex]:focus-visible {
+    outline: 2px solid #d4af37; outline-offset: 2px;
+}
+
+/* Pointer cursor for buttons */
+.stButton > button { cursor: pointer; }
+
+/* Reduced motion */
+@media (prefers-reduced-motion: reduce) {
+    .page-hero::before { animation: none; }
+    .progress-fill { transition: none; }
+    .dark-card, .stat-card, .metric-card { transition: none; }
+}
+"""
+
+
+# =============================================================================
 # HELPER: inject CSS blocks
 # =============================================================================
 
 def inject_css(*css_blocks):
     """Combine and inject CSS blocks via st.markdown.
 
+    Automatically includes responsive and accessibility CSS.
+
     Usage:
         inject_css(HERO_CSS, CARD_CSS, MY_PAGE_OVERRIDES)
     """
-    combined = FONT_IMPORT + "\n" + "\n".join(css_blocks)
+    combined = FONT_IMPORT + "\n" + "\n".join(css_blocks) + "\n" + RESPONSIVE_CSS + "\n" + ACCESSIBILITY_CSS
     st.markdown(f"<style>{combined}</style>", unsafe_allow_html=True)
 
 
@@ -288,5 +366,7 @@ __all__ = [
     "PROGRESS_CSS",
     "EMPTY_STATE_CSS",
     "BADGE_CSS",
+    "RESPONSIVE_CSS",
+    "ACCESSIBILITY_CSS",
     "inject_css",
 ]

@@ -206,7 +206,7 @@ def render_hotel_card(hotel: Dict, nights: int = 1):
                     with vendor_cols[i]:
                         st.markdown(f"""
                         <div style="background: #1a1a1a; padding: 0.5rem; border-radius: 8px; text-align: center;">
-                            <div style="color: #888; font-size: 0.75rem;">{vendor.get('name', 'OTA')}</div>
+                            <div style="color: #b0b0b0; font-size: 0.75rem;">{vendor.get('name', 'OTA')}</div>
                             <div style="color: #d4af37; font-weight: bold;">{currency} {vendor.get('price', 0):,.0f}</div>
                         </div>
                         """, unsafe_allow_html=True)
@@ -223,7 +223,7 @@ def render_hotel_card(hotel: Dict, nights: int = 1):
                     <div style="color: #d4af37; font-weight: bold; margin-bottom: 0.3rem;">
                         🔐 Perbandingan Harga {len(vendors)} OTA
                     </div>
-                    <div style="color: #888; font-size: 0.8rem; margin-bottom: 0.5rem;">
+                    <div style="color: #b0b0b0; font-size: 0.8rem; margin-bottom: 0.5rem;">
                         Lihat harga dari Booking.com, Agoda, Expedia & lainnya
                     </div>
                     <div style="color: #666; font-size: 0.75rem;">
@@ -408,7 +408,7 @@ def render_hotel_compare_page():
                         padding: 3rem; text-align: center;">
                 <div style="font-size: 3rem;">🔍</div>
                 <h3 style="color: #d4af37;">Mulai Pencarian</h3>
-                <p style="color: #888;">Pilih kota dan tanggal untuk melihat harga hotel</p>
+                <p style="color: #b0b0b0;">Pilih kota dan tanggal untuk melihat harga hotel</p>
             </div>
             """, unsafe_allow_html=True)
 

@@ -96,7 +96,7 @@ DOA_CSS = """
 }
 
 .doa-hero .subtitle {
-    color: #888;
+    color: #b0b0b0;
     font-size: 1rem;
     margin-top: 0.5rem;
     position: relative;
@@ -191,7 +191,7 @@ DOA_CSS = """
 }
 
 .doa-player-card .doa-meta {
-    color: #888;
+    color: #b0b0b0;
     font-size: 0.8rem;
 }
 
@@ -234,7 +234,7 @@ DOA_CSS = """
 }
 
 .cat-stat-card .label {
-    color: #888;
+    color: #b0b0b0;
     font-size: 0.8rem;
     margin-top: 0.25rem;
 }
@@ -268,7 +268,7 @@ DOA_CSS = """
 }
 
 .step-card .step-when {
-    color: #888;
+    color: #b0b0b0;
     font-size: 0.85rem;
 }
 
@@ -291,7 +291,7 @@ DOA_CSS = """
 }
 
 .doa-mini-widget .mini-hint {
-    color: #888;
+    color: #b0b0b0;
     font-size: 0.75rem;
 }
 """
@@ -534,7 +534,7 @@ def _build_audio_player_html(doa_id, name, category, when_to_read, arabic,
         '    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">'
         '        <div>'
         '            <h3 style="color: #d4af37; margin: 0; font-size: 1.2rem;">' + name + '</h3>'
-        '            <span style="color: #888; font-size: 0.8rem;">' + category + ' &bull; ' + when_to_read + '</span>'
+        '            <span style="color: #b0b0b0; font-size: 0.8rem;">' + category + ' &bull; ' + when_to_read + '</span>'
         '        </div>'
         '        ' + wajib_html +
         '    </div>'
@@ -546,22 +546,22 @@ def _build_audio_player_html(doa_id, name, category, when_to_read, arabic,
         '    <div style="background: rgba(212, 175, 55, 0.1); padding: 1rem; border-radius: 15px; margin-bottom: 1rem;">'
         '        <div style="display: flex; align-items: center; gap: 1rem; flex-wrap: wrap;">'
         '            <div style="display: flex; gap: 0.5rem;">'
-        '                <button id="play-' + doa_id + '" onclick="playDoa_' + doa_id + '()" style="background: #d4af37; border: none; width: 50px; height: 50px; border-radius: 50%; cursor: pointer; font-size: 1.5rem; display: flex; align-items: center; justify-content: center;">&#9654;&#65039;</button>'
-        '                <button onclick="pauseDoa_' + doa_id + '()" style="background: #333; border: 1px solid #d4af37; width: 40px; height: 40px; border-radius: 50%; cursor: pointer; font-size: 1rem;">&#9208;&#65039;</button>'
-        '                <button onclick="stopDoa_' + doa_id + '()" style="background: #333; border: 1px solid #d4af37; width: 40px; height: 40px; border-radius: 50%; cursor: pointer; font-size: 1rem;">&#9209;&#65039;</button>'
+        '                <button id="play-' + doa_id + '" onclick="playDoa_' + doa_id + '()" aria-label="Putar doa" style="background: #d4af37; border: none; width: 50px; height: 50px; border-radius: 50%; cursor: pointer; font-size: 1.5rem; display: flex; align-items: center; justify-content: center;">&#9654;&#65039;</button>'
+        '                <button onclick="pauseDoa_' + doa_id + '()" aria-label="Jeda doa" style="background: #333; border: 1px solid #d4af37; width: 40px; height: 40px; border-radius: 50%; cursor: pointer; font-size: 1rem;">&#9208;&#65039;</button>'
+        '                <button onclick="stopDoa_' + doa_id + '()" aria-label="Berhenti" style="background: #333; border: 1px solid #d4af37; width: 40px; height: 40px; border-radius: 50%; cursor: pointer; font-size: 1rem;">&#9209;&#65039;</button>'
         '            </div>'
         '            <div style="display: flex; align-items: center; gap: 0.5rem;">'
-        '                <span style="color: #888; font-size: 0.8rem;">Kecepatan:</span>'
-        '                <select id="speed-' + doa_id + '" onchange="updateSpeed_' + doa_id + '()" style="background: #333; color: white; border: 1px solid #d4af37; padding: 5px 10px; border-radius: 8px;">'
+        '                <span style="color: #b0b0b0; font-size: 0.8rem;">Kecepatan:</span>'
+        '                <select id="speed-' + doa_id + '" onchange="updateSpeed_' + doa_id + '()" aria-label="Kecepatan pemutaran" style="background: #333; color: white; border: 1px solid #d4af37; padding: 5px 10px; border-radius: 8px;">'
         '                    <option value="0.5">0.5x (Lambat)</option>'
         '                    <option value="0.7" selected>0.7x (Normal)</option>'
         '                    <option value="0.9">0.9x (Cepat)</option>'
         '                    <option value="1.0">1.0x (Asli)</option>'
         '                </select>'
         '            </div>'
-        '            <button id="repeat-' + doa_id + '" onclick="toggleRepeat_' + doa_id + '()" style="background: #333; border: 1px solid #555; padding: 8px 15px; border-radius: 20px; cursor: pointer; color: #888;">&#128257; Ulangi</button>'
+        '            <button id="repeat-' + doa_id + '" onclick="toggleRepeat_' + doa_id + '()" aria-label="Ulangi doa" style="background: #333; border: 1px solid #555; padding: 8px 15px; border-radius: 20px; cursor: pointer; color: #b0b0b0;">&#128257; Ulangi</button>'
         '        </div>'
-        '        <div id="status-' + doa_id + '" style="color: #888; font-size: 0.8rem; margin-top: 0.5rem;">Siap diputar</div>'
+        '        <div id="status-' + doa_id + '" style="color: #b0b0b0; font-size: 0.8rem; margin-top: 0.5rem;">Siap diputar</div>'
         '    </div>'
         '    <div style="color: #aaa; font-style: italic; margin-bottom: 0.5rem; font-size: 0.95rem;">' + latin + '</div>'
         '    <div style="color: #eee; font-size: 1rem;"><strong>Artinya:</strong> ' + translation + '</div>'
@@ -611,7 +611,7 @@ def _build_audio_player_html(doa_id, name, category, when_to_read, arabic,
         '        window.speechSynthesis.cancel();'
         '        repeatEnabled_' + doa_id + ' = false;'
         '        document.getElementById("repeat-' + doa_id + '").style.borderColor = "#555";'
-        '        document.getElementById("repeat-' + doa_id + '").style.color = "#888";'
+        '        document.getElementById("repeat-' + doa_id + '").style.color = "#b0b0b0";'
         '        document.getElementById("status-' + doa_id + '").innerText = "Siap diputar";'
         '        document.getElementById("play-' + doa_id + '").innerText = "\\u25b6\\ufe0f";'
         '    };'
@@ -624,7 +624,7 @@ def _build_audio_player_html(doa_id, name, category, when_to_read, arabic,
         '        repeatEnabled_' + doa_id + ' = !repeatEnabled_' + doa_id + ';'
         '        var btn = document.getElementById("repeat-' + doa_id + '");'
         '        btn.style.borderColor = repeatEnabled_' + doa_id + ' ? "#d4af37" : "#555";'
-        '        btn.style.color = repeatEnabled_' + doa_id + ' ? "#d4af37" : "#888";'
+        '        btn.style.color = repeatEnabled_' + doa_id + ' ? "#d4af37" : "#b0b0b0";'
         '        btn.style.background = repeatEnabled_' + doa_id + ' ? "rgba(212,175,55,0.2)" : "#333";'
         '    };'
         ''
@@ -648,7 +648,7 @@ VOICE_CHAT_HTML = (
     '<div id="voice-chat-container" style="background: linear-gradient(135deg, #0f3460, #16213e); padding: 1.5rem; border-radius: 20px; border: 1px solid #00d9ff; margin-bottom: 1.5rem;">'
     '    <h3 style="color: #00d9ff; margin-bottom: 1rem;">&#127897;&#65039; Tanya Doa dengan Suara</h3>'
     '    <div style="display: flex; gap: 1rem; align-items: center; flex-wrap: wrap;">'
-    '        <button id="voice-record-btn" onclick="toggleRecording()" style="background: linear-gradient(135deg, #e94560, #ff6b6b); border: none; width: 70px; height: 70px; border-radius: 50%; cursor: pointer; font-size: 2rem; box-shadow: 0 5px 20px rgba(233, 69, 96, 0.4); transition: all 0.3s;">&#127908;</button>'
+    '        <button id="voice-record-btn" onclick="toggleRecording()" aria-label="Rekam suara untuk bertanya" style="background: linear-gradient(135deg, #e94560, #ff6b6b); border: none; width: 70px; height: 70px; border-radius: 50%; cursor: pointer; font-size: 2rem; box-shadow: 0 5px 20px rgba(233, 69, 96, 0.4); transition: all 0.3s;">&#127908;</button>'
     '        <div style="flex: 1; min-width: 200px;">'
     '            <div id="voice-status" style="color: #aaa; margin-bottom: 0.5rem;">Tekan tombol mikrofon untuk bertanya</div>'
     '            <div id="voice-transcript" style="background: rgba(0,0,0,0.3); padding: 1rem; border-radius: 10px; min-height: 50px; color: white; font-size: 1rem;">'
@@ -657,12 +657,12 @@ VOICE_CHAT_HTML = (
     '        </div>'
     '    </div>'
     '    <div style="margin-top: 1rem; padding-top: 1rem; border-top: 1px solid rgba(0,217,255,0.2);">'
-    '        <span style="color: #888; font-size: 0.8rem;">Contoh pertanyaan:</span>'
+    '        <span style="color: #b0b0b0; font-size: 0.8rem;">Contoh pertanyaan:</span>'
     '        <div style="display: flex; gap: 0.5rem; flex-wrap: wrap; margin-top: 0.5rem;">'
-    '            <span onclick="setQuestion(\'Apa doa masuk masjid?\')" style="background: rgba(0,217,255,0.1); color: #00d9ff; padding: 5px 12px; border-radius: 15px; font-size: 0.8rem; cursor: pointer; border: 1px solid rgba(0,217,255,0.3);">Doa masuk masjid?</span>'
-    '            <span onclick="setQuestion(\'Bacaan talbiyah lengkap\')" style="background: rgba(0,217,255,0.1); color: #00d9ff; padding: 5px 12px; border-radius: 15px; font-size: 0.8rem; cursor: pointer; border: 1px solid rgba(0,217,255,0.3);">Talbiyah lengkap</span>'
-    '            <span onclick="setQuestion(\'Doa saat tawaf\')" style="background: rgba(0,217,255,0.1); color: #00d9ff; padding: 5px 12px; border-radius: 15px; font-size: 0.8rem; cursor: pointer; border: 1px solid rgba(0,217,255,0.3);">Doa saat tawaf</span>'
-    '            <span onclick="setQuestion(\'Doa wajib saat sai\')" style="background: rgba(0,217,255,0.1); color: #00d9ff; padding: 5px 12px; border-radius: 15px; font-size: 0.8rem; cursor: pointer; border: 1px solid rgba(0,217,255,0.3);">Doa wajib sai</span>'
+    '            <span role="button" tabindex="0" aria-label="Tanya doa masuk masjid" onclick="setQuestion(\'Apa doa masuk masjid?\')" style="background: rgba(0,217,255,0.1); color: #00d9ff; padding: 5px 12px; border-radius: 15px; font-size: 0.8rem; cursor: pointer; border: 1px solid rgba(0,217,255,0.3);">Doa masuk masjid?</span>'
+    '            <span role="button" tabindex="0" aria-label="Tanya bacaan talbiyah lengkap" onclick="setQuestion(\'Bacaan talbiyah lengkap\')" style="background: rgba(0,217,255,0.1); color: #00d9ff; padding: 5px 12px; border-radius: 15px; font-size: 0.8rem; cursor: pointer; border: 1px solid rgba(0,217,255,0.3);">Talbiyah lengkap</span>'
+    '            <span role="button" tabindex="0" aria-label="Tanya doa saat tawaf" onclick="setQuestion(\'Doa saat tawaf\')" style="background: rgba(0,217,255,0.1); color: #00d9ff; padding: 5px 12px; border-radius: 15px; font-size: 0.8rem; cursor: pointer; border: 1px solid rgba(0,217,255,0.3);">Doa saat tawaf</span>'
+    '            <span role="button" tabindex="0" aria-label="Tanya doa wajib saat sai" onclick="setQuestion(\'Doa wajib saat sai\')" style="background: rgba(0,217,255,0.1); color: #00d9ff; padding: 5px 12px; border-radius: 15px; font-size: 0.8rem; cursor: pointer; border: 1px solid rgba(0,217,255,0.3);">Doa wajib sai</span>'
     '        </div>'
     '    </div>'
     '</div>'
@@ -783,18 +783,18 @@ def get_audio_player_html(audio_base64: str, doa_id: str) -> str:
         '<source src="data:audio/mp3;base64,' + audio_base64 + '" type="audio/mp3">'
         '</audio>'
         '<button onclick="document.getElementById(\'audio-' + doa_id + '\').play()" '
-        'style="background: #d4af37; border: none; width: 50px; height: 50px; border-radius: 50%; cursor: pointer; font-size: 1.5rem;">&#9654;&#65039;</button>'
+        'aria-label="Putar doa" style="background: #d4af37; border: none; width: 50px; height: 50px; border-radius: 50%; cursor: pointer; font-size: 1.5rem;">&#9654;&#65039;</button>'
         '<button onclick="document.getElementById(\'audio-' + doa_id + '\').pause()" '
-        'style="background: #333; border: 1px solid #d4af37; width: 40px; height: 40px; border-radius: 50%; cursor: pointer;">&#9208;&#65039;</button>'
+        'aria-label="Jeda doa" style="background: #333; border: 1px solid #d4af37; width: 40px; height: 40px; border-radius: 50%; cursor: pointer;">&#9208;&#65039;</button>'
         '<button onclick="var a=document.getElementById(\'audio-' + doa_id + '\'); a.pause(); a.currentTime=0;" '
-        'style="background: #333; border: 1px solid #d4af37; width: 40px; height: 40px; border-radius: 50%; cursor: pointer;">&#9209;&#65039;</button>'
+        'aria-label="Berhenti" style="background: #333; border: 1px solid #d4af37; width: 40px; height: 40px; border-radius: 50%; cursor: pointer;">&#9209;&#65039;</button>'
         '<select onchange="document.getElementById(\'audio-' + doa_id + '\').playbackRate=this.value" '
-        'style="background: #333; color: white; border: 1px solid #d4af37; padding: 5px 10px; border-radius: 8px;">'
+        'aria-label="Kecepatan pemutaran" style="background: #333; color: white; border: 1px solid #d4af37; padding: 5px 10px; border-radius: 8px;">'
         '<option value="0.5">0.5x Lambat</option>'
         '<option value="0.75" selected>0.75x Normal</option>'
         '<option value="1.0">1.0x Cepat</option>'
         '</select>'
-        '<span style="color: #888; font-size: 0.8rem;">&#128266; Audio Ready</span>'
+        '<span style="color: #b0b0b0; font-size: 0.8rem;">&#128266; Audio Ready</span>'
         '</div>'
         '</div>'
     )
@@ -1071,7 +1071,7 @@ def render_voice_chat():
         '<div class="voice-chat-box">'
         '<div style="display: flex; gap: 1rem; align-items: center;">'
         '<button id="voice-btn" onclick="startRecognition()" '
-        'style="background: linear-gradient(135deg, #e94560, #ff6b6b); border: none; width: 60px; height: 60px; border-radius: 50%; cursor: pointer; font-size: 1.5rem;">&#127908;</button>'
+        'aria-label="Rekam suara untuk bertanya" style="background: linear-gradient(135deg, #e94560, #ff6b6b); border: none; width: 60px; height: 60px; border-radius: 50%; cursor: pointer; font-size: 1.5rem;">&#127908;</button>'
         '<div style="flex: 1;">'
         '<div id="voice-status" style="color: #aaa; font-size: 0.9rem;">Tekan tombol untuk bicara</div>'
         '<div id="voice-result" style="color: #00d9ff; font-size: 1.1rem; margin-top: 0.5rem; min-height: 25px;"></div>'

@@ -289,7 +289,7 @@ AUDIO_PLAYER_HTML = """
     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
         <div>
             <h3 style="color: #d4af37; margin: 0; font-size: 1.2rem;">{name}</h3>
-            <span style="color: #888; font-size: 0.8rem;">{category} • {when_to_read}</span>
+            <span style="color: #b0b0b0; font-size: 0.8rem;">{category} • {when_to_read}</span>
         </div>
         {wajib_badge}
     </div>
@@ -306,21 +306,21 @@ AUDIO_PLAYER_HTML = """
         <div style="display: flex; align-items: center; gap: 1rem; flex-wrap: wrap;">
             <!-- Play/Pause/Stop -->
             <div style="display: flex; gap: 0.5rem;">
-                <button id="play-{doa_id}" onclick="playDoa_{doa_id}()" style="background: #d4af37; border: none; width: 50px; height: 50px; border-radius: 50%; cursor: pointer; font-size: 1.5rem; display: flex; align-items: center; justify-content: center;">
+                <button id="play-{doa_id}" onclick="playDoa_{doa_id}()" aria-label="Putar doa" style="background: #d4af37; border: none; width: 50px; height: 50px; border-radius: 50%; cursor: pointer; font-size: 1.5rem; display: flex; align-items: center; justify-content: center;">
                     ▶️
                 </button>
-                <button onclick="pauseDoa_{doa_id}()" style="background: #333; border: 1px solid #d4af37; width: 40px; height: 40px; border-radius: 50%; cursor: pointer; font-size: 1rem;">
+                <button onclick="pauseDoa_{doa_id}()" aria-label="Jeda doa" style="background: #333; border: 1px solid #d4af37; width: 40px; height: 40px; border-radius: 50%; cursor: pointer; font-size: 1rem;">
                     ⏸️
                 </button>
-                <button onclick="stopDoa_{doa_id}()" style="background: #333; border: 1px solid #d4af37; width: 40px; height: 40px; border-radius: 50%; cursor: pointer; font-size: 1rem;">
+                <button onclick="stopDoa_{doa_id}()" aria-label="Berhenti" style="background: #333; border: 1px solid #d4af37; width: 40px; height: 40px; border-radius: 50%; cursor: pointer; font-size: 1rem;">
                     ⏹️
                 </button>
             </div>
 
             <!-- Speed Control -->
             <div style="display: flex; align-items: center; gap: 0.5rem;">
-                <span style="color: #888; font-size: 0.8rem;">Kecepatan:</span>
-                <select id="speed-{doa_id}" onchange="updateSpeed_{doa_id}()" style="background: #333; color: white; border: 1px solid #d4af37; padding: 5px 10px; border-radius: 8px;">
+                <span style="color: #b0b0b0; font-size: 0.8rem;">Kecepatan:</span>
+                <select id="speed-{doa_id}" onchange="updateSpeed_{doa_id}()" aria-label="Kecepatan pemutaran" style="background: #333; color: white; border: 1px solid #d4af37; padding: 5px 10px; border-radius: 8px;">
                     <option value="0.5">0.5x (Lambat)</option>
                     <option value="0.7" selected>0.7x (Normal)</option>
                     <option value="0.9">0.9x (Cepat)</option>
@@ -329,13 +329,13 @@ AUDIO_PLAYER_HTML = """
             </div>
 
             <!-- Repeat Toggle -->
-            <button id="repeat-{doa_id}" onclick="toggleRepeat_{doa_id}()" style="background: #333; border: 1px solid #555; padding: 8px 15px; border-radius: 20px; cursor: pointer; color: #888;">
+            <button id="repeat-{doa_id}" onclick="toggleRepeat_{doa_id}()" aria-label="Ulangi doa" style="background: #333; border: 1px solid #555; padding: 8px 15px; border-radius: 20px; cursor: pointer; color: #b0b0b0;">
                 🔁 Ulangi
             </button>
         </div>
 
         <!-- Status -->
-        <div id="status-{doa_id}" style="color: #888; font-size: 0.8rem; margin-top: 0.5rem;">
+        <div id="status-{doa_id}" style="color: #b0b0b0; font-size: 0.8rem; margin-top: 0.5rem;">
             Siap diputar
         </div>
     </div>
@@ -403,7 +403,7 @@ AUDIO_PLAYER_HTML = """
         window.speechSynthesis.cancel();
         repeatEnabled_{doa_id} = false;
         document.getElementById('repeat-{doa_id}').style.borderColor = '#555';
-        document.getElementById('repeat-{doa_id}').style.color = '#888';
+        document.getElementById('repeat-{doa_id}').style.color = '#b0b0b0';
         document.getElementById('status-{doa_id}').innerText = 'Siap diputar';
         document.getElementById('play-{doa_id}').innerText = '▶️';
     }};
@@ -416,7 +416,7 @@ AUDIO_PLAYER_HTML = """
         repeatEnabled_{doa_id} = !repeatEnabled_{doa_id};
         const btn = document.getElementById('repeat-{doa_id}');
         btn.style.borderColor = repeatEnabled_{doa_id} ? '#d4af37' : '#555';
-        btn.style.color = repeatEnabled_{doa_id} ? '#d4af37' : '#888';
+        btn.style.color = repeatEnabled_{doa_id} ? '#d4af37' : '#b0b0b0';
         btn.style.background = repeatEnabled_{doa_id} ? 'rgba(212,175,55,0.2)' : '#333';
     }};
 
@@ -438,7 +438,7 @@ VOICE_CHAT_HTML = """
 
     <div style="display: flex; gap: 1rem; align-items: center; flex-wrap: wrap;">
         <!-- Record Button -->
-        <button id="voice-record-btn" onclick="toggleRecording()" style="background: linear-gradient(135deg, #e94560, #ff6b6b); border: none; width: 70px; height: 70px; border-radius: 50%; cursor: pointer; font-size: 2rem; box-shadow: 0 5px 20px rgba(233, 69, 96, 0.4); transition: all 0.3s;">
+        <button id="voice-record-btn" onclick="toggleRecording()" aria-label="Rekam suara untuk bertanya" style="background: linear-gradient(135deg, #e94560, #ff6b6b); border: none; width: 70px; height: 70px; border-radius: 50%; cursor: pointer; font-size: 2rem; box-shadow: 0 5px 20px rgba(233, 69, 96, 0.4); transition: all 0.3s;">
             🎤
         </button>
 
@@ -454,12 +454,12 @@ VOICE_CHAT_HTML = """
 
     <!-- Example Questions -->
     <div style="margin-top: 1rem; padding-top: 1rem; border-top: 1px solid rgba(0,217,255,0.2);">
-        <span style="color: #888; font-size: 0.8rem;">💡 Contoh pertanyaan:</span>
+        <span style="color: #b0b0b0; font-size: 0.8rem;">💡 Contoh pertanyaan:</span>
         <div style="display: flex; gap: 0.5rem; flex-wrap: wrap; margin-top: 0.5rem;">
-            <span onclick="setQuestion('Apa doa masuk masjid?')" style="background: rgba(0,217,255,0.1); color: #00d9ff; padding: 5px 12px; border-radius: 15px; font-size: 0.8rem; cursor: pointer; border: 1px solid rgba(0,217,255,0.3);">Doa masuk masjid?</span>
-            <span onclick="setQuestion('Bacaan talbiyah lengkap')" style="background: rgba(0,217,255,0.1); color: #00d9ff; padding: 5px 12px; border-radius: 15px; font-size: 0.8rem; cursor: pointer; border: 1px solid rgba(0,217,255,0.3);">Talbiyah lengkap</span>
-            <span onclick="setQuestion('Doa saat tawaf')" style="background: rgba(0,217,255,0.1); color: #00d9ff; padding: 5px 12px; border-radius: 15px; font-size: 0.8rem; cursor: pointer; border: 1px solid rgba(0,217,255,0.3);">Doa saat tawaf</span>
-            <span onclick="setQuestion('Doa wajib saat sai')" style="background: rgba(0,217,255,0.1); color: #00d9ff; padding: 5px 12px; border-radius: 15px; font-size: 0.8rem; cursor: pointer; border: 1px solid rgba(0,217,255,0.3);">Doa wajib sai</span>
+            <span role="button" tabindex="0" aria-label="Tanya doa masuk masjid" onclick="setQuestion('Apa doa masuk masjid?')" style="background: rgba(0,217,255,0.1); color: #00d9ff; padding: 5px 12px; border-radius: 15px; font-size: 0.8rem; cursor: pointer; border: 1px solid rgba(0,217,255,0.3);">Doa masuk masjid?</span>
+            <span role="button" tabindex="0" aria-label="Tanya bacaan talbiyah lengkap" onclick="setQuestion('Bacaan talbiyah lengkap')" style="background: rgba(0,217,255,0.1); color: #00d9ff; padding: 5px 12px; border-radius: 15px; font-size: 0.8rem; cursor: pointer; border: 1px solid rgba(0,217,255,0.3);">Talbiyah lengkap</span>
+            <span role="button" tabindex="0" aria-label="Tanya doa saat tawaf" onclick="setQuestion('Doa saat tawaf')" style="background: rgba(0,217,255,0.1); color: #00d9ff; padding: 5px 12px; border-radius: 15px; font-size: 0.8rem; cursor: pointer; border: 1px solid rgba(0,217,255,0.3);">Doa saat tawaf</span>
+            <span role="button" tabindex="0" aria-label="Tanya doa wajib saat sai" onclick="setQuestion('Doa wajib saat sai')" style="background: rgba(0,217,255,0.1); color: #00d9ff; padding: 5px 12px; border-radius: 15px; font-size: 0.8rem; cursor: pointer; border: 1px solid rgba(0,217,255,0.3);">Doa wajib sai</span>
         </div>
     </div>
 </div>
@@ -619,26 +619,26 @@ def get_audio_player_html(audio_base64: str, doa_id: str) -> str:
             </audio>
 
             <button onclick="document.getElementById('audio-{doa_id}').play()"
-                    style="background: #d4af37; border: none; width: 50px; height: 50px; border-radius: 50%; cursor: pointer; font-size: 1.5rem;">
+                    aria-label="Putar doa" style="background: #d4af37; border: none; width: 50px; height: 50px; border-radius: 50%; cursor: pointer; font-size: 1.5rem;">
                 ▶️
             </button>
             <button onclick="document.getElementById('audio-{doa_id}').pause()"
-                    style="background: #333; border: 1px solid #d4af37; width: 40px; height: 40px; border-radius: 50%; cursor: pointer;">
+                    aria-label="Jeda doa" style="background: #333; border: 1px solid #d4af37; width: 40px; height: 40px; border-radius: 50%; cursor: pointer;">
                 ⏸️
             </button>
             <button onclick="var a=document.getElementById('audio-{doa_id}'); a.pause(); a.currentTime=0;"
-                    style="background: #333; border: 1px solid #d4af37; width: 40px; height: 40px; border-radius: 50%; cursor: pointer;">
+                    aria-label="Berhenti" style="background: #333; border: 1px solid #d4af37; width: 40px; height: 40px; border-radius: 50%; cursor: pointer;">
                 ⏹️
             </button>
 
             <select onchange="document.getElementById('audio-{doa_id}').playbackRate=this.value"
-                    style="background: #333; color: white; border: 1px solid #d4af37; padding: 5px 10px; border-radius: 8px;">
+                    aria-label="Kecepatan pemutaran" style="background: #333; color: white; border: 1px solid #d4af37; padding: 5px 10px; border-radius: 8px;">
                 <option value="0.5">0.5x Lambat</option>
                 <option value="0.75" selected>0.75x Normal</option>
                 <option value="1.0">1.0x Cepat</option>
             </select>
 
-            <span style="color: #888; font-size: 0.8rem;">🔊 Audio Ready</span>
+            <span style="color: #b0b0b0; font-size: 0.8rem;">🔊 Audio Ready</span>
         </div>
     </div>
     """
@@ -801,7 +801,7 @@ def render_voice_chat():
     <div style="background: linear-gradient(135deg, #0f3460, #16213e); padding: 1rem; border-radius: 15px; border: 1px solid #00d9ff;">
         <div style="display: flex; gap: 1rem; align-items: center;">
             <button id="voice-btn" onclick="startRecognition()"
-                    style="background: linear-gradient(135deg, #e94560, #ff6b6b); border: none; width: 60px; height: 60px; border-radius: 50%; cursor: pointer; font-size: 1.5rem;">
+                    aria-label="Rekam suara untuk bertanya" style="background: linear-gradient(135deg, #e94560, #ff6b6b); border: none; width: 60px; height: 60px; border-radius: 50%; cursor: pointer; font-size: 1.5rem;">
                 🎤
             </button>
             <div style="flex: 1;">
@@ -1004,7 +1004,7 @@ def render_doa_mini_widget():
     <div style="background: linear-gradient(135deg, #1a1a1a, #2d2d2d); padding: 1rem; border-radius: 15px; border: 1px solid #d4af37;">
         <div style="color: #d4af37; font-size: 0.8rem;">🤲 Doa Umrah</div>
         <div style="color: white; font-weight: bold;">{wajib_count} Wajib / {total_count} Total</div>
-        <div style="color: #888; font-size: 0.75rem;">Klik untuk buka player</div>
+        <div style="color: #b0b0b0; font-size: 0.75rem;">Klik untuk buka player</div>
     </div>
     """, unsafe_allow_html=True)
 

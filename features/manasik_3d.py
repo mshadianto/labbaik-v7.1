@@ -288,9 +288,9 @@ KAABA_3D_HTML = """
     </div>
     <div id="hotspot"></div>
     <div id="controls">
-        <button class="btn" onclick="resetView()">🔄 Reset</button>
-        <button class="btn" onclick="toggleRotation()">⏯️ Auto Rotate</button>
-        <button class="btn" onclick="showHajarAswad()">⬛ Hajar Aswad</button>
+        <button class="btn" onclick="resetView()" aria-label="Reset tampilan">🔄 Reset</button>
+        <button class="btn" onclick="toggleRotation()" aria-label="Putar otomatis">⏯️ Auto Rotate</button>
+        <button class="btn" onclick="showHajarAswad()" aria-label="Lihat Hajar Aswad">⬛ Hajar Aswad</button>
     </div>
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
@@ -485,7 +485,7 @@ def render_ritual_step_card(ritual: RitualInfo, expanded: bool = False):
         st.markdown(f"""
         <div style="background: linear-gradient(135deg, #1a1a1a, #2d2d2d); padding: 1rem; border-radius: 10px; text-align: center; border: 1px solid #d4af37;">
             <div style="font-family: 'Traditional Arabic', serif; font-size: 1.5rem; color: #d4af37; direction: rtl; margin-bottom: 0.5rem;">{ritual.dua}</div>
-            <div style="color: #888; font-size: 0.9rem; font-style: italic;">{ritual.dua_translation}</div>
+            <div style="color: #b0b0b0; font-size: 0.9rem; font-style: italic;">{ritual.dua_translation}</div>
         </div>
         """, unsafe_allow_html=True)
         
@@ -568,7 +568,7 @@ def render_manasik_page():
             <div style="background: #1a1a1a; padding: 1rem; border-radius: 10px; text-align: center;">
                 <div style="font-size: 2rem;">⬛</div>
                 <div style="color: #d4af37; font-weight: bold;">Hajar Aswad</div>
-                <div style="color: #888; font-size: 0.8rem;">Titik mulai & akhir tawaf</div>
+                <div style="color: #b0b0b0; font-size: 0.8rem;">Titik mulai & akhir tawaf</div>
             </div>
             """, unsafe_allow_html=True)
         
@@ -577,7 +577,7 @@ def render_manasik_page():
             <div style="background: #1a1a1a; padding: 1rem; border-radius: 10px; text-align: center;">
                 <div style="font-size: 2rem;">🏛️</div>
                 <div style="color: #d4af37; font-weight: bold;">Maqam Ibrahim</div>
-                <div style="color: #888; font-size: 0.8rem;">Tempat sholat tawaf</div>
+                <div style="color: #b0b0b0; font-size: 0.8rem;">Tempat sholat tawaf</div>
             </div>
             """, unsafe_allow_html=True)
         
@@ -586,7 +586,7 @@ def render_manasik_page():
             <div style="background: #1a1a1a; padding: 1rem; border-radius: 10px; text-align: center;">
                 <div style="font-size: 2rem;">🌙</div>
                 <div style="color: #d4af37; font-weight: bold;">Hijr Ismail</div>
-                <div style="color: #888; font-size: 0.8rem;">Wajib diputari saat tawaf</div>
+                <div style="color: #b0b0b0; font-size: 0.8rem;">Wajib diputari saat tawaf</div>
             </div>
             """, unsafe_allow_html=True)
     
@@ -653,7 +653,7 @@ def render_manasik_mini_widget():
         <div style="background: #333; border-radius: 10px; height: 10px; margin: 0.5rem 0; overflow: hidden;">
             <div style="width: {pct}%; height: 100%; background: linear-gradient(90deg, #d4af37, #f4d03f);"></div>
         </div>
-        <div style="color: #888; font-size: 0.75rem;">{completed}/{total} rukun selesai</div>
+        <div style="color: #b0b0b0; font-size: 0.75rem;">{completed}/{total} rukun selesai</div>
     </div>
     """, unsafe_allow_html=True)
 

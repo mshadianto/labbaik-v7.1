@@ -106,9 +106,9 @@ def scroll_to_top():
     if st.session_state.get("_last_rendered_page") != current_page:
         st.markdown("""
         <script>
-            window.scrollTo({top: 0, behavior: 'instant'});
+            window.scrollTo({top: 0, behavior: 'smooth'});
             var main = window.parent.document.querySelector('section.main');
-            if (main) main.scrollTo({top: 0, behavior: 'instant'});
+            if (main) main.scrollTo({top: 0, behavior: 'smooth'});
         </script>
         """, unsafe_allow_html=True)
         st.session_state._last_rendered_page = current_page
@@ -505,6 +505,10 @@ def init_session_state():
         
         # Visitor tracking
         "visitor_counted": False,
+
+        # First visit welcome
+        "is_first_visit": True,
+        "first_visit_dismissed": False,
         
         # Gamification
         "xp": 0,
@@ -653,7 +657,7 @@ def render_sidebar():
         <div style="text-align: center; padding: 1rem 0;">
             <div style="font-size: 3rem;">🕋</div>
             <h2 style="color: #d4af37; margin: 0;">{BRAND_NAME}</h2>
-            <p style="color: #888; font-size: 0.8rem; margin-top: 0.25rem;">{BRAND_TAGLINE_ID}</p>
+            <p style="color: #b0b0b0; font-size: 0.8rem; margin-top: 0.25rem;">{BRAND_TAGLINE_ID}</p>
             <span style="background: linear-gradient(135deg, #d4af37, #f5d77a); color: #000;
                         padding: 0.15rem 0.5rem; border-radius: 12px; font-size: 0.65rem;
                         font-weight: bold;">v{BRAND_VERSION}</span>
@@ -1087,9 +1091,69 @@ def main():
         st.session_state.current_page = "sos"
         st.rerun()
     
+    # Global UX CSS (page transitions, smooth scroll)
+    if not st.session_state.get("_global_ux_injected"):
+        st.session_state._global_ux_injected = True
+        st.markdown("""
+        <style>
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(8px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        section.main .block-container { animation: fadeIn 0.3s ease-out; }
+        #main-content { scroll-margin-top: 1rem; }
+        html, section.main { scroll-behavior: smooth; }
+        @media (prefers-reduced-motion: reduce) {
+            section.main .block-container { animation: none; }
+            html, section.main { scroll-behavior: auto; }
+        }
+        </style>
+        """, unsafe_allow_html=True)
+
+    # Skip-to-content link (accessibility)
+    st.markdown('<a href="#main-content" class="skip-to-content">Langsung ke konten utama</a>', unsafe_allow_html=True)
+
+    # First-visit welcome banner
+    if st.session_state.get("is_first_visit") and not st.session_state.get("first_visit_dismissed"):
+        st.markdown("""
+        <div style="background: linear-gradient(135deg, #1a3a1a 0%, #0d2b0d 100%);
+                    border: 1px solid #d4af37; border-radius: 12px; padding: 1.25rem;
+                    margin-bottom: 1rem; text-align: center;">
+            <div style="font-size: 1.5rem; margin-bottom: 0.5rem;">🕋</div>
+            <div style="color: #d4af37; font-size: 1.1rem; font-weight: bold;">
+                Assalamu'alaikum! Selamat datang di LABBAIK Smart Planner
+            </div>
+            <div style="color: #b0b0b0; font-size: 0.9rem; margin-top: 0.5rem;">
+                Platform AI pertama untuk perencanaan umrah Anda.
+                Mulai dengan Simulasi Biaya atau tanya AI Chat.
+            </div>
+        </div>
+        """, unsafe_allow_html=True)
+        wcol1, wcol2, wcol3 = st.columns([1, 1, 1])
+        with wcol1:
+            if st.button("💰 Simulasi Biaya", key="welcome_sim", use_container_width=True, type="primary"):
+                st.session_state.first_visit_dismissed = True
+                st.session_state.is_first_visit = False
+                st.session_state.current_page = "simulator"
+                st.rerun()
+        with wcol2:
+            if st.button("🤖 Tanya AI", key="welcome_chat", use_container_width=True):
+                st.session_state.first_visit_dismissed = True
+                st.session_state.is_first_visit = False
+                st.session_state.current_page = "chat"
+                st.rerun()
+        with wcol3:
+            if st.button("Tutup", key="welcome_dismiss", use_container_width=True):
+                st.session_state.first_visit_dismissed = True
+                st.session_state.is_first_visit = False
+                st.rerun()
+
+    # Content anchor for skip link
+    st.markdown('<div id="main-content"></div>', unsafe_allow_html=True)
+
     # Render sidebar
     render_sidebar()
-    
+
     # Render main content
     render_page()
 

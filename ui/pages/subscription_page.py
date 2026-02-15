@@ -127,12 +127,13 @@ def render_premium_benefits():
         - Early access fitur baru
         """)
 
-    recommendation = ai_complete(
-        "Berikan rekomendasi singkat (3-4 kalimat) mengapa jamaah umrah sebaiknya menggunakan "
-        "fitur Premium untuk perencanaan umrah mereka. Bahasa Indonesia, persuasif tapi jujur.",
-        system_prompt="Kamu adalah advisor perjalanan umrah yang berpengalaman.",
-        max_tokens=200,
-    )
+    with st.spinner("Memproses..."):
+        recommendation = ai_complete(
+            "Berikan rekomendasi singkat (3-4 kalimat) mengapa jamaah umrah sebaiknya menggunakan "
+            "fitur Premium untuk perencanaan umrah mereka. Bahasa Indonesia, persuasif tapi jujur.",
+            system_prompt="Kamu adalah advisor perjalanan umrah yang berpengalaman.",
+            max_tokens=200,
+        )
     if recommendation:
         st.markdown(f"""
             <div class="ai-card">
@@ -184,7 +185,7 @@ def render_pricing_plans(user, current_sub):
                     <div style="font-size: 2rem; font-weight: bold; color: #d4af37; margin: 1rem 0;">
                         {format_price(price)}
                     </div>
-                    <div style="color: #888; font-size: 0.85rem;">
+                    <div style="color: #b0b0b0; font-size: 0.85rem;">
                         {format_price(plan.price_idr // (plan.duration_days // 30))}/bulan
                     </div>
                     {"<div style='color: #4CAF50; margin-top: 0.5rem;'>Hemat " + str(plan.savings_percent) + "%</div>" if plan.savings_percent > 0 else ""}
