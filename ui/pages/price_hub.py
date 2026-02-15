@@ -51,6 +51,22 @@ except ImportError:
     HAS_AGGREGATOR = False
     logger.warning("Price aggregator not available")
 
+# Price Repository
+try:
+    from services.price_aggregation.repository import get_aggregated_price_repository
+    HAS_PRICE_REPO = True
+except ImportError:
+    HAS_PRICE_REPO = False
+    logger.warning("Price repository not available")
+
+# n8n Adapter
+try:
+    from services.price_aggregation.n8n_adapter import get_n8n_adapter
+    HAS_N8N_ADAPTER = True
+except ImportError:
+    HAS_N8N_ADAPTER = False
+    logger.warning("n8n adapter not available")
+
 # Data Manager
 try:
     from services.umrah import get_umrah_data_manager
@@ -139,6 +155,127 @@ PRICE_HUB_CSS = """
 .ai-analysis-section {
     margin-top: 1.5rem;
 }
+
+/* Price trend indicators */
+.trend-up {
+    color: #f87171;
+    font-weight: bold;
+    font-size: 0.85rem;
+}
+
+.trend-down {
+    color: #4ade80;
+    font-weight: bold;
+    font-size: 0.85rem;
+}
+
+.trend-stable {
+    color: #94a3b8;
+    font-weight: bold;
+    font-size: 0.85rem;
+}
+
+/* Best price tag */
+.best-price-tag {
+    display: inline-block;
+    background: linear-gradient(135deg, #065f46 0%, #059669 100%);
+    color: #ecfdf5;
+    padding: 3px 10px;
+    border-radius: 6px;
+    font-size: 0.75rem;
+    font-weight: bold;
+    margin-top: 4px;
+}
+
+/* Flight route display */
+.flight-route {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin: 0.4rem 0;
+}
+
+.flight-route .city {
+    color: #d4af37;
+    font-weight: bold;
+    font-size: 0.95rem;
+}
+
+.flight-route .arrow {
+    color: #64748b;
+    font-size: 1.1rem;
+}
+
+.flight-route .time {
+    color: #94a3b8;
+    font-size: 0.8rem;
+}
+
+/* Inclusion chip */
+.inclusion-chip {
+    display: inline-block;
+    background: #1e293b;
+    color: #94a3b8;
+    padding: 2px 8px;
+    border-radius: 10px;
+    font-size: 0.7rem;
+    margin: 2px 3px 2px 0;
+    border: 1px solid #334155;
+}
+
+/* Freshness bar */
+.freshness-bar {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    padding: 0.3rem 0;
+    font-size: 0.78rem;
+    color: #94a3b8;
+}
+
+.freshness-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    display: inline-block;
+}
+
+.freshness-dot.live {
+    background: #4ade80;
+    box-shadow: 0 0 4px #4ade80;
+}
+
+.freshness-dot.recent {
+    background: #fbbf24;
+}
+
+.freshness-dot.stale {
+    background: #f87171;
+}
+
+/* Source stat card */
+.source-stat-card {
+    background: #1e293b;
+    border-radius: 8px;
+    padding: 0.5rem 0.75rem;
+    border: 1px solid #334155;
+    margin-bottom: 0.3rem;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.source-stat-card .source-label {
+    color: #e2e8f0;
+    font-size: 0.8rem;
+    font-weight: 600;
+}
+
+.source-stat-card .source-count {
+    color: #d4af37;
+    font-weight: bold;
+    font-size: 0.9rem;
+}
 """
 
 
@@ -167,6 +304,15 @@ SOURCE_BADGES = {
 }
 
 CITIES = ["Makkah", "Madinah", "Jeddah"]
+
+ORIGIN_CITIES = [
+    "Jakarta", "Surabaya", "Medan", "Makassar",
+    "Bandung", "Yogyakarta", "Semarang", "Denpasar",
+]
+
+TRAVEL_AGENTS = [
+    "cheria-travel", "alhijaz", "patuna", "maktour", "arminareka",
+]
 
 
 # =============================================================================
@@ -237,6 +383,163 @@ def init_session_state():
         st.session_state.price_hub_compare_xp_awarded = False
     if "price_hub_ai_xp_awarded" not in st.session_state:
         st.session_state.price_hub_ai_xp_awarded = False
+    if "price_hub_flight_result" not in st.session_state:
+        st.session_state.price_hub_flight_result = None
+    if "price_hub_flight_params" not in st.session_state:
+        st.session_state.price_hub_flight_params = {}
+    if "price_hub_package_result" not in st.session_state:
+        st.session_state.price_hub_package_result = None
+    if "price_hub_package_params" not in st.session_state:
+        st.session_state.price_hub_package_params = {}
+    if "price_hub_source_stats" not in st.session_state:
+        st.session_state.price_hub_source_stats = None
+    if "price_hub_source_stats_time" not in st.session_state:
+        st.session_state.price_hub_source_stats_time = None
+
+
+# =============================================================================
+# CACHED SOURCE STATS & HELPERS
+# =============================================================================
+
+def get_source_stats_cached() -> Dict[str, Any]:
+    """Get n8n source stats with 10-minute session cache."""
+    now = datetime.now()
+    cached_time = st.session_state.get("price_hub_source_stats_time")
+    cached_stats = st.session_state.get("price_hub_source_stats")
+
+    if cached_stats and cached_time:
+        elapsed = (now - cached_time).total_seconds()
+        if elapsed < 600:
+            return cached_stats
+
+    if not HAS_N8N_ADAPTER:
+        return {"hotels": {"count": 0, "last_update": None},
+                "flights": {"count": 0, "last_update": None},
+                "packages": {"count": 0, "last_update": None}}
+
+    try:
+        adapter = get_n8n_adapter()
+        stats = adapter.get_source_stats()
+        st.session_state.price_hub_source_stats = stats
+        st.session_state.price_hub_source_stats_time = now
+        return stats
+    except Exception as e:
+        logger.error(f"Failed to get source stats: {e}")
+        return {"hotels": {"count": 0, "last_update": None},
+                "flights": {"count": 0, "last_update": None},
+                "packages": {"count": 0, "last_update": None}}
+
+
+def render_freshness_bar(source_type: str, stats: Dict[str, Any]):
+    """Render data freshness indicator."""
+    info = stats.get(source_type, {})
+    last_update_str = info.get("last_update")
+
+    if not last_update_str:
+        dot_cls = "stale"
+        label = "Belum ada data"
+    else:
+        try:
+            last_dt = datetime.fromisoformat(last_update_str)
+            diff = datetime.now() - last_dt
+            hours_ago = diff.total_seconds() / 3600
+
+            if hours_ago < 1:
+                dot_cls = "live"
+                minutes = int(diff.total_seconds() / 60)
+                label = f"Diperbarui {minutes} menit lalu"
+            elif hours_ago < 12:
+                dot_cls = "recent"
+                label = f"Diperbarui {int(hours_ago)} jam lalu"
+            else:
+                dot_cls = "stale"
+                label = f"Diperbarui {int(hours_ago)} jam lalu"
+        except Exception:
+            dot_cls = "stale"
+            label = "Waktu tidak diketahui"
+
+    freshness_html = (
+        '<div class="freshness-bar">'
+        '<span class="freshness-dot ' + dot_cls + '"></span>'
+        '<span>' + label + '</span>'
+        '</div>'
+    )
+    st.markdown(freshness_html, unsafe_allow_html=True)
+
+
+def render_trend_indicator(offer_id: Optional[str]):
+    """Render price trend arrow from price history."""
+    if not offer_id or not HAS_PRICE_REPO:
+        return
+
+    try:
+        repo = get_aggregated_price_repository()
+        trend = repo.get_price_trend(offer_id)
+        if not trend:
+            return
+
+        direction = trend.direction
+        pct = abs(trend.change_percent)
+
+        if hasattr(direction, 'value'):
+            direction_val = direction.value
+        else:
+            direction_val = str(direction)
+
+        if direction_val == "up":
+            css_class = "trend-up"
+            arrow = "&#9650;"
+            sign = "+"
+        elif direction_val == "down":
+            css_class = "trend-down"
+            arrow = "&#9660;"
+            sign = "-"
+        else:
+            css_class = "trend-stable"
+            arrow = "&#9644;"
+            sign = ""
+
+        trend_html = (
+            '<span class="' + css_class + '">'
+            + arrow + ' ' + sign + f'{pct:.1f}%</span>'
+        )
+        st.markdown(trend_html, unsafe_allow_html=True)
+    except Exception:
+        pass
+
+
+def _build_source_badge_html(source_name: str) -> str:
+    """Build an HTML source badge."""
+    badge_label, badge_color = get_source_badge(source_name)
+    return (
+        '<span class="source-badge" style="background-color:'
+        + badge_color + ';">' + badge_label + '</span>'
+    )
+
+
+def _get_connected_aggregator():
+    """
+    Get price aggregator AND connect HybridUmrahDataManager
+    so Amadeus/Xotelo APIs are also queried alongside n8n tables.
+    """
+    if not HAS_AGGREGATOR:
+        return None
+
+    try:
+        aggregator = get_price_aggregator()
+
+        if HAS_DATA_MANAGER and aggregator._data_manager is None:
+            try:
+                dm = get_umrah_data_manager()
+                aggregator.set_data_manager(dm)
+                logger.info("Connected HybridUmrahDataManager to aggregator")
+            except Exception as e:
+                logger.warning(f"Could not connect data manager: {e}")
+
+        return aggregator
+    except Exception as e:
+        logger.error(f"Failed to get connected aggregator: {e}")
+        return None
 
 
 # =============================================================================
@@ -310,10 +613,10 @@ def render_ai_analysis(result: Dict):
             if response:
                 ai_html = _markdown_to_html_simple(response)
                 card_html = (
-                    f'<div class="ai-card">'
-                    f'<h4>Rekomendasi AI</h4>'
-                    f'<p>{ai_html}</p>'
-                    f'</div>'
+                    '<div class="ai-card">'
+                    '<h4>Rekomendasi AI</h4>'
+                    '<p>' + ai_html + '</p>'
+                    '</div>'
                 )
                 st.markdown(card_html, unsafe_allow_html=True)
 
@@ -344,9 +647,10 @@ def _render_ai_fallback(result: Dict):
             max_price = max(prices)
             currency = hotels[0].get("currency", "SAR")
             tips.append(
-                f"<strong>Range harga di {city}:</strong> "
-                f"{currency} {min_price:,.0f} - {currency} {max_price:,.0f} "
-                f"(rata-rata {currency} {avg_price:,.0f})/malam"
+                "<strong>Range harga di " + city + ":</strong> "
+                + currency + " " + f"{min_price:,.0f}" + " - "
+                + currency + " " + f"{max_price:,.0f}"
+                + " (rata-rata " + currency + " " + f"{avg_price:,.0f}" + ")/malam"
             )
 
     tips.append(
@@ -364,15 +668,183 @@ def _render_ai_fallback(result: Dict):
     )
 
     tip_items = "".join(
-        f'<div style="margin-bottom:0.5rem;">&bull; {t}</div>' for t in tips
+        '<div style="margin-bottom:0.5rem;">&bull; ' + t + '</div>' for t in tips
     )
     fallback_html = (
-        f'<div class="ai-card">'
-        f'<h4>Tips Harga Umrah</h4>'
-        f'<p>{tip_items}</p>'
-        f'</div>'
+        '<div class="ai-card">'
+        '<h4>Tips Harga Umrah</h4>'
+        '<p>' + tip_items + '</p>'
+        '</div>'
     )
     st.markdown(fallback_html, unsafe_allow_html=True)
+
+
+# =============================================================================
+# FLIGHT AI ANALYSIS
+# =============================================================================
+
+def _build_flight_summary(result: Dict) -> str:
+    """Build a text summary of flight results for AI analysis."""
+    flights = result.get("offers", [])
+    if not flights:
+        return ""
+
+    lines = [
+        f"Jumlah penerbangan ditemukan: {len(flights)}",
+        "",
+    ]
+    for i, f in enumerate(flights[:10]):
+        name = f.name if hasattr(f, 'name') else str(f)
+        price = f.price_idr if hasattr(f, 'price_idr') else 0
+        origin = f.departure_city if hasattr(f, 'departure_city') else ""
+        dest = f.city if hasattr(f, 'city') else ""
+        airline_name = f.airline if hasattr(f, 'airline') else ""
+        lines.append(
+            f"{i+1}. {name} - {airline_name} - "
+            f"{origin} ke {dest} - Rp {price:,.0f}"
+        )
+    return "\n".join(lines)
+
+
+def render_flight_ai_analysis(result: Dict):
+    """Render AI analysis for flight results."""
+    st.markdown("---")
+    st.markdown("### Analisis Penerbangan AI")
+
+    summary = _build_flight_summary(result)
+    if not summary:
+        st.info("Tidak ada data penerbangan untuk dianalisis.")
+        return
+
+    if st.button("Analisis Penerbangan dengan AI", type="secondary", key="btn_flight_ai"):
+        with st.spinner("AI sedang menganalisis penerbangan..."):
+            prompt_text = (
+                "Analisis data penerbangan umrah berikut dan berikan "
+                "rekomendasi penerbangan terbaik:\n\n"
+                + summary + "\n\n"
+                "Berikan:\n"
+                "1. Rekomendasi penerbangan terbaik (value for money)\n"
+                "2. Tips mendapatkan tiket murah\n"
+                "3. Perbandingan maskapai\n"
+                "4. Waktu terbaik untuk membeli tiket\n"
+                "Jawab dalam bahasa Indonesia, singkat dan praktis."
+            )
+
+            system_prompt = (
+                "Kamu adalah konsultan perjalanan Umrah berpengalaman yang membantu "
+                "jamaah mendapatkan penerbangan terbaik."
+            )
+
+            response = ai_complete(
+                prompt_text,
+                system_prompt=system_prompt,
+                max_tokens=800,
+            )
+
+            if response:
+                ai_html = _markdown_to_html_simple(response)
+                card_html = (
+                    '<div class="ai-card">'
+                    '<h4>Rekomendasi AI - Penerbangan</h4>'
+                    '<p>' + ai_html + '</p>'
+                    '</div>'
+                )
+                st.markdown(card_html, unsafe_allow_html=True)
+
+                if not st.session_state.get("price_hub_ai_xp_awarded", False):
+                    st.session_state.price_hub_ai_xp_awarded = True
+                    add_xp_safe(20, "Menggunakan AI analisis penerbangan umrah")
+            else:
+                st.info("AI tidak tersedia saat ini. Silakan coba lagi nanti.")
+    else:
+        st.caption(
+            "Klik tombol di atas untuk mendapatkan analisis dan rekomendasi "
+            "penerbangan dari AI."
+        )
+
+
+# =============================================================================
+# PACKAGE AI ANALYSIS
+# =============================================================================
+
+def _build_package_summary(result: Dict) -> str:
+    """Build a text summary of package results for AI analysis."""
+    packages = result.get("offers", [])
+    if not packages:
+        return ""
+
+    lines = [
+        f"Jumlah paket ditemukan: {len(packages)}",
+        "",
+    ]
+    for i, p in enumerate(packages[:10]):
+        name = p.name if hasattr(p, 'name') else str(p)
+        price = p.price_idr if hasattr(p, 'price_idr') else 0
+        dur = p.duration_days if hasattr(p, 'duration_days') else 0
+        dep = p.departure_city if hasattr(p, 'departure_city') else ""
+        src = p.source_name if hasattr(p, 'source_name') else ""
+        dur_str = f"{dur} hari" if dur else ""
+        lines.append(
+            f"{i+1}. {name} - {src} - {dep} - {dur_str} - Rp {price:,.0f}"
+        )
+    return "\n".join(lines)
+
+
+def render_package_ai_analysis(result: Dict):
+    """Render AI analysis for package results."""
+    st.markdown("---")
+    st.markdown("### Analisis Paket AI")
+
+    summary = _build_package_summary(result)
+    if not summary:
+        st.info("Tidak ada data paket untuk dianalisis.")
+        return
+
+    if st.button("Analisis Paket dengan AI", type="secondary", key="btn_pkg_ai"):
+        with st.spinner("AI sedang menganalisis paket..."):
+            prompt_text = (
+                "Analisis data paket umrah berikut dan berikan "
+                "rekomendasi paket terbaik:\n\n"
+                + summary + "\n\n"
+                "Berikan:\n"
+                "1. Rekomendasi paket terbaik (value for money)\n"
+                "2. Perbandingan travel agent\n"
+                "3. Tips memilih paket yang tepat\n"
+                "4. Hal-hal yang perlu diperhatikan sebelum booking\n"
+                "Jawab dalam bahasa Indonesia, singkat dan praktis."
+            )
+
+            system_prompt = (
+                "Kamu adalah konsultan perjalanan Umrah berpengalaman yang membantu "
+                "jamaah memilih paket umrah terbaik."
+            )
+
+            response = ai_complete(
+                prompt_text,
+                system_prompt=system_prompt,
+                max_tokens=800,
+            )
+
+            if response:
+                ai_html = _markdown_to_html_simple(response)
+                card_html = (
+                    '<div class="ai-card">'
+                    '<h4>Rekomendasi AI - Paket Umrah</h4>'
+                    '<p>' + ai_html + '</p>'
+                    '</div>'
+                )
+                st.markdown(card_html, unsafe_allow_html=True)
+
+                if not st.session_state.get("price_hub_ai_xp_awarded", False):
+                    st.session_state.price_hub_ai_xp_awarded = True
+                    add_xp_safe(20, "Menggunakan AI analisis paket umrah")
+            else:
+                st.info("AI tidak tersedia saat ini. Silakan coba lagi nanti.")
+    else:
+        st.caption(
+            "Klik tombol di atas untuk mendapatkan analisis dan rekomendasi "
+            "paket dari AI."
+        )
 
 
 # =============================================================================
@@ -510,10 +982,10 @@ def render_hotel_card(hotel: Dict, nights: int = 1, show_vendors: bool = True):
                         v_name = vendor.get('name', 'OTA')
                         v_price = vendor.get('price', 0)
                         chip_html = (
-                            f'<div class="vendor-chip">'
-                            f'<div class="vendor-name">{v_name}</div>'
-                            f'<div class="vendor-price">{currency} {v_price:,.0f}</div>'
-                            f'</div>'
+                            '<div class="vendor-chip">'
+                            '<div class="vendor-name">' + v_name + '</div>'
+                            '<div class="vendor-price">' + currency + ' ' + f'{v_price:,.0f}' + '</div>'
+                            '</div>'
                         )
                         st.markdown(chip_html, unsafe_allow_html=True)
 
@@ -637,55 +1109,209 @@ def render_hotel_tab():
 # FLIGHT TAB COMPONENTS
 # =============================================================================
 
-def render_flight_card(flight: Any, best_price: float = 0):
-    """Render flight offer card."""
+def render_flight_search_form() -> Optional[Dict]:
+    """Render flight search form with full filter options."""
 
-    is_best = flight.price_idr == best_price and best_price > 0
+    col1, col2 = st.columns(2)
+
+    with col1:
+        origin = st.selectbox(
+            "Kota Asal",
+            options=ORIGIN_CITIES,
+            index=0,
+            key="flight_origin_v2"
+        )
+
+    with col2:
+        destination = st.selectbox(
+            "Tujuan",
+            options=["Jeddah", "Madinah"],
+            key="flight_dest_v2"
+        )
+
+    col1, col2 = st.columns(2)
+
+    with col1:
+        default_dep = (datetime.now() + timedelta(days=30)).date()
+        departure_date = st.date_input(
+            "Tanggal Berangkat",
+            value=default_dep,
+            min_value=datetime.now().date(),
+            key="flight_date_v2"
+        )
+
+    with col2:
+        ticket_class = st.selectbox(
+            "Kelas",
+            options=["Semua", "Economy", "Business"],
+            index=0,
+            key="flight_class_v2"
+        )
+
+    col1, col2 = st.columns(2)
+
+    with col1:
+        direct_only = st.checkbox("Hanya penerbangan langsung", key="flight_direct_v2")
+
+    with col2:
+        sort_option = st.selectbox(
+            "Urutkan",
+            options=["Harga Terendah", "Harga Tertinggi", "Terbaru"],
+            index=0,
+            key="flight_sort_v2"
+        )
+
+    if st.button("Cari Penerbangan", type="primary", use_container_width=True, key="search_flight_v2"):
+        sort_map = {
+            "Harga Terendah": "price",
+            "Harga Tertinggi": "price_desc",
+            "Terbaru": "updated",
+        }
+        return {
+            "origin": origin,
+            "destination": destination,
+            "departure_date": departure_date.strftime("%Y-%m-%d"),
+            "ticket_class": ticket_class,
+            "direct_only": direct_only,
+            "sort_by": sort_map.get(sort_option, "price"),
+        }
+
+    return None
+
+
+def render_flight_card(flight: Any, best_price: float = 0):
+    """Render enhanced flight offer card with route visualization."""
+
+    is_best = False
+    flight_price = flight.price_idr if hasattr(flight, 'price_idr') else 0
+    if flight_price == best_price and best_price > 0:
+        is_best = True
 
     with st.container(border=True):
         col1, col2, col3 = st.columns([3, 2, 2])
 
         with col1:
-            st.markdown(f"**{flight.name}**")
+            airline_name = flight.airline if hasattr(flight, 'airline') and flight.airline else ""
+            flight_name = flight.name if hasattr(flight, 'name') else ""
+            st.markdown(f"**{flight_name}**")
+
+            # Route visualization
+            origin_city = flight.departure_city if hasattr(flight, 'departure_city') and flight.departure_city else ""
+            dest_city = flight.city if hasattr(flight, 'city') and flight.city else ""
+
+            if origin_city or dest_city:
+                route_html = (
+                    '<div class="flight-route">'
+                    '<span class="city">' + origin_city + '</span>'
+                    '<span class="arrow">&#10230;</span>'
+                    '<span class="city">' + dest_city + '</span>'
+                    '</div>'
+                )
+                st.markdown(route_html, unsafe_allow_html=True)
 
             details = []
-            if flight.departure_city:
-                details.append(f"Dari {flight.departure_city}")
-            if flight.city:
-                details.append(f"Ke {flight.city}")
-            if flight.airline:
-                details.append(f"{flight.airline}")
+            if airline_name:
+                details.append(airline_name)
+            check_in_date = flight.check_in_date if hasattr(flight, 'check_in_date') else None
+            if check_in_date:
+                details.append(str(check_in_date))
 
-            st.caption(" | ".join(details) if details else "")
-
-            if flight.check_in_date:
-                st.caption(f"{flight.check_in_date}")
+            if details:
+                st.caption(" | ".join(details))
 
         with col2:
-            badge_label, badge_color = get_source_badge(flight.source_name)
-            badge_html = (
-                f'<span class="source-badge" style="background-color:{badge_color};">'
-                f'{badge_label}</span>'
-            )
+            source_name = flight.source_name if hasattr(flight, 'source_name') else "unknown"
+            badge_html = _build_source_badge_html(source_name)
             st.markdown(badge_html, unsafe_allow_html=True)
 
-            if flight.inclusions:
-                inc_text = ", ".join(flight.inclusions[:2])
-                st.caption(f"{inc_text}")
+            # Ticket class badge
+            inclusions = flight.inclusions if hasattr(flight, 'inclusions') and flight.inclusions else []
+            if inclusions:
+                chips_parts = []
+                for inc in inclusions[:3]:
+                    chips_parts.append('<span class="inclusion-chip">' + str(inc) + '</span>')
+                chips_html = "".join(chips_parts)
+                st.markdown(chips_html, unsafe_allow_html=True)
+
+            # Trend indicator
+            offer_id = flight.id if hasattr(flight, 'id') else None
+            render_trend_indicator(offer_id)
 
         with col3:
             if is_best:
-                st.markdown(f"### {format_price_idr(flight.price_idr)}")
-                st.caption("Harga Terbaik!")
+                st.markdown(f"### {format_price_idr(flight_price)}")
+                best_tag_html = '<span class="best-price-tag">Harga Terbaik</span>'
+                st.markdown(best_tag_html, unsafe_allow_html=True)
             else:
-                st.markdown(f"### {format_price_idr(flight.price_idr)}")
+                st.markdown(f"### {format_price_idr(flight_price)}")
 
-            if not flight.is_available:
+            is_available = flight.is_available if hasattr(flight, 'is_available') else True
+            if not is_available:
                 st.error("Sold Out")
 
 
+def render_flight_results(result: Dict):
+    """Render flight search results with stats and freshness."""
+    flights = result.get("offers", [])
+
+    if not flights:
+        st.info("Tidak ada penerbangan ditemukan dengan kriteria tersebut.")
+        return
+
+    flight_count = len(flights)
+    st.markdown(f"### {flight_count} Penerbangan Ditemukan")
+
+    # Stats bar
+    stats_col1, stats_col2, stats_col3 = st.columns(3)
+    with stats_col1:
+        st.metric("Total", str(flight_count))
+    with stats_col2:
+        prices = [f.price_idr for f in flights if hasattr(f, 'price_idr') and f.price_idr > 0]
+        min_p = min(prices) if prices else 0
+        st.metric("Termurah", format_price_idr(min_p) if min_p > 0 else "-")
+    with stats_col3:
+        source_stats = result.get("source_stats", {})
+        total_sources = len(source_stats)
+        st.metric("Sumber Data", str(total_sources))
+
+    # Source breakdown expander
+    source_stats = result.get("source_stats", {})
+    if source_stats:
+        with st.expander("Sumber Data"):
+            for src, count in source_stats.items():
+                badge_html = _build_source_badge_html(src)
+                stat_html = (
+                    '<div class="source-stat-card">'
+                    '<span class="source-label">' + badge_html + ' ' + src + '</span>'
+                    '<span class="source-count">' + str(count) + ' data</span>'
+                    '</div>'
+                )
+                st.markdown(stat_html, unsafe_allow_html=True)
+
+    # Freshness bar
+    stats_data = get_source_stats_cached()
+    render_freshness_bar("flights", stats_data)
+
+    st.markdown("---")
+
+    # Best price
+    valid_prices = [f.price_idr for f in flights if hasattr(f, 'price_idr') and f.price_idr > 0]
+    best_price = min(valid_prices) if valid_prices else 0
+
+    for flight in flights:
+        render_flight_card(flight, best_price)
+
+    # Gamification
+    if not st.session_state.get("price_hub_compare_xp_awarded", False):
+        st.session_state.price_hub_compare_xp_awarded = True
+        add_xp_safe(25, "Membandingkan harga penerbangan umrah")
+
+    # AI analysis
+    render_flight_ai_analysis(result)
+
+
 def render_flight_tab():
-    """Render flight comparison tab."""
+    """Render enhanced flight comparison tab."""
 
     st.markdown("### Penerbangan ke Tanah Suci")
     st.caption("Data dari berbagai sumber: API, n8n, dan Travel Agent")
@@ -694,136 +1320,310 @@ def render_flight_tab():
         st.warning("Price aggregator tidak tersedia")
         return
 
-    # Filters
-    col1, col2, col3 = st.columns(3)
+    col1, col2 = st.columns([1, 2])
 
     with col1:
-        origin = st.selectbox(
-            "Kota Asal",
-            options=["Jakarta", "Surabaya", "Medan", "Makassar", "Bandung"],
-            key="flight_origin"
-        )
+        search_params = render_flight_search_form()
 
     with col2:
-        destination = st.selectbox(
-            "Tujuan",
-            options=["Jeddah", "Madinah"],
-            key="flight_dest"
-        )
+        if search_params:
+            with st.spinner("Mengambil data penerbangan..."):
+                try:
+                    aggregator = _get_connected_aggregator()
+                    if not aggregator:
+                        st.error("Aggregator tidak tersedia")
+                    else:
+                        result = aggregator.aggregate(
+                            city=search_params["destination"],
+                            offer_type="flight",
+                            sort_by=search_params["sort_by"],
+                            limit=30
+                        )
 
-    with col3:
-        min_price_m = st.number_input("Min Harga (Juta)", value=10, min_value=0, key="flight_min")
+                        flights = result.get("offers", [])
 
-    if st.button("Cari Penerbangan", type="primary", use_container_width=True, key="search_flight"):
-        with st.spinner("Mengambil data penerbangan..."):
-            try:
-                aggregator = get_price_aggregator()
+                        # Post-filter by origin city
+                        origin = search_params["origin"]
+                        flights = [
+                            f for f in flights
+                            if not hasattr(f, 'departure_city')
+                            or not f.departure_city
+                            or origin.lower() in (f.departure_city or "").lower()
+                        ]
 
-                result = aggregator.aggregate(
-                    city=destination,
-                    offer_type="flight",
-                    min_price=min_price_m * 1_000_000,
-                    sort_by="price",
-                    limit=20
-                )
+                        # Post-filter by direct only
+                        if search_params["direct_only"]:
+                            filtered_direct = []
+                            for f in flights:
+                                inclusions = f.inclusions if hasattr(f, 'inclusions') and f.inclusions else []
+                                is_direct = any("direct" in str(inc).lower() for inc in inclusions)
+                                if is_direct:
+                                    filtered_direct.append(f)
+                            if filtered_direct:
+                                flights = filtered_direct
 
-                flights = result.get('offers', [])
+                        # Post-filter by ticket class
+                        tc = search_params["ticket_class"]
+                        if tc != "Semua":
+                            filtered_class = []
+                            for f in flights:
+                                inclusions = f.inclusions if hasattr(f, 'inclusions') and f.inclusions else []
+                                class_match = any(tc.lower() in str(inc).lower() for inc in inclusions)
+                                if class_match:
+                                    filtered_class.append(f)
+                            if filtered_class:
+                                flights = filtered_class
 
-                if flights:
-                    best_price = min(f.price_idr for f in flights if f.price_idr > 0)
+                        result["offers"] = flights
+                        st.session_state.price_hub_flight_result = result
+                        st.session_state.price_hub_flight_params = search_params
 
-                    st.markdown(f"### {len(flights)} Penerbangan Ditemukan")
+                except Exception as e:
+                    logger.error(f"Flight search error: {e}")
+                    st.error(f"Error: {e}")
 
-                    for flight in flights:
-                        render_flight_card(flight, best_price)
-
-                    # Gamification: +25 XP for comparing prices (first time)
-                    if not st.session_state.get("price_hub_compare_xp_awarded", False):
-                        st.session_state.price_hub_compare_xp_awarded = True
-                        add_xp_safe(25, "Membandingkan harga penerbangan umrah")
-                else:
-                    st.info("Tidak ada penerbangan ditemukan")
-
-            except Exception as e:
-                st.error(f"Error: {e}")
-    else:
-        empty_html = (
-            '<div class="tab-empty">'
-            '<div class="tab-empty-icon">&#9992;</div>'
-            '<h3>Cari Penerbangan</h3>'
-            '<p>Pilih kota asal dan tujuan untuk melihat harga</p>'
-            '</div>'
-        )
-        st.markdown(empty_html, unsafe_allow_html=True)
+        if st.session_state.get("price_hub_flight_result"):
+            render_flight_results(st.session_state.price_hub_flight_result)
+        else:
+            empty_html = (
+                '<div class="tab-empty">'
+                '<div class="tab-empty-icon">&#9992;</div>'
+                '<h3>Cari Penerbangan</h3>'
+                '<p>Pilih kota asal dan tujuan untuk melihat harga penerbangan</p>'
+                '</div>'
+            )
+            st.markdown(empty_html, unsafe_allow_html=True)
 
 
 # =============================================================================
 # PACKAGE TAB COMPONENTS
 # =============================================================================
 
-def render_package_card(pkg: Any, best_price: float = 0):
-    """Render package offer card."""
+def render_package_search_form() -> Optional[Dict]:
+    """Render package search form with full filter options."""
 
-    is_best = pkg.price_idr == best_price and best_price > 0
+    col1, col2 = st.columns(2)
+
+    with col1:
+        departure = st.selectbox(
+            "Berangkat dari",
+            options=["Semua"] + ORIGIN_CITIES,
+            index=0,
+            key="pkg_departure_v2"
+        )
+
+    with col2:
+        min_stars = st.slider("Min Bintang Hotel", 3, 5, 4, key="pkg_stars_v2")
+
+    col1, col2 = st.columns(2)
+
+    with col1:
+        price_range = st.selectbox(
+            "Range Harga",
+            options=["Semua", "< 30 Juta", "30-50 Juta", "> 50 Juta"],
+            key="pkg_price_v2"
+        )
+
+    with col2:
+        duration = st.selectbox(
+            "Durasi",
+            options=["Semua", "9 Hari", "12 Hari", "14 Hari", "> 14 Hari"],
+            key="pkg_duration_v2"
+        )
+
+    # Travel agent multiselect
+    agent_options = ["Cheria Travel", "Alhijaz", "Patuna", "Maktour", "Arminareka"]
+    selected_agents = st.multiselect(
+        "Travel Agent (opsional)",
+        options=agent_options,
+        default=[],
+        key="pkg_agents_v2"
+    )
+
+    sort_option = st.selectbox(
+        "Urutkan",
+        options=["Harga Terendah", "Harga Tertinggi", "Terbaru"],
+        index=0,
+        key="pkg_sort_v2"
+    )
+
+    if st.button("Cari Paket", type="primary", use_container_width=True, key="search_pkg_v2"):
+        # Parse price range
+        min_price = 0
+        max_price = None
+        if price_range == "< 30 Juta":
+            max_price = 30_000_000
+        elif price_range == "30-50 Juta":
+            min_price = 30_000_000
+            max_price = 50_000_000
+        elif price_range == "> 50 Juta":
+            min_price = 50_000_000
+
+        sort_map = {
+            "Harga Terendah": "price",
+            "Harga Tertinggi": "price_desc",
+            "Terbaru": "updated",
+        }
+
+        return {
+            "departure": departure,
+            "min_stars": min_stars,
+            "min_price": min_price,
+            "max_price": max_price,
+            "duration": duration,
+            "selected_agents": selected_agents,
+            "sort_by": sort_map.get(sort_option, "price"),
+        }
+
+    return None
+
+
+def render_package_card(pkg: Any, best_price: float = 0):
+    """Render enhanced package offer card with inclusion chips."""
+
+    is_best = False
+    pkg_price = pkg.price_idr if hasattr(pkg, 'price_idr') else 0
+    if pkg_price == best_price and best_price > 0:
+        is_best = True
 
     with st.container(border=True):
         col1, col2, col3 = st.columns([3, 2, 2])
 
         with col1:
-            st.markdown(f"**{pkg.name}**")
+            pkg_name = pkg.name if hasattr(pkg, 'name') else "Paket Umrah"
+            st.markdown(f"**{pkg_name}**")
 
             details = []
-            if pkg.duration_days:
-                details.append(f"{pkg.duration_days} Hari")
-            if pkg.departure_city:
-                details.append(f"dari {pkg.departure_city}")
-            if pkg.airline:
-                details.append(f"{pkg.airline}")
+            dur = pkg.duration_days if hasattr(pkg, 'duration_days') and pkg.duration_days else None
+            dep = pkg.departure_city if hasattr(pkg, 'departure_city') and pkg.departure_city else None
+            airline_name = pkg.airline if hasattr(pkg, 'airline') and pkg.airline else None
+            if dur:
+                details.append(f"{dur} Hari")
+            if dep:
+                details.append(f"dari {dep}")
+            if airline_name:
+                details.append(airline_name)
 
-            st.caption(" | ".join(details) if details else "")
+            if details:
+                st.caption(" | ".join(details))
 
-            # Hotels
+            # Hotels with stars
             hotel_info = []
-            if pkg.hotel_makkah:
-                stars = get_star_display(pkg.hotel_makkah_stars or 4)
-                hotel_info.append(f"Makkah: {pkg.hotel_makkah} {stars}")
-            if pkg.hotel_madinah:
-                stars = get_star_display(pkg.hotel_madinah_stars or 4)
-                hotel_info.append(f"Madinah: {pkg.hotel_madinah} {stars}")
+            h_makkah = pkg.hotel_makkah if hasattr(pkg, 'hotel_makkah') and pkg.hotel_makkah else None
+            h_madinah = pkg.hotel_madinah if hasattr(pkg, 'hotel_madinah') and pkg.hotel_madinah else None
+            h_makkah_stars = pkg.hotel_makkah_stars if hasattr(pkg, 'hotel_makkah_stars') else None
+            h_madinah_stars = pkg.hotel_madinah_stars if hasattr(pkg, 'hotel_madinah_stars') else None
+
+            if h_makkah:
+                stars_display = get_star_display(h_makkah_stars or 4)
+                hotel_info.append("Makkah: " + h_makkah + " " + stars_display)
+            if h_madinah:
+                stars_display = get_star_display(h_madinah_stars or 4)
+                hotel_info.append("Madinah: " + h_madinah + " " + stars_display)
 
             if hotel_info:
                 st.caption(" | ".join(hotel_info))
 
         with col2:
-            badge_label, badge_color = get_source_badge(pkg.source_name)
-            badge_html = (
-                f'<span class="source-badge" style="background-color:{badge_color};">'
-                f'{badge_label}</span>'
-            )
+            source_name = pkg.source_name if hasattr(pkg, 'source_name') else "unknown"
+            badge_html = _build_source_badge_html(source_name)
             st.markdown(badge_html, unsafe_allow_html=True)
 
-            if pkg.inclusions:
-                inc_text = ", ".join(pkg.inclusions[:3])
-                if len(pkg.inclusions) > 3:
-                    extra = len(pkg.inclusions) - 3
-                    inc_text += f" +{extra}"
-                st.caption(f"{inc_text}")
+            # Inclusion chips
+            inclusions = pkg.inclusions if hasattr(pkg, 'inclusions') and pkg.inclusions else []
+            if inclusions:
+                chips_parts = []
+                display_count = min(len(inclusions), 4)
+                for inc in inclusions[:display_count]:
+                    chips_parts.append('<span class="inclusion-chip">' + str(inc) + '</span>')
+                remaining = len(inclusions) - display_count
+                if remaining > 0:
+                    chips_parts.append('<span class="inclusion-chip">+' + str(remaining) + ' lagi</span>')
+                chips_html = "".join(chips_parts)
+                st.markdown(chips_html, unsafe_allow_html=True)
+
+            # Trend indicator
+            offer_id = pkg.id if hasattr(pkg, 'id') else None
+            render_trend_indicator(offer_id)
 
         with col3:
             if is_best:
-                st.markdown(f"### {format_price_idr(pkg.price_idr)}")
-                st.caption("Harga Terbaik!")
+                st.markdown(f"### {format_price_idr(pkg_price)}")
+                best_tag_html = '<span class="best-price-tag">Harga Terbaik</span>'
+                st.markdown(best_tag_html, unsafe_allow_html=True)
             else:
-                st.markdown(f"### {format_price_idr(pkg.price_idr)}")
+                st.markdown(f"### {format_price_idr(pkg_price)}")
 
-            if not pkg.is_available:
+            is_available = pkg.is_available if hasattr(pkg, 'is_available') else True
+            quota = pkg.quota if hasattr(pkg, 'quota') else None
+
+            if not is_available:
                 st.error("Sold Out")
-            elif pkg.quota and pkg.quota < 10:
-                st.warning(f"Sisa {pkg.quota} seat!")
+            elif quota and quota < 10:
+                st.warning(f"Sisa {quota} seat!")
+
+
+def render_package_results(result: Dict):
+    """Render package search results with stats and freshness."""
+    packages = result.get("offers", [])
+
+    if not packages:
+        st.info("Tidak ada paket ditemukan dengan kriteria tersebut.")
+        return
+
+    pkg_count = len(packages)
+    st.markdown(f"### {pkg_count} Paket Ditemukan")
+
+    # Stats bar
+    stats_col1, stats_col2, stats_col3 = st.columns(3)
+    with stats_col1:
+        st.metric("Total", str(pkg_count))
+    with stats_col2:
+        prices = [p.price_idr for p in packages if hasattr(p, 'price_idr') and p.price_idr > 0]
+        min_p = min(prices) if prices else 0
+        st.metric("Termurah", format_price_idr(min_p) if min_p > 0 else "-")
+    with stats_col3:
+        source_stats = result.get("source_stats", {})
+        total_sources = len(source_stats)
+        st.metric("Sumber Data", str(total_sources))
+
+    # Source breakdown expander
+    if source_stats:
+        with st.expander("Sumber Data"):
+            for src, count in source_stats.items():
+                badge_html = _build_source_badge_html(src)
+                stat_html = (
+                    '<div class="source-stat-card">'
+                    '<span class="source-label">' + badge_html + ' ' + src + '</span>'
+                    '<span class="source-count">' + str(count) + ' paket</span>'
+                    '</div>'
+                )
+                st.markdown(stat_html, unsafe_allow_html=True)
+
+    # Freshness bar
+    stats_data = get_source_stats_cached()
+    render_freshness_bar("packages", stats_data)
+
+    st.markdown("---")
+
+    # Best price
+    valid_prices = [p.price_idr for p in packages if hasattr(p, 'price_idr') and p.price_idr > 0]
+    best_price = min(valid_prices) if valid_prices else 0
+
+    for pkg in packages:
+        render_package_card(pkg, best_price)
+
+    # Gamification
+    if not st.session_state.get("price_hub_compare_xp_awarded", False):
+        st.session_state.price_hub_compare_xp_awarded = True
+        add_xp_safe(25, "Membandingkan harga paket umrah")
+
+    # AI analysis
+    render_package_ai_analysis(result)
 
 
 def render_package_tab():
-    """Render package comparison tab."""
+    """Render enhanced package comparison tab."""
 
     st.markdown("### Paket Umrah")
     st.caption("Paket lengkap dari berbagai Travel Agent terpercaya")
@@ -832,102 +1632,97 @@ def render_package_tab():
         st.warning("Price aggregator tidak tersedia")
         return
 
-    # Filters
-    col1, col2, col3 = st.columns(3)
+    col1, col2 = st.columns([1, 2])
 
     with col1:
-        departure = st.selectbox(
-            "Berangkat dari",
-            options=["Jakarta", "Surabaya", "Medan", "Makassar", "Bandung", "Semua"],
-            key="pkg_departure"
-        )
+        search_params = render_package_search_form()
 
     with col2:
-        min_stars = st.slider("Min Bintang Hotel", 3, 5, 4, key="pkg_stars")
+        if search_params:
+            with st.spinner("Mengambil data paket..."):
+                try:
+                    aggregator = _get_connected_aggregator()
+                    if not aggregator:
+                        st.error("Aggregator tidak tersedia")
+                    else:
+                        result = aggregator.aggregate(
+                            offer_type="package",
+                            min_price=search_params["min_price"],
+                            max_price=search_params["max_price"],
+                            min_stars=search_params["min_stars"],
+                            sort_by=search_params["sort_by"],
+                            limit=30
+                        )
 
-    with col3:
-        price_range = st.selectbox(
-            "Range Harga",
-            options=["Semua", "< 30 Juta", "30-50 Juta", "> 50 Juta"],
-            key="pkg_price"
-        )
+                        packages = result.get("offers", [])
 
-    # Parse price range
-    min_price = 0
-    max_price = None
-    if price_range == "< 30 Juta":
-        max_price = 30_000_000
-    elif price_range == "30-50 Juta":
-        min_price = 30_000_000
-        max_price = 50_000_000
-    elif price_range == "> 50 Juta":
-        min_price = 50_000_000
+                        # Post-filter by departure
+                        departure = search_params["departure"]
+                        if departure != "Semua":
+                            packages = [
+                                p for p in packages
+                                if not hasattr(p, 'departure_city')
+                                or not p.departure_city
+                                or departure.lower() in (p.departure_city or "").lower()
+                            ]
 
-    if st.button("Cari Paket", type="primary", use_container_width=True, key="search_pkg"):
-        with st.spinner("Mengambil data paket..."):
-            try:
-                aggregator = get_price_aggregator()
+                        # Post-filter by duration
+                        duration_filter = search_params["duration"]
+                        if duration_filter != "Semua":
+                            filtered_dur = []
+                            for p in packages:
+                                dur = p.duration_days if hasattr(p, 'duration_days') else None
+                                if dur is None:
+                                    filtered_dur.append(p)
+                                    continue
+                                if duration_filter == "9 Hari" and dur == 9:
+                                    filtered_dur.append(p)
+                                elif duration_filter == "12 Hari" and dur == 12:
+                                    filtered_dur.append(p)
+                                elif duration_filter == "14 Hari" and dur == 14:
+                                    filtered_dur.append(p)
+                                elif duration_filter == "> 14 Hari" and dur > 14:
+                                    filtered_dur.append(p)
+                            if filtered_dur:
+                                packages = filtered_dur
 
-                result = aggregator.aggregate(
-                    offer_type="package",
-                    min_price=min_price,
-                    max_price=max_price,
-                    min_stars=min_stars,
-                    sort_by="price",
-                    limit=20
-                )
+                        # Post-filter by travel agent
+                        selected_agents = search_params["selected_agents"]
+                        if selected_agents:
+                            agent_map = {
+                                "Cheria Travel": "cheria-travel",
+                                "Alhijaz": "alhijaz",
+                                "Patuna": "patuna",
+                                "Maktour": "maktour",
+                                "Arminareka": "arminareka",
+                            }
+                            agent_keys = [agent_map.get(a, a.lower()) for a in selected_agents]
+                            filtered_agents = [
+                                p for p in packages
+                                if hasattr(p, 'source_name') and p.source_name in agent_keys
+                            ]
+                            if filtered_agents:
+                                packages = filtered_agents
 
-                packages = result.get('offers', [])
+                        result["offers"] = packages
+                        st.session_state.price_hub_package_result = result
+                        st.session_state.price_hub_package_params = search_params
 
-                # Filter by departure if specified
-                if departure != "Semua":
-                    packages = [p for p in packages if departure.lower() in (p.departure_city or "").lower()]
+                except Exception as e:
+                    logger.error(f"Package search error: {e}")
+                    st.error(f"Error: {e}")
 
-                if packages:
-                    best_price = min(p.price_idr for p in packages if p.price_idr > 0)
-
-                    st.markdown(f"### {len(packages)} Paket Ditemukan")
-
-                    # Source stats
-                    source_count = {}
-                    for p in packages:
-                        src = p.source_name
-                        source_count[src] = source_count.get(src, 0) + 1
-
-                    with st.expander("Sumber Data"):
-                        for src, count in source_count.items():
-                            badge_label, badge_color = get_source_badge(src)
-                            src_badge_html = (
-                                f'<span class="source-badge" '
-                                f'style="background-color:{badge_color};">'
-                                f'{badge_label}</span> '
-                                f'<strong>{src}</strong>: {count} paket'
-                            )
-                            st.markdown(src_badge_html, unsafe_allow_html=True)
-
-                    st.markdown("---")
-
-                    for pkg in packages:
-                        render_package_card(pkg, best_price)
-
-                    # Gamification: +25 XP for comparing prices (first time)
-                    if not st.session_state.get("price_hub_compare_xp_awarded", False):
-                        st.session_state.price_hub_compare_xp_awarded = True
-                        add_xp_safe(25, "Membandingkan harga paket umrah")
-                else:
-                    st.info("Tidak ada paket ditemukan dengan kriteria tersebut")
-
-            except Exception as e:
-                st.error(f"Error: {e}")
-    else:
-        empty_html = (
-            '<div class="tab-empty">'
-            '<div class="tab-empty-icon">&#128230;</div>'
-            '<h3>Cari Paket Umrah</h3>'
-            '<p>Pilih kriteria untuk melihat paket dari berbagai travel agent</p>'
-            '</div>'
-        )
-        st.markdown(empty_html, unsafe_allow_html=True)
+        if st.session_state.get("price_hub_package_result"):
+            render_package_results(st.session_state.price_hub_package_result)
+        else:
+            empty_html = (
+                '<div class="tab-empty">'
+                '<div class="tab-empty-icon">&#128230;</div>'
+                '<h3>Cari Paket Umrah</h3>'
+                '<p>Pilih kriteria untuk melihat paket dari berbagai travel agent</p>'
+                '</div>'
+            )
+            st.markdown(empty_html, unsafe_allow_html=True)
 
 
 # =============================================================================
@@ -956,14 +1751,23 @@ def render_price_hub_page():
     )
     st.markdown(hero_html, unsafe_allow_html=True)
 
-    # Quick stats
+    # Dynamic quick stats from source stats
+    source_stats = get_source_stats_cached()
+    hotel_count = source_stats.get("hotels", {}).get("count", 0)
+    flight_count = source_stats.get("flights", {}).get("count", 0)
+    package_count = source_stats.get("packages", {}).get("count", 0)
+
+    hotel_label = f"{hotel_count} data" if hotel_count > 0 else "200+ OTA"
+    flight_label = f"{flight_count} rute" if flight_count > 0 else "Multi-source"
+    package_label = f"{package_count} paket" if package_count > 0 else "5+ Travel Agent"
+
     col1, col2, col3 = st.columns(3)
     with col1:
-        st.metric("Hotel", "200+ OTA", help="Via Makcorps API")
+        st.metric("Hotel", hotel_label, help="Via Makcorps API + n8n")
     with col2:
-        st.metric("Flight", "Multi-source", help="API, n8n, Partner")
+        st.metric("Penerbangan", flight_label, help="API, n8n, Partner")
     with col3:
-        st.metric("Paket", "5+ Travel Agent", help="Cheria, Alhijaz, dll")
+        st.metric("Paket", package_label, help="Cheria, Alhijaz, dll")
 
     st.markdown("---")
 
