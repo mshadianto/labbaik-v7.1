@@ -9,6 +9,8 @@ import streamlit as st
 from datetime import datetime, timedelta, date
 from typing import Dict, List, Any, Tuple
 import math
+from services.ai.helpers import ai_complete, add_xp_safe
+from ui.components.shared_styles import inject_css, HERO_CSS, CARD_CSS, AI_CARD_CSS
 
 # =============================================================================
 # CROWD PREDICTION ENGINE
@@ -369,9 +371,18 @@ def render_weekly_heatmap(location: str = "makkah"):
 
 def render_crowd_prediction_page():
     """Full crowd prediction page."""
-    
-    st.markdown("# 📊 Prediksi Keramaian Masjid")
-    st.caption("Rencanakan ibadah Anda di waktu yang tepat")
+    inject_css(HERO_CSS, CARD_CSS, AI_CARD_CSS)
+
+    if not st.session_state.get("crowd_prediction_xp_awarded"):
+        add_xp_safe(10, "Mengecek prediksi keramaian")
+        st.session_state.crowd_prediction_xp_awarded = True
+
+    st.markdown("""
+        <div class="page-hero">
+            <h1>👥 Prediksi Keramaian</h1>
+            <div class="subtitle">Prediksi tingkat keramaian Masjidil Haram & Masjid Nabawi</div>
+        </div>
+    """, unsafe_allow_html=True)
     
     # Location selector
     col1, col2 = st.columns(2)
@@ -422,6 +433,25 @@ def render_crowd_prediction_page():
                 <div style="color: #888; font-size: 0.85rem;">{desc}</div>
             </div>
             """, unsafe_allow_html=True)
+
+    st.markdown("---")
+    if st.button("🤖 Tips Menghindari Keramaian", key="crowd_ai_tips"):
+        with st.spinner("Menganalisis..."):
+            tips = ai_complete(
+                "Berikan 4 tips praktis menghindari keramaian saat umrah di Masjidil Haram dan Masjid Nabawi. "
+                "Termasuk waktu terbaik untuk tawaf dan sai. Bahasa Indonesia.",
+                system_prompt="Kamu adalah pemandu umrah berpengalaman.",
+                max_tokens=400,
+            )
+            if tips:
+                st.markdown(f'''
+                    <div class="ai-card">
+                        <h4>🤖 Tips AI Menghindari Keramaian</h4>
+                        <p>{tips}</p>
+                    </div>
+                ''', unsafe_allow_html=True)
+            else:
+                st.info("AI tidak tersedia saat ini")
 
 
 # =============================================================================

@@ -11,6 +11,9 @@ import logging
 
 logger = logging.getLogger(__name__)
 
+from services.ai.helpers import ai_complete, add_xp_safe
+from ui.components.shared_styles import inject_css, HERO_CSS, CARD_CSS, AI_CARD_CSS, BADGE_CSS
+
 # =============================================================================
 # PRICING DATA LOADER
 # =============================================================================
@@ -391,6 +394,20 @@ def render_partnership_page():
     except:
         pass
 
+    inject_css(HERO_CSS, CARD_CSS, AI_CARD_CSS, BADGE_CSS)
+
+    if not st.session_state.get("partnership_view_xp_awarded"):
+        add_xp_safe(10, "Melihat program kemitraan")
+        st.session_state.partnership_view_xp_awarded = True
+
+    # Page header
+    st.markdown("""
+        <div class="page-hero">
+            <h1>🤝 Program Kemitraan</h1>
+            <div class="subtitle">Jadilah mitra travel umrah LABBAIK AI</div>
+        </div>
+    """, unsafe_allow_html=True)
+
     # Load pricing data
     data = load_pricing_data()
 
@@ -429,6 +446,26 @@ def render_partnership_page():
 
     # Contact
     render_contact_section(data["contact"])
+
+    # AI Tips
+    st.markdown("---")
+    if st.button("🤖 Tips Menjadi Mitra Sukses", key="partner_ai_tips"):
+        with st.spinner("Menganalisis..."):
+            tips = ai_complete(
+                "Berikan 3 tips singkat untuk sukses menjadi mitra/agen travel umrah. "
+                "Termasuk strategi pemasaran dan pelayanan jamaah. Bahasa Indonesia.",
+                system_prompt="Kamu adalah business consultant untuk industri travel umrah.",
+                max_tokens=300,
+            )
+            if tips:
+                st.markdown(f'''
+                    <div class="ai-card">
+                        <h4>🤖 Tips AI untuk Mitra</h4>
+                        <p>{tips}</p>
+                    </div>
+                ''', unsafe_allow_html=True)
+            else:
+                st.info("AI tidak tersedia saat ini")
 
     # Footer
     st.divider()

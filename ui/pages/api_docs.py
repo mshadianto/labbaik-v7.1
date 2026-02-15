@@ -8,6 +8,8 @@ import streamlit as st
 import json
 from services.partner_api import API_ENDPOINTS, get_partner_api
 from services.user import get_current_user, is_logged_in, UserRole
+from services.ai.helpers import add_xp_safe
+from ui.components.shared_styles import inject_css, HERO_CSS, CARD_CSS
 
 
 def render_api_docs_page():
@@ -17,8 +19,19 @@ def render_api_docs_page():
         track_page("api_docs")
     except Exception:
         pass
-    st.markdown("## Partner API Documentation")
-    st.markdown("REST API untuk integrasi sistem booking partner")
+
+    inject_css(HERO_CSS, CARD_CSS)
+
+    if not st.session_state.get("api_docs_xp_awarded"):
+        add_xp_safe(5, "Membaca dokumentasi API")
+        st.session_state.api_docs_xp_awarded = True
+
+    st.markdown("""
+        <div class="page-hero">
+            <h1>📚 Dokumentasi API</h1>
+            <div class="subtitle">Referensi lengkap Partner REST API LABBAIK</div>
+        </div>
+    """, unsafe_allow_html=True)
 
     # Quick links
     col1, col2, col3 = st.columns(3)

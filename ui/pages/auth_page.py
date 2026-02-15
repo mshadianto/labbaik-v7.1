@@ -13,6 +13,7 @@ from services.user import (
 from services.user.user_service import (
     get_current_user, set_current_user, is_logged_in
 )
+from ui.components.shared_styles import inject_css, HERO_CSS, CARD_CSS
 
 # Indonesian provinces for dropdown
 PROVINCES = [
@@ -282,17 +283,14 @@ def render_auth_page():
         track_page("auth")
     except Exception:
         pass
+
+    inject_css(HERO_CSS, CARD_CSS)
+
     st.markdown("""
-        <style>
-        .auth-container {
-            max-width: 500px;
-            margin: 0 auto;
-            padding: 2rem;
-            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
-            border-radius: 16px;
-            border: 1px solid rgba(255,255,255,0.1);
-        }
-        </style>
+        <div class="page-hero">
+            <h1>🔐 Selamat Datang</h1>
+            <div class="subtitle">Masuk atau daftar untuk mengakses LABBAIK AI</div>
+        </div>
     """, unsafe_allow_html=True)
 
     # Check if already logged in

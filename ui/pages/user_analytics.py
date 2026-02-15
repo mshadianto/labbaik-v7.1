@@ -12,6 +12,8 @@ from services.user import (
     get_user_service, get_user_repository
 )
 from services.user.user_service import get_current_user, is_logged_in, require_role
+from services.ai.helpers import ai_complete, add_xp_safe
+from ui.components.shared_styles import inject_css, HERO_CSS, CARD_CSS, AI_CARD_CSS
 
 
 def render_user_analytics_page():
@@ -21,8 +23,19 @@ def render_user_analytics_page():
         track_page("user_analytics")
     except Exception:
         pass
-    st.markdown("## Dashboard Pengguna")
-    st.markdown("Analitik pengguna terdaftar dan potensi konversi")
+
+    inject_css(HERO_CSS, CARD_CSS, AI_CARD_CSS)
+
+    if not st.session_state.get("user_analytics_xp_awarded"):
+        add_xp_safe(10, "Mengakses analitik pengguna")
+        st.session_state.user_analytics_xp_awarded = True
+
+    st.markdown("""
+        <div class="page-hero">
+            <h1>📊 Dashboard Pengguna</h1>
+            <div class="subtitle">Analitik pengguna terdaftar dan potensi konversi</div>
+        </div>
+    """, unsafe_allow_html=True)
 
     # Check admin access
     user = get_current_user()
@@ -88,6 +101,25 @@ def render_user_analytics_page():
 
     with tab4:
         render_user_list()
+
+    st.markdown("---")
+    if st.button("🤖 Insight AI", key="user_analytics_ai"):
+        with st.spinner("Menganalisis data pengguna..."):
+            insight = ai_complete(
+                "Berikan 3 rekomendasi untuk meningkatkan konversi pengguna gratis menjadi premium "
+                "pada platform perencanaan umrah. Bahasa Indonesia.",
+                system_prompt="Kamu adalah growth hacking consultant.",
+                max_tokens=400,
+            )
+            if insight:
+                st.markdown(f'''
+                    <div class="ai-card">
+                        <h4>🤖 Insight AI</h4>
+                        <p>{insight}</p>
+                    </div>
+                ''', unsafe_allow_html=True)
+            else:
+                st.info("AI tidak tersedia saat ini")
 
 
 def render_registration_trends(stats: Dict[str, Any]):

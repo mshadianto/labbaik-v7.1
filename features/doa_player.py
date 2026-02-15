@@ -22,25 +22,37 @@ import io
 import os
 import tempfile
 
-# Try to import TTS libraries
+# Try to import shared TTS service
 try:
-    from gtts import gTTS
-    HAS_GTTS = True
+    from services.audio.tts_service import (
+        generate_audio_edge as _shared_generate_audio_edge,
+        generate_audio_gtts as _shared_generate_audio,
+        HAS_EDGE_TTS,
+        HAS_GTTS,
+        VOICE_OPTIONS,
+    )
+    _HAS_SHARED_TTS = True
 except ImportError:
-    HAS_GTTS = False
+    _HAS_SHARED_TTS = False
+    # Fallback: import TTS libraries directly
+    try:
+        from gtts import gTTS
+        HAS_GTTS = True
+    except ImportError:
+        HAS_GTTS = False
 
-try:
-    import edge_tts
-    import asyncio
-    HAS_EDGE_TTS = True
-except ImportError:
-    HAS_EDGE_TTS = False
+    try:
+        import edge_tts
+        import asyncio
+        HAS_EDGE_TTS = True
+    except ImportError:
+        HAS_EDGE_TTS = False
 
-# Arabic voice options (Edge TTS)
-VOICE_OPTIONS = {
-    "pria": "ar-SA-HamedNeural",      # Male Saudi Arabic
-    "wanita": "ar-SA-ZariyahNeural",  # Female Saudi Arabic
-}
+    # Arabic voice options (Edge TTS)
+    VOICE_OPTIONS = {
+        "pria": "ar-SA-HamedNeural",      # Male Saudi Arabic
+        "wanita": "ar-SA-ZariyahNeural",  # Female Saudi Arabic
+    }
 
 DEFAULT_VOICE = "wanita"
 
@@ -542,48 +554,59 @@ TTS_HTML_TEMPLATE = AUDIO_PLAYER_HTML
 # AUDIO GENERATION
 # =============================================================================
 
-@st.cache_data(ttl=3600)
-def generate_audio_edge(text: str, voice: str = "wanita") -> bytes:
-    """Generate audio from text using Edge TTS with voice selection."""
-    if not HAS_EDGE_TTS:
-        return None
+if _HAS_SHARED_TTS:
+    # Use shared TTS service (with Streamlit caching wrapper)
+    @st.cache_data(ttl=3600)
+    def generate_audio_edge(text: str, voice: str = "wanita") -> bytes:
+        """Generate audio from text using Edge TTS with voice selection."""
+        return _shared_generate_audio_edge(text, voice)
 
-    try:
-        voice_id = VOICE_OPTIONS.get(voice, VOICE_OPTIONS["wanita"])
+    @st.cache_data(ttl=3600)
+    def generate_audio(text: str, lang: str = "ar") -> bytes:
+        """Generate audio from text using gTTS (fallback)."""
+        return _shared_generate_audio(text, lang)
+else:
+    # Fallback: local implementations
+    @st.cache_data(ttl=3600)
+    def generate_audio_edge(text: str, voice: str = "wanita") -> bytes:
+        """Generate audio from text using Edge TTS with voice selection."""
+        if not HAS_EDGE_TTS:
+            return None
 
-        async def _generate():
-            communicate = edge_tts.Communicate(text, voice_id, rate="-20%")
+        try:
+            voice_id = VOICE_OPTIONS.get(voice, VOICE_OPTIONS["wanita"])
+
+            async def _generate():
+                communicate = edge_tts.Communicate(text, voice_id, rate="-20%")
+                audio_buffer = io.BytesIO()
+                async for chunk in communicate.stream():
+                    if chunk["type"] == "audio":
+                        audio_buffer.write(chunk["data"])
+                audio_buffer.seek(0)
+                return audio_buffer.read()
+
+            loop = asyncio.new_event_loop()
+            asyncio.set_event_loop(loop)
+            result = loop.run_until_complete(_generate())
+            loop.close()
+            return result
+        except Exception:
+            return None
+
+    @st.cache_data(ttl=3600)
+    def generate_audio(text: str, lang: str = "ar") -> bytes:
+        """Generate audio from text using gTTS (fallback)."""
+        if not HAS_GTTS:
+            return None
+
+        try:
+            tts = gTTS(text=text, lang=lang, slow=True)
             audio_buffer = io.BytesIO()
-            async for chunk in communicate.stream():
-                if chunk["type"] == "audio":
-                    audio_buffer.write(chunk["data"])
+            tts.write_to_fp(audio_buffer)
             audio_buffer.seek(0)
             return audio_buffer.read()
-
-        # Run async function
-        loop = asyncio.new_event_loop()
-        asyncio.set_event_loop(loop)
-        result = loop.run_until_complete(_generate())
-        loop.close()
-        return result
-    except Exception as e:
-        return None
-
-
-@st.cache_data(ttl=3600)
-def generate_audio(text: str, lang: str = "ar") -> bytes:
-    """Generate audio from text using gTTS (fallback)."""
-    if not HAS_GTTS:
-        return None
-
-    try:
-        tts = gTTS(text=text, lang=lang, slow=True)
-        audio_buffer = io.BytesIO()
-        tts.write_to_fp(audio_buffer)
-        audio_buffer.seek(0)
-        return audio_buffer.read()
-    except Exception as e:
-        return None
+        except Exception:
+            return None
 
 
 def get_audio_player_html(audio_base64: str, doa_id: str) -> str:

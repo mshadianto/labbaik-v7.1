@@ -15,6 +15,8 @@ from dataclasses import dataclass, field
 from enum import Enum
 import random
 import string
+from services.ai.helpers import ai_complete, add_xp_safe
+from ui.components.shared_styles import inject_css, HERO_CSS, CARD_CSS, AI_CARD_CSS
 
 # =============================================================================
 # DATA STRUCTURES
@@ -565,9 +567,14 @@ def render_tracking_map(group: TravelGroup):
 
 def render_group_tracking_page():
     """Full group tracking page."""
-    
-    st.markdown("# 📍 Group Tracking")
-    st.caption("Pantau lokasi rombongan umrah Anda")
+    inject_css(HERO_CSS, CARD_CSS, AI_CARD_CSS)
+
+    st.markdown("""
+        <div class="page-hero">
+            <h1>📍 Group Tracking</h1>
+            <div class="subtitle">Pantau lokasi anggota grup umrah secara real-time</div>
+        </div>
+    """, unsafe_allow_html=True)
     
     service = GroupTrackingService()
     
@@ -591,6 +598,7 @@ def render_group_tracking_page():
                 if group_name and leader_name and leader_phone:
                     new_group = service.create_group(group_name, leader_name, leader_phone)
                     st.success(f"✅ Grup berhasil dibuat! Kode: **{new_group.code}**")
+                    add_xp_safe(15, "Membuat grup tracking")
                     st.rerun()
                 else:
                     st.error("Lengkapi semua field!")
@@ -656,6 +664,25 @@ def render_group_tracking_page():
                 st.session_state.current_group_id = None
                 st.session_state.my_member_id = None
                 st.rerun()
+
+    st.markdown("---")
+    if st.button("🤖 Tips Manajemen Grup", key="group_ai_tips"):
+        with st.spinner("Menganalisis..."):
+            tips = ai_complete(
+                "Berikan 3 tips praktis untuk mengelola grup umrah agar semua anggota tetap aman dan terhubung. "
+                "Termasuk tips komunikasi dan titik kumpul. Bahasa Indonesia.",
+                system_prompt="Kamu adalah tour leader umrah berpengalaman.",
+                max_tokens=300,
+            )
+            if tips:
+                st.markdown(f'''
+                    <div class="ai-card">
+                        <h4>🤖 Tips AI Manajemen Grup</h4>
+                        <p>{tips}</p>
+                    </div>
+                ''', unsafe_allow_html=True)
+            else:
+                st.info("AI tidak tersedia saat ini")
 
 
 # =============================================================================

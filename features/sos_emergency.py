@@ -16,6 +16,8 @@ from dataclasses import dataclass, field
 from enum import Enum
 import urllib.parse
 import json
+from services.ai.helpers import add_xp_safe
+from ui.components.shared_styles import inject_css, HERO_CSS, CARD_CSS
 
 # WAHA Integration (optional - graceful fallback)
 try:
@@ -573,9 +575,18 @@ def render_sos_activated():
 
 def render_sos_page():
     """Full SOS emergency page."""
-    
-    st.markdown("# 🆘 Pusat Darurat")
-    st.caption("Bantuan cepat saat situasi darurat")
+    inject_css(HERO_CSS, CARD_CSS)
+
+    st.markdown("""
+        <div class="page-hero" style="--hero-bg: linear-gradient(135deg, #2a0d0d 0%, #4a1a1a 100%); --hero-border: #f87171; --hero-title: #f87171;">
+            <h1>🆘 SOS Darurat</h1>
+            <div class="subtitle">Sistem darurat satu sentuhan untuk keadaan darurat saat umrah</div>
+        </div>
+    """, unsafe_allow_html=True)
+
+    if not st.session_state.get("sos_setup_xp_awarded"):
+        add_xp_safe(5, "Menyiapkan kontak darurat")
+        st.session_state.sos_setup_xp_awarded = True
     
     # Check if SOS is triggered
     if st.session_state.get("sos_triggered", False):

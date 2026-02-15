@@ -12,6 +12,9 @@ import logging
 
 logger = logging.getLogger(__name__)
 
+from services.ai.helpers import ai_complete, add_xp_safe
+from ui.components.shared_styles import inject_css, HERO_CSS, CARD_CSS, AI_CARD_CSS
+
 # =============================================================================
 # IMPORTS
 # =============================================================================
@@ -352,12 +355,14 @@ def render_hotel_compare_page():
     except Exception:
         pass
 
+    inject_css(HERO_CSS, CARD_CSS, AI_CARD_CSS)
+
     # Page header
     st.markdown("""
-    <div style="text-align: center; padding: 1rem 0;">
-        <h1 style="color: #d4af37;">🏨 Perbandingan Harga Hotel</h1>
-        <p style="color: #888;">Bandingkan harga dari 200+ OTA untuk Makkah & Madinah</p>
-    </div>
+        <div class="page-hero">
+            <h1>🏨 Perbandingan Harga Hotel</h1>
+            <div class="subtitle">Bandingkan harga hotel dari 200+ OTA untuk Makkah & Madinah</div>
+        </div>
     """, unsafe_allow_html=True)
 
     # API Status
@@ -389,6 +394,10 @@ def render_hotel_compare_page():
                     st.session_state['hotel_search_result'] = result
                     st.session_state['hotel_search_params'] = search_params
 
+                    if not st.session_state.get("hotel_compare_xp_awarded"):
+                        add_xp_safe(10, "Mencari perbandingan hotel")
+                        st.session_state.hotel_compare_xp_awarded = True
+
         # Show stored results
         if 'hotel_search_result' in st.session_state:
             render_hotel_list(st.session_state['hotel_search_result'])
@@ -409,6 +418,25 @@ def render_hotel_compare_page():
     💡 **Tips:** Harga dapat berubah sewaktu-waktu. Booking langsung di website hotel/OTA
     untuk harga terkini dan konfirmasi ketersediaan.
     """)
+
+    st.markdown("---")
+    if st.button("🤖 Tips Memilih Hotel Umrah", key="hotel_ai_tips"):
+        with st.spinner("Menganalisis..."):
+            tips = ai_complete(
+                "Berikan 4 tips singkat memilih hotel untuk umrah di Makkah dan Madinah. "
+                "Pertimbangkan jarak ke masjid, fasilitas, dan harga. Bahasa Indonesia.",
+                system_prompt="Kamu adalah travel consultant umrah berpengalaman.",
+                max_tokens=400,
+            )
+            if tips:
+                st.markdown(f'''
+                    <div class="ai-card">
+                        <h4>🤖 Tips AI Memilih Hotel</h4>
+                        <p>{tips}</p>
+                    </div>
+                ''', unsafe_allow_html=True)
+            else:
+                st.info("AI tidak tersedia saat ini")
 
 
 # =============================================================================

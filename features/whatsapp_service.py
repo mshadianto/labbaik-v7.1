@@ -50,7 +50,7 @@ class WAHAConfig:
                 api_key=st.secrets.get("WAHA_API_KEY", ""),
                 session_name=st.secrets.get("WAHA_SESSION", "default")
             )
-        except:
+        except Exception:
             return cls.from_env()
 
 
@@ -598,7 +598,7 @@ def render_whatsapp_status():
             st.success("📱 WhatsApp: Terhubung")
         else:
             st.warning("📱 WhatsApp: Tidak tersedia")
-    except:
+    except Exception:
         st.caption("📱 WhatsApp: Offline")
 
 

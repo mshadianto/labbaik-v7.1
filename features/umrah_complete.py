@@ -15,68 +15,91 @@ from features.umrah_guide import (
     Doa, DoaCategory, UmrahProcedure, Miqat, HistoricalSite
 )
 
-# TTS imports
+# TTS imports - prefer shared service, fallback to local
 try:
-    import edge_tts
-    import asyncio
-    HAS_EDGE_TTS = True
+    from services.audio.tts_service import (
+        generate_audio_edge as _shared_generate_audio_edge,
+        generate_audio_gtts as _shared_generate_audio_gtts,
+        HAS_EDGE_TTS,
+        HAS_GTTS,
+        VOICE_OPTIONS,
+    )
+    _HAS_SHARED_TTS = True
 except ImportError:
-    HAS_EDGE_TTS = False
+    _HAS_SHARED_TTS = False
+    try:
+        import edge_tts
+        import asyncio
+        HAS_EDGE_TTS = True
+    except ImportError:
+        HAS_EDGE_TTS = False
 
-try:
-    from gtts import gTTS
-    HAS_GTTS = True
-except ImportError:
-    HAS_GTTS = False
+    try:
+        from gtts import gTTS
+        HAS_GTTS = True
+    except ImportError:
+        HAS_GTTS = False
 
-# Voice options
-VOICE_OPTIONS = {
-    "pria": "ar-SA-HamedNeural",
-    "wanita": "ar-SA-ZariyahNeural",
-}
+    # Voice options
+    VOICE_OPTIONS = {
+        "pria": "ar-SA-HamedNeural",
+        "wanita": "ar-SA-ZariyahNeural",
+    }
 
 
 # =============================================================================
 # AUDIO GENERATION
 # =============================================================================
 
-@st.cache_data(ttl=3600)
-def generate_audio_edge(text: str, voice: str = "wanita") -> bytes:
-    """Generate audio using Edge TTS."""
-    if not HAS_EDGE_TTS:
-        return None
-    try:
-        voice_id = VOICE_OPTIONS.get(voice, VOICE_OPTIONS["wanita"])
-        async def _gen():
-            comm = edge_tts.Communicate(text, voice_id, rate="-20%")
+if _HAS_SHARED_TTS:
+    # Use shared TTS service (with Streamlit caching wrapper)
+    @st.cache_data(ttl=3600)
+    def generate_audio_edge(text: str, voice: str = "wanita") -> bytes:
+        """Generate audio using Edge TTS."""
+        return _shared_generate_audio_edge(text, voice)
+
+    @st.cache_data(ttl=3600)
+    def generate_audio_gtts(text: str) -> bytes:
+        """Generate audio using gTTS."""
+        return _shared_generate_audio_gtts(text)
+else:
+    # Fallback: local implementations
+    @st.cache_data(ttl=3600)
+    def generate_audio_edge(text: str, voice: str = "wanita") -> bytes:
+        """Generate audio using Edge TTS."""
+        if not HAS_EDGE_TTS:
+            return None
+        try:
+            voice_id = VOICE_OPTIONS.get(voice, VOICE_OPTIONS["wanita"])
+            async def _gen():
+                comm = edge_tts.Communicate(text, voice_id, rate="-20%")
+                buf = io.BytesIO()
+                async for chunk in comm.stream():
+                    if chunk["type"] == "audio":
+                        buf.write(chunk["data"])
+                buf.seek(0)
+                return buf.read()
+            loop = asyncio.new_event_loop()
+            asyncio.set_event_loop(loop)
+            result = loop.run_until_complete(_gen())
+            loop.close()
+            return result
+        except Exception:
+            return None
+
+    @st.cache_data(ttl=3600)
+    def generate_audio_gtts(text: str) -> bytes:
+        """Generate audio using gTTS."""
+        if not HAS_GTTS:
+            return None
+        try:
+            tts = gTTS(text=text, lang="ar", slow=True)
             buf = io.BytesIO()
-            async for chunk in comm.stream():
-                if chunk["type"] == "audio":
-                    buf.write(chunk["data"])
+            tts.write_to_fp(buf)
             buf.seek(0)
             return buf.read()
-        loop = asyncio.new_event_loop()
-        asyncio.set_event_loop(loop)
-        result = loop.run_until_complete(_gen())
-        loop.close()
-        return result
-    except:
-        return None
-
-
-@st.cache_data(ttl=3600)
-def generate_audio_gtts(text: str) -> bytes:
-    """Generate audio using gTTS."""
-    if not HAS_GTTS:
-        return None
-    try:
-        tts = gTTS(text=text, lang="ar", slow=True)
-        buf = io.BytesIO()
-        tts.write_to_fp(buf)
-        buf.seek(0)
-        return buf.read()
-    except:
-        return None
+        except Exception:
+            return None
 
 
 # =============================================================================
