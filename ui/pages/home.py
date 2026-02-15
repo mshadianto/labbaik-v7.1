@@ -9,6 +9,7 @@ from datetime import datetime, date, timedelta
 import random
 import os
 import logging
+from ui.components.shared_styles import inject_css, HERO_CSS, CARD_CSS, AI_CARD_CSS, BADGE_CSS
 
 logger = logging.getLogger(__name__)
 
@@ -55,6 +56,72 @@ BRAND_TAGLINE = "Satu-satunya AI Companion untuk Umrah Anda"
 SMART_PREP = "Smart Prep"
 SMART_SAVINGS = "Smart Savings"
 SMART_JOURNEY = "Smart Journey"
+
+# =============================================================================
+# PAGE-SPECIFIC CSS (no <style> tags, no @import – passed to inject_css())
+# =============================================================================
+
+HOME_PAGE_CSS = """
+/* inject_custom_css — gold card helpers */
+.gold-card {
+    background: linear-gradient(135deg, #1a1a1a 0%, #2d2d2d 100%);
+    border: 1px solid #d4af37;
+    border-radius: 15px;
+    padding: 1.2rem;
+    text-align: center;
+}
+.gold-text { color: #d4af37; }
+.muted-text { color: #888; }
+
+/* Hero section v6 */
+.hero-section-v6 {
+    background: linear-gradient(135deg, #0d0d0d 0%, #1a1a1a 50%, #0d0d0d 100%);
+    padding: 2rem 1.5rem;
+    border-radius: 20px;
+    margin-bottom: 1rem;
+    text-align: center;
+    color: white;
+    border: 1px solid #d4af37;
+}
+.arabic-calligraphy-v6 {
+    font-size: 1.8rem;
+    color: #d4af37;
+    margin-bottom: 0.3rem;
+}
+.brand-name-v6 {
+    font-size: 2.2rem;
+    font-weight: 800;
+    letter-spacing: 0.5rem;
+    color: #d4af37;
+}
+.tagline-v6 { font-size: 1rem; color: #d4af37; }
+.subtitle-v6 { font-size: 0.85rem; color: #888; margin-bottom: 0.8rem; }
+.version-badge-v6 {
+    display: inline-block;
+    background: linear-gradient(135deg, #d4af37 0%, #f4d03f 100%);
+    color: #1a1a1a;
+    padding: 0.3rem 1rem;
+    border-radius: 20px;
+    font-weight: bold;
+    font-size: 0.8rem;
+}
+.stat-card-v6 {
+    background: #1a1a1a;
+    border: 1px solid #d4af37;
+    border-radius: 12px;
+    padding: 0.8rem;
+    text-align: center;
+}
+.stat-icon-v6 { font-size: 1.3rem; }
+.stat-label-v6 { font-size: 0.7rem; color: #888; }
+.stat-value-v6 { font-size: 1.1rem; font-weight: bold; color: #d4af37; }
+
+/* Pulse animation for live indicator */
+@keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.5; }
+}
+"""
 
 # Internal team emails (allowed to see platform stats)
 INTERNAL_EMAILS = [
@@ -252,13 +319,16 @@ def render_visitor_stats_section():
     
     # Section Header
     status_badge = "🟢 Live Data" if is_live else "📊 Demo Data"
-    st.markdown(f"""
-    <div style="text-align: center; margin-bottom: 1.5rem;">
-        <h2 style="color: #d4af37; margin-bottom: 0.5rem;">📊 Statistik Platform</h2>
-        <p style="color: #888;">Antusiasme jamaah terhadap LABBAIK AI</p>
-        <span style="background: {'#1a5f3c' if is_live else '#444'}; color: white; padding: 0.25rem 0.75rem; border-radius: 20px; font-size: 0.75rem;">{status_badge}</span>
-    </div>
-    """, unsafe_allow_html=True)
+    badge_bg = "#1a5f3c" if is_live else "#444"
+    header_html = (
+        '<div style="text-align: center; margin-bottom: 1.5rem;">'
+        '<h2 style="color: #d4af37; margin-bottom: 0.5rem;">📊 Statistik Platform</h2>'
+        '<p style="color: #888;">Antusiasme jamaah terhadap LABBAIK AI</p>'
+        '<span style="background: ' + badge_bg + '; color: white; padding: 0.25rem 0.75rem; '
+        'border-radius: 20px; font-size: 0.75rem;">' + status_badge + '</span>'
+        '</div>'
+    )
+    st.markdown(header_html, unsafe_allow_html=True)
     
     # Main Stats Cards
     col1, col2, col3, col4 = st.columns(4)
@@ -379,26 +449,21 @@ def render_visitor_stats_section():
             </div>
             """, unsafe_allow_html=True)
     
-    # Live indicator
+    # Live indicator — pulse keyframes now in HOME_PAGE_CSS
     indicator_color = "#4ade80" if is_live else "#fbbf24"
     indicator_text = "Data realtime dari Neon Database" if is_live else "Demo mode - Connect database for live data"
-    
-    st.markdown(f"""
-    <div style="text-align: center; margin-top: 1.5rem;">
-        <span style="display: inline-flex; align-items: center; background: #1a1a1a; 
-                     padding: 0.5rem 1rem; border-radius: 20px; border: 1px solid #333;">
-            <span style="width: 8px; height: 8px; background: {indicator_color}; border-radius: 50%; 
-                         margin-right: 0.5rem; animation: pulse 2s infinite;"></span>
-            <span style="color: #888; font-size: 0.85rem;">{indicator_text}</span>
-        </span>
-    </div>
-    <style>
-    @keyframes pulse {{
-        0%, 100% {{ opacity: 1; }}
-        50% {{ opacity: 0.5; }}
-    }}
-    </style>
-    """, unsafe_allow_html=True)
+
+    live_html = (
+        '<div style="text-align: center; margin-top: 1.5rem;">'
+        '<span style="display: inline-flex; align-items: center; background: #1a1a1a; '
+        'padding: 0.5rem 1rem; border-radius: 20px; border: 1px solid #333;">'
+        '<span style="width: 8px; height: 8px; background: ' + indicator_color + '; border-radius: 50%; '
+        'margin-right: 0.5rem; animation: pulse 2s infinite;"></span>'
+        '<span style="color: #888; font-size: 0.85rem;">' + indicator_text + '</span>'
+        '</span>'
+        '</div>'
+    )
+    st.markdown(live_html, unsafe_allow_html=True)
 
 
 # =============================================================================
@@ -556,26 +621,13 @@ def render_price_intelligence_section():
 # =============================================================================
 
 def inject_custom_css():
-    """Inject minimal CSS - optimized for speed."""
+    """Inject page CSS via shared inject_css() helper."""
     # Skip if already injected
     if st.session_state.get('_home_css_injected'):
         return
     st.session_state._home_css_injected = True
 
-    # Minimal CSS only - removed unused classes
-    st.markdown("""
-    <style>
-    .gold-card {
-        background: linear-gradient(135deg, #1a1a1a 0%, #2d2d2d 100%);
-        border: 1px solid #d4af37;
-        border-radius: 15px;
-        padding: 1.2rem;
-        text-align: center;
-    }
-    .gold-text { color: #d4af37; }
-    .muted-text { color: #888; }
-    </style>
-    """, unsafe_allow_html=True)
+    inject_css(HERO_CSS, CARD_CSS, HOME_PAGE_CSS)
 
 
 # =============================================================================
@@ -585,55 +637,8 @@ def inject_custom_css():
 def render_hero_section():
     """Render hero section with call-to-action - BLACK GOLD theme (OPTIMIZED)."""
 
-    # CSS - NO external font loading for faster performance
-    if not st.session_state.get('_hero_css_injected'):
-        st.session_state._hero_css_injected = True
-        st.markdown("""
-        <style>
-        .hero-section-v6 {
-            background: linear-gradient(135deg, #0d0d0d 0%, #1a1a1a 50%, #0d0d0d 100%);
-            padding: 2rem 1.5rem;
-            border-radius: 20px;
-            margin-bottom: 1rem;
-            text-align: center;
-            color: white;
-            border: 1px solid #d4af37;
-        }
-        .arabic-calligraphy-v6 {
-            font-size: 1.8rem;
-            color: #d4af37;
-            margin-bottom: 0.3rem;
-        }
-        .brand-name-v6 {
-            font-size: 2.2rem;
-            font-weight: 800;
-            letter-spacing: 0.5rem;
-            color: #d4af37;
-        }
-        .tagline-v6 { font-size: 1rem; color: #d4af37; }
-        .subtitle-v6 { font-size: 0.85rem; color: #888; margin-bottom: 0.8rem; }
-        .version-badge-v6 {
-            display: inline-block;
-            background: linear-gradient(135deg, #d4af37 0%, #f4d03f 100%);
-            color: #1a1a1a;
-            padding: 0.3rem 1rem;
-            border-radius: 20px;
-            font-weight: bold;
-            font-size: 0.8rem;
-        }
-        .stat-card-v6 {
-            background: #1a1a1a;
-            border: 1px solid #d4af37;
-            border-radius: 12px;
-            padding: 0.8rem;
-            text-align: center;
-        }
-        .stat-icon-v6 { font-size: 1.3rem; }
-        .stat-label-v6 { font-size: 0.7rem; color: #888; }
-        .stat-value-v6 { font-size: 1.1rem; font-weight: bold; color: #d4af37; }
-        </style>
-        """, unsafe_allow_html=True)
-    
+    # CSS now in HOME_PAGE_CSS, injected via inject_custom_css()
+
     # Hero content - Premium Brand Identity
     st.markdown(f"""
     <div class="hero-section-v6">

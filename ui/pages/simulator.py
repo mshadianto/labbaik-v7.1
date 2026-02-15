@@ -1,5 +1,5 @@
 """
-LABBAIK AI v7.0 - Cost Simulator with Scenario Planning
+LABBAIK AI v7.1 - Cost Simulator with Scenario Planning
 ========================================================
 Advanced cost calculator with scenario planning:
 - Multiple scenarios (Optimis, Realistis, Pesimistis)
@@ -7,6 +7,8 @@ Advanced cost calculator with scenario planning:
 - Risk factor assessment
 - Monte Carlo confidence ranges
 - Interactive scenario comparison
+- AI-powered financial analysis
+- Gamification (XP rewards)
 """
 
 import streamlit as st
@@ -16,6 +18,197 @@ from dataclasses import dataclass, field
 from enum import Enum
 import json
 import random
+import re
+
+from services.ai.helpers import ai_complete, add_xp_safe
+from ui.components.shared_styles import inject_css, HERO_CSS, CARD_CSS, AI_CARD_CSS, BADGE_CSS
+
+# =============================================================================
+# SIMULATOR PAGE CSS
+# =============================================================================
+
+SIMULATOR_CSS = """
+/* Simulator page-specific overrides */
+:root {
+    --hero-bg: linear-gradient(135deg, #0d1b2a 0%, #1b2a4a 100%);
+    --hero-border: #d4af37;
+    --hero-title: #d4af37;
+    --hero-subtitle: #888;
+}
+
+.sim-confidence-bar {
+    padding: 0.5rem;
+    border-radius: 5px;
+    text-align: center;
+    margin: 0.5rem 0;
+}
+
+.sim-confidence-bar small {
+    color: #fff;
+}
+
+.sim-range-bar {
+    background: #333;
+    border-radius: 5px;
+    height: 25px;
+    margin-bottom: 10px;
+    overflow: hidden;
+}
+
+.sim-range-fill {
+    height: 100%;
+    border-radius: 5px;
+}
+
+.sim-percentile {
+    text-align: center;
+    padding: 1rem;
+    background: #1a1a2e;
+    border-radius: 10px;
+}
+
+.sim-percentile .label {
+    font-size: 0.8rem;
+    color: #888;
+}
+
+.sim-percentile .value {
+    font-size: 1.1rem;
+    font-weight: bold;
+    color: white;
+}
+
+.sim-tornado-bar {
+    display: flex;
+    align-items: center;
+    margin: 5px 0 15px 0;
+}
+
+.sim-tornado-left {
+    width: 50%;
+    display: flex;
+    justify-content: flex-end;
+}
+
+.sim-tornado-center {
+    width: 2px;
+    height: 30px;
+    background: #fff;
+}
+
+.sim-tornado-right {
+    width: 50%;
+}
+
+.sim-tornado-fill-green {
+    background: #28a745;
+    height: 20px;
+    border-radius: 3px 0 0 3px;
+}
+
+.sim-tornado-fill-red {
+    background: #dc3545;
+    height: 20px;
+    border-radius: 0 3px 3px 0;
+}
+
+.sim-discount-tier {
+    background: #1a1a2e;
+    padding: 1rem;
+    border-radius: 10px;
+    margin: 0.5rem 0;
+}
+
+.sim-discount-tier .inner {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.sim-discount-tier .tier-name {
+    color: white;
+    font-weight: bold;
+}
+
+.sim-discount-tier .tier-count {
+    color: #888;
+}
+
+.sim-discount-tier .tier-pct {
+    color: #28a745;
+    font-weight: bold;
+}
+
+.sim-discount-tier .tier-price {
+    color: white;
+}
+
+.sim-group-banner {
+    background: linear-gradient(135deg, #1a472a 0%, #2d5a3d 100%);
+    padding: 1rem;
+    border-radius: 10px;
+    margin-bottom: 0.5rem;
+}
+
+.sim-group-banner h3 {
+    color: #d4af37;
+    margin: 0;
+}
+
+.sim-group-banner p {
+    color: #ccc;
+    margin: 0.5rem 0 0 0;
+    font-size: 0.9rem;
+}
+
+.sim-save-cta {
+    background: linear-gradient(135deg, #1a472a 0%, #2d5a3d 100%);
+    padding: 1.5rem;
+    border-radius: 15px;
+    text-align: center;
+    border: 1px solid #d4af37;
+    margin: 1rem 0;
+}
+
+.sim-save-cta h3 {
+    color: #d4af37;
+    margin-bottom: 0.5rem;
+}
+
+.sim-save-cta p {
+    color: #ccc;
+    font-size: 0.9rem;
+}
+"""
+
+
+# =============================================================================
+# HELPERS
+# =============================================================================
+
+def _markdown_to_html_simple(text: str) -> str:
+    """Simple markdown to HTML conversion for display in custom styled div."""
+    lines = text.split("\n")
+    html_lines = []
+    for line in lines:
+        line = line.strip()
+        if not line:
+            html_lines.append("<br/>")
+            continue
+        # Bold
+        line = re.sub(r"\*\*(.+?)\*\*", r"<strong>\1</strong>", line)
+        # Italic
+        line = re.sub(r"\*(.+?)\*", r"<em>\1</em>", line)
+        # Bullet points
+        if line.startswith("- ") or line.startswith("* "):
+            line = "&bull; " + line[2:]
+        # Numbered lists
+        match = re.match(r"^(\d+)\.\s+", line)
+        if match:
+            line = "<strong>" + match.group(1) + ".</strong> " + line[match.end():]
+        html_lines.append("<div style='margin-bottom:0.3rem;'>" + line + "</div>")
+    return "\n".join(html_lines)
+
 
 # =============================================================================
 # DATA CLASSES & CONSTANTS
@@ -645,6 +838,17 @@ def init_simulator_state():
     if "is_group_view" not in st.session_state:
         st.session_state.is_group_view = False  # Flag for group mode
 
+    # Gamification XP tracking (first-time-per-session)
+    if "simulator_xp_simulate" not in st.session_state:
+        st.session_state.simulator_xp_simulate = False
+
+    if "simulator_xp_ai" not in st.session_state:
+        st.session_state.simulator_xp_ai = False
+
+    # AI analysis cache
+    if "simulator_ai_response" not in st.session_state:
+        st.session_state.simulator_ai_response = None
+
 
 # =============================================================================
 # GROUP PLANNING FUNCTIONS
@@ -746,18 +950,14 @@ def render_group_header(group):
     from utils.group_manager import MemberStatus
 
     with st.container(border=True):
-        st.markdown(f"""
-        <div style="background: linear-gradient(135deg, #1a472a 0%, #2d5a3d 100%);
-                    padding: 1rem; border-radius: 10px; margin-bottom: 0.5rem;">
-            <h3 style="color: #d4af37; margin: 0;">
-                Rencana Umrah Grup: {group.name}
-            </h3>
-            <p style="color: #ccc; margin: 0.5rem 0 0 0; font-size: 0.9rem;">
-                Kode Grup: <strong>{group.group_code}</strong> |
-                Dibuat oleh: {group.leader_name}
-            </p>
-        </div>
-        """, unsafe_allow_html=True)
+        banner_html = (
+            f'<div class="sim-group-banner">'
+            f'<h3>Rencana Umrah Grup: {group.name}</h3>'
+            f'<p>Kode Grup: <strong>{group.group_code}</strong> | '
+            f'Dibuat oleh: {group.leader_name}</p>'
+            f'</div>'
+        )
+        st.markdown(banner_html, unsafe_allow_html=True)
 
         # Show group totals if we have multiple members
         totals = st.session_state.sim_group_totals
@@ -1411,18 +1611,13 @@ def render_save_simulation(params: Dict, cost: CostBreakdown):
 
     else:
         # === ANONYMOUS USER: WhatsApp Gating ===
-        st.markdown("""
-        <div style="background: linear-gradient(135deg, #1a472a 0%, #2d5a3d 100%);
-                    padding: 1.5rem; border-radius: 15px; text-align: center;
-                    border: 1px solid #d4af37; margin: 1rem 0;">
-            <h3 style="color: #d4af37; margin-bottom: 0.5rem;">
-                Simpan Rencana Umrah Anda
-            </h3>
-            <p style="color: #ccc; font-size: 0.9rem;">
-                Dapatkan jadwal rencana lengkap langsung ke WhatsApp Anda
-            </p>
-        </div>
-        """, unsafe_allow_html=True)
+        cta_html = (
+            '<div class="sim-save-cta">'
+            '<h3>Simpan Rencana Umrah Anda</h3>'
+            '<p>Dapatkan jadwal rencana lengkap langsung ke WhatsApp Anda</p>'
+            '</div>'
+        )
+        st.markdown(cta_html, unsafe_allow_html=True)
 
         col1, col2 = st.columns([2, 1])
 
@@ -1568,12 +1763,13 @@ def render_scenario_planning(cost: CostBreakdown, params: Dict):
                 st.caption("per orang")
 
                 # Confidence range
-                st.markdown(f"""
-                <div style="background: linear-gradient(90deg, #333 0%, {color} 50%, #333 100%);
-                            padding: 0.5rem; border-radius: 5px; text-align: center; margin: 0.5rem 0;">
-                    <small>{format_currency(scenario.confidence_low)} - {format_currency(scenario.confidence_high)}</small>
-                </div>
-                """, unsafe_allow_html=True)
+                bg_style = "background:linear-gradient(90deg,#333 0%," + color + " 50%,#333 100%)"
+                conf_html = (
+                    f'<div class="sim-confidence-bar" style="{bg_style}">'
+                    f'<small>{format_currency(scenario.confidence_low)} - {format_currency(scenario.confidence_high)}</small>'
+                    f'</div>'
+                )
+                st.markdown(conf_html, unsafe_allow_html=True)
 
                 st.caption("Range estimasi (90% confidence)")
 
@@ -1635,11 +1831,12 @@ def render_scenario_planning(cost: CostBreakdown, params: Dict):
         pct = value / max_val * 100
         color = "#28a745" if "Optimis" in label else "#007bff" if "Realistis" in label else "#dc3545"
         st.markdown(f"**{label}**: {format_currency(value)}")
-        st.markdown(f"""
-        <div style="background: #333; border-radius: 5px; height: 25px; margin-bottom: 10px;">
-            <div style="background: {color}; width: {pct}%; height: 100%; border-radius: 5px;"></div>
-        </div>
-        """, unsafe_allow_html=True)
+        range_bar_html = (
+            f'<div class="sim-range-bar">'
+            f'<div class="sim-range-fill" style="background:{color};width:{pct}%;"></div>'
+            f'</div>'
+        )
+        st.markdown(range_bar_html, unsafe_allow_html=True)
 
 
 def render_monte_carlo_analysis(cost: CostBreakdown):
@@ -1678,27 +1875,28 @@ def render_monte_carlo_analysis(cost: CostBreakdown):
     cols = st.columns(5)
     for col, (label, value, color) in zip(cols, percentiles):
         with col:
-            st.markdown(f"""
-            <div style="text-align: center; padding: 1rem; background: #1a1a2e; border-radius: 10px; border-left: 4px solid {color};">
-                <div style="font-size: 0.8rem; color: #888;">{label}</div>
-                <div style="font-size: 1.1rem; font-weight: bold; color: white;">{format_currency(value)}</div>
-            </div>
-            """, unsafe_allow_html=True)
+            pct_html = (
+                f'<div class="sim-percentile" style="border-left:4px solid {color};">'
+                f'<div class="label">{label}</div>'
+                f'<div class="value">{format_currency(value)}</div>'
+                f'</div>'
+            )
+            st.markdown(pct_html, unsafe_allow_html=True)
 
     # Confidence interval recommendation
     st.markdown("---")
     with st.container(border=True):
         st.markdown("#### 💡 Rekomendasi Budget")
-        st.markdown(f"""
-        Berdasarkan simulasi Monte Carlo dengan 1,000 iterasi:
-
-        - **Budget Minimal** (P10): {format_currency(mc_results["p10"])}
-        - **Budget Rekomendasi** (P75): {format_currency(mc_results["p75"])}
-        - **Budget Aman** (P90): {format_currency(mc_results["p90"])}
-
-        > Kami rekomendasikan menyiapkan budget sebesar **{format_currency(mc_results["p75"])}**
-        > untuk mengantisipasi 75% kemungkinan skenario.
-        """)
+        reco_text = (
+            f"Berdasarkan simulasi Monte Carlo dengan 1,000 iterasi:\n\n"
+            f"- **Budget Minimal** (P10): {format_currency(mc_results['p10'])}\n"
+            f"- **Budget Rekomendasi** (P75): {format_currency(mc_results['p75'])}\n"
+            f"- **Budget Aman** (P90): {format_currency(mc_results['p90'])}\n\n"
+            f"> Kami rekomendasikan menyiapkan budget sebesar "
+            f"**{format_currency(mc_results['p75'])}** "
+            f"untuk mengantisipasi 75% kemungkinan skenario."
+        )
+        st.markdown(reco_text)
 
 
 def render_sensitivity_analysis(params: Dict, cost: CostBreakdown):
@@ -1731,17 +1929,18 @@ def render_sensitivity_analysis(params: Dict, cost: CostBreakdown):
         st.caption(f"{result.low_value} ← {result.base_value} → {result.high_value}")
 
         # Visual bar
-        st.markdown(f"""
-        <div style="display: flex; align-items: center; margin: 5px 0 15px 0;">
-            <div style="width: 50%; display: flex; justify-content: flex-end;">
-                <div style="background: #28a745; height: 20px; width: {low_pct}%; border-radius: 3px 0 0 3px;"></div>
-            </div>
-            <div style="width: 2px; height: 30px; background: #fff;"></div>
-            <div style="width: 50%;">
-                <div style="background: #dc3545; height: 20px; width: {high_pct}%; border-radius: 0 3px 3px 0;"></div>
-            </div>
-        </div>
-        """, unsafe_allow_html=True)
+        tornado_html = (
+            f'<div class="sim-tornado-bar">'
+            f'<div class="sim-tornado-left">'
+            f'<div class="sim-tornado-fill-green" style="width:{low_pct}%;"></div>'
+            f'</div>'
+            f'<div class="sim-tornado-center"></div>'
+            f'<div class="sim-tornado-right">'
+            f'<div class="sim-tornado-fill-red" style="width:{high_pct}%;"></div>'
+            f'</div>'
+            f'</div>'
+        )
+        st.markdown(tornado_html, unsafe_allow_html=True)
 
         col1, col2, col3 = st.columns(3)
         with col1:
@@ -1903,22 +2102,24 @@ def render_group_discount_analysis(cost: CostBreakdown, num_travelers: int):
         final_price = cost.total - discount_amount
 
         border_color = "#d4af37" if is_current else "#333"
+        shadow_style = "box-shadow:0 0 10px rgba(212,175,55,0.3);" if is_current else ""
+        discount_pct_str = f"{tier['discount']*100:.0f}"
 
-        st.markdown(f"""
-        <div style="background: #1a1a2e; padding: 1rem; border-radius: 10px; margin: 0.5rem 0;
-                    border: 2px solid {border_color}; {'box-shadow: 0 0 10px rgba(212,175,55,0.3);' if is_current else ''}">
-            <div style="display: flex; justify-content: space-between; align-items: center;">
-                <div>
-                    <strong style="color: white;">{tier['label']}</strong>
-                    <span style="color: #888;"> ({tier['min_travelers']}+ jamaah)</span>
-                </div>
-                <div style="text-align: right;">
-                    <span style="color: #28a745; font-weight: bold;">{tier['discount']*100:.0f}% OFF</span><br/>
-                    <span style="color: white;">{format_currency(final_price)}/orang</span>
-                </div>
-            </div>
-        </div>
-        """, unsafe_allow_html=True)
+        tier_html = (
+            f'<div class="sim-discount-tier" style="border:2px solid {border_color};{shadow_style}">'
+            f'<div class="inner">'
+            f'<div>'
+            f'<span class="tier-name">{tier["label"]}</span>'
+            f'<span class="tier-count"> ({tier["min_travelers"]}+ jamaah)</span>'
+            f'</div>'
+            f'<div style="text-align:right;">'
+            f'<span class="tier-pct">{discount_pct_str}% OFF</span><br/>'
+            f'<span class="tier-price">{format_currency(final_price)}/orang</span>'
+            f'</div>'
+            f'</div>'
+            f'</div>'
+        )
+        st.markdown(tier_html, unsafe_allow_html=True)
 
     # Next tier suggestion
     current_tier_idx = 0
@@ -1931,10 +2132,90 @@ def render_group_discount_analysis(cost: CostBreakdown, num_travelers: int):
         needed = next_tier['min_travelers'] - num_travelers
 
         with st.container(border=True):
-            st.markdown(f"""
-            💡 **Tambah {needed} jamaah** untuk naik ke tier **{next_tier['label']}**
-            dan dapat diskon **{next_tier['discount']*100:.0f}%**!
-            """)
+            next_discount_str = f"{next_tier['discount']*100:.0f}"
+            st.markdown(
+                f"💡 **Tambah {needed} jamaah** untuk naik ke tier "
+                f"**{next_tier['label']}** dan dapat diskon **{next_discount_str}%**!"
+            )
+
+
+# =============================================================================
+# AI ANALYSIS
+# =============================================================================
+
+def render_ai_analysis(cost: CostBreakdown, params: Dict):
+    """Render AI-powered financial analysis of the simulation results."""
+
+    st.markdown("## 🤖 Analisis AI")
+    st.caption("Konsultasi keuangan Umrah berbasis AI")
+
+    # Build summary for the prompt
+    season, season_desc = get_season(params.get("departure_date", date.today()))
+    total_str = format_currency(cost.total)
+    flight_str = format_currency(cost.flight)
+    hotel_m_str = format_currency(cost.hotel_makkah)
+    hotel_d_str = format_currency(cost.hotel_madinah)
+    meals_str = format_currency(cost.meals)
+    seasonal_str = format_currency(cost.seasonal_adj)
+    num_travelers = params.get("num_travelers", 1)
+
+    prompt = (
+        f"Analisis simulasi biaya Umrah berikut dan berikan saran keuangan:\n\n"
+        f"- Kota berangkat: {params.get('departure_city', 'Jakarta')}\n"
+        f"- Durasi: {params.get('duration', 10)} hari\n"
+        f"- Malam di Makkah: {params.get('nights_makkah', 5)}\n"
+        f"- Malam di Madinah: {params.get('nights_madinah', 4)}\n"
+        f"- Hotel Makkah: bintang {params.get('hotel_star_makkah', 4)}\n"
+        f"- Hotel Madinah: bintang {params.get('hotel_star_madinah', 4)}\n"
+        f"- Kelas penerbangan: {params.get('flight_class', 'economy')}\n"
+        f"- Paket makan: {params.get('meal_type', 'standard')}\n"
+        f"- Jumlah jamaah: {num_travelers}\n"
+        f"- Musim: {season_desc}\n\n"
+        f"Rincian biaya per orang:\n"
+        f"- Tiket pesawat: {flight_str}\n"
+        f"- Hotel Makkah: {hotel_m_str}\n"
+        f"- Hotel Madinah: {hotel_d_str}\n"
+        f"- Makan: {meals_str}\n"
+        f"- Penyesuaian musim: {seasonal_str}\n"
+        f"- TOTAL: {total_str}\n\n"
+        f"Berikan:\n"
+        f"1. Evaluasi apakah budget ini wajar\n"
+        f"2. 3 tips spesifik untuk menghemat\n"
+        f"3. Rekomendasi waktu terbaik untuk booking\n"
+        f"4. Saran tabungan bulanan jika berangkat 6 bulan lagi\n"
+        f"Jawab dalam Bahasa Indonesia, singkat dan praktis."
+    )
+
+    if st.button("🔍 Minta Analisis AI", key="btn_ai_analysis", use_container_width=True):
+        with st.spinner("Menganalisis simulasi Anda..."):
+            response = ai_complete(
+                prompt,
+                system_prompt="Kamu adalah konsultan keuangan Umrah berpengalaman.",
+                max_tokens=1000,
+            )
+
+        if response:
+            st.session_state.simulator_ai_response = response
+
+            # Award XP for first AI analysis
+            if not st.session_state.get("simulator_xp_ai", False):
+                add_xp_safe(20, "Analisis AI Simulator")
+                st.session_state.simulator_xp_ai = True
+        else:
+            st.warning(
+                "Layanan AI sedang tidak tersedia. Silakan coba lagi nanti."
+            )
+
+    # Show cached response
+    cached = st.session_state.get("simulator_ai_response")
+    if cached:
+        ai_html = (
+            '<div class="ai-card">'
+            '<h4>🤖 Hasil Analisis AI</h4>'
+            '<p>' + _markdown_to_html_simple(cached) + '</p>'
+            '</div>'
+        )
+        st.markdown(ai_html, unsafe_allow_html=True)
 
 
 # =============================================================================
@@ -2098,6 +2379,9 @@ def render_simulator_page():
     # Initialize state
     init_simulator_state()
 
+    # Inject shared + page CSS
+    inject_css(HERO_CSS, CARD_CSS, AI_CARD_CSS, BADGE_CSS, SIMULATOR_CSS)
+
     # Check for group link in URL
     group = check_group_from_url()
 
@@ -2159,13 +2443,18 @@ def render_simulator_page():
         include_insurance=params["include_insurance"],
     )
     
+    # Award XP for running simulation (first time per session)
+    if not st.session_state.get("simulator_xp_simulate", False):
+        add_xp_safe(30, "Simulasi Biaya Umrah")
+        st.session_state.simulator_xp_simulate = True
+
     with col_result:
         # Main result
         with st.container(border=True):
             st.markdown("## 🎯 Estimasi Total")
             st.markdown(f"# {format_currency(cost.total)}")
             st.caption("per orang")
-            
+
             if params["num_travelers"] > 1:
                 group_total = cost.total * params["num_travelers"]
                 st.info(f"👥 Total {params['num_travelers']} orang: **{format_currency(group_total)}**")
@@ -2212,7 +2501,8 @@ Dengan **Umrah Bareng**, kamu bisa:
         "🔄 Perbandingan",
         "💡 Tips Hemat",
         "📈 Rencana Tabungan",
-        "🏨 Hotel Live"
+        "🏨 Hotel Live",
+        "🤖 Analisis AI",
     ])
 
     with tabs[0]:
@@ -2254,6 +2544,9 @@ Dengan **Umrah Bareng**, kamu bisa:
 
     with tabs[5]:
         render_live_hotel_prices(params)
+
+    with tabs[6]:
+        render_ai_analysis(cost, params)
     
     # Save/export
     render_save_simulation(params, cost)

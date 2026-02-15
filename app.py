@@ -445,7 +445,7 @@ except ImportError:
 
 # Doa Player
 try:
-    from features.doa_player import (
+    from ui.pages.doa_player import (
         render_doa_player_page,
         render_doa_mini_widget,
     )

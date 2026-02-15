@@ -12,6 +12,12 @@ from typing import Dict, List, Any, Optional
 import random
 import os
 
+# Shared styles
+from ui.components.shared_styles import inject_css, HERO_CSS, CARD_CSS
+
+# Gamification helper
+from services.ai.helpers import add_xp_safe
+
 # AI Service imports
 try:
     from services.ai.chat_service import (
@@ -208,6 +214,38 @@ Biaya umrah bervariasi tergantung beberapa faktor:
 
 
 # =============================================================================
+# PAGE-SPECIFIC CSS
+# =============================================================================
+
+CHAT_PAGE_CSS = """
+/* Expert AI paywall card */
+.expert-paywall {
+    background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+    border: 1px solid #d4af37;
+    border-radius: 12px;
+    padding: 1.2rem;
+    text-align: center;
+}
+
+.expert-paywall .lock-icon {
+    font-size: 1.8rem;
+    margin-bottom: 0.3rem;
+}
+
+.expert-paywall h4 {
+    color: #d4af37;
+    margin-bottom: 0.3rem;
+}
+
+.expert-paywall p {
+    color: #aaa;
+    font-size: 0.85rem;
+    margin-bottom: 0.8rem;
+}
+"""
+
+
+# =============================================================================
 # SESSION STATE
 # =============================================================================
 
@@ -400,13 +438,34 @@ Silakan pilih kategori di bawah untuk pertanyaan yang lebih spesifik.
 
 def process_user_message(message: str):
     """Process user message and get response."""
-    
+
+    # --- Gamification XP tracking ---
+    # Initialise session-state keys on first use
+    if "chat_first_msg_xp_awarded" not in st.session_state:
+        st.session_state.chat_first_msg_xp_awarded = False
+    if "chat_followup_xp_count" not in st.session_state:
+        st.session_state.chat_followup_xp_count = 0
+
+    # Count user messages *before* this one
+    user_msg_count = sum(
+        1 for m in st.session_state.get("chat_messages", []) if m["role"] == "user"
+    )
+
+    # +10 XP for first chat message in this session
+    if user_msg_count == 0 and not st.session_state.chat_first_msg_xp_awarded:
+        add_xp_safe(10, "Pesan chat pertama")
+        st.session_state.chat_first_msg_xp_awarded = True
+    # +5 XP for follow-up questions (max 3 times per session)
+    elif user_msg_count > 0 and st.session_state.chat_followup_xp_count < 3:
+        add_xp_safe(5, "Pertanyaan lanjutan")
+        st.session_state.chat_followup_xp_count += 1
+
     # Add user message
     add_message("user", message)
-    
+
     # Get AI response (simulated)
     response = get_ai_response(message)
-    
+
     # Add AI response
     add_message("assistant", response)
 
@@ -628,17 +687,15 @@ def render_chat_features():
                             st.rerun()
         else:
             # === FREE USER: Show paywall ===
-            st.markdown("""
-            <div style="background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
-                        border: 1px solid #d4af37; border-radius: 12px;
-                        padding: 1.2rem; text-align: center;">
-                <div style="font-size: 1.8rem; margin-bottom: 0.3rem;">🔐</div>
-                <h4 style="color: #d4af37; margin-bottom: 0.3rem;">Fitur Expert AI</h4>
-                <p style="color: #aaa; font-size: 0.85rem; margin-bottom: 0.8rem;">
-                    Dapatkan analisis mendalam untuk mengoptimalkan dana tabungan Anda agar berangkat lebih cepat.
-                </p>
-            </div>
-            """, unsafe_allow_html=True)
+            paywall_html = (
+                '<div class="expert-paywall">'
+                '<div class="lock-icon">&#128274;</div>'
+                '<h4>Fitur Expert AI</h4>'
+                '<p>Dapatkan analisis mendalam untuk mengoptimalkan '
+                'dana tabungan Anda agar berangkat lebih cepat.</p>'
+                '</div>'
+            )
+            st.markdown(paywall_html, unsafe_allow_html=True)
 
             if st.button("✨ Upgrade ke Premium", type="primary", use_container_width=True, key="expert_upgrade"):
                 st.session_state.current_page = "subscription"
@@ -752,13 +809,16 @@ def render_ai_status():
 def render_chat_page():
     """Main chat page renderer."""
 
+    # Inject shared + page-specific CSS
+    inject_css(HERO_CSS, CARD_CSS, CHAT_PAGE_CSS)
+
     # Track page view
     try:
         from services.analytics import track_page
         track_page("chat")
     except:
         pass
-    
+
     # Initialize state
     init_chat_state()
     

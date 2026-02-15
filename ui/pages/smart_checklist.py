@@ -1,6 +1,6 @@
 """
 ================================================================================
-📋 LABBAIK AI - SMART CHECKLIST
+LABBAIK AI - SMART CHECKLIST
 ================================================================================
 Lokasi: ui/pages/smart_checklist.py (atau features/smart_checklist.py)
 Fitur: Checklist packing & persiapan Umrah yang dipersonalisasi
@@ -12,32 +12,19 @@ from datetime import datetime, date, timedelta
 from typing import Dict, List, Any, Optional
 import json
 
+from services.ai.helpers import ai_complete, add_xp_safe
+from ui.components.shared_styles import inject_css, HERO_CSS, CARD_CSS, AI_CARD_CSS, BADGE_CSS
+
 # =============================================================================
-# 🎨 STYLING
+# STYLING
 # =============================================================================
 
 CHECKLIST_CSS = """
-<style>
-@import url('https://fonts.googleapis.com/css2?family=Amiri:wght@400;700&display=swap');
-
+/* Page-specific hero overrides */
 .checklist-hero {
-    background: linear-gradient(135deg, #1a2a1a 0%, #2d4a2d 50%, #1a3a1a 100%);
-    padding: 2rem;
-    border-radius: 20px;
-    text-align: center;
-    margin-bottom: 1.5rem;
-    border: 1px solid #4ade80;
-}
-
-.checklist-hero h1 {
-    color: #4ade80;
-    margin: 0;
-    font-size: 2rem;
-}
-
-.checklist-hero .subtitle {
-    color: #888;
-    font-size: 1rem;
+    --hero-bg: linear-gradient(135deg, #1a2a1a 0%, #2d4a2d 50%, #1a3a1a 100%);
+    --hero-border: #4ade80;
+    --hero-title: #4ade80;
 }
 
 .category-card {
@@ -133,11 +120,21 @@ CHECKLIST_CSS = """
     padding: 1.5rem;
     text-align: center;
 }
-</style>
 """
 
 # =============================================================================
-# 📊 CHECKLIST DATA
+# AI CONFIGURATION
+# =============================================================================
+
+AI_SYSTEM_PROMPT = (
+    "Kamu adalah asisten packing Umrah yang berpengalaman. "
+    "Berikan tips packing yang praktis, spesifik, dan berguna untuk jamaah Indonesia. "
+    "Jawab dalam Bahasa Indonesia. Gunakan format poin-poin singkat dan padat. "
+    "Fokus pada tips yang TIDAK ada di checklist standar."
+)
+
+# =============================================================================
+# CHECKLIST DATA
 # =============================================================================
 
 # Priority levels
@@ -150,8 +147,8 @@ PRIORITY = {
 # Master checklist data
 CHECKLIST_DATA = {
     "dokumen": {
-        "title": "📄 Dokumen Penting",
-        "icon": "📄",
+        "title": "Dokumen Penting",
+        "icon": "\U0001f4c4",
         "color": "#f87171",
         "items": [
             {"id": "paspor", "name": "Paspor (masa aktif >6 bulan)", "priority": "wajib", "gender": "all"},
@@ -169,8 +166,8 @@ CHECKLIST_DATA = {
         ]
     },
     "pakaian_pria": {
-        "title": "👔 Pakaian (Pria)",
-        "icon": "👔",
+        "title": "Pakaian (Pria)",
+        "icon": "\U0001f454",
         "color": "#60a5fa",
         "gender": "male",
         "items": [
@@ -187,8 +184,8 @@ CHECKLIST_DATA = {
         ]
     },
     "pakaian_wanita": {
-        "title": "👗 Pakaian (Wanita)",
-        "icon": "👗",
+        "title": "Pakaian (Wanita)",
+        "icon": "\U0001f457",
         "color": "#f472b6",
         "gender": "female",
         "items": [
@@ -205,8 +202,8 @@ CHECKLIST_DATA = {
         ]
     },
     "ibadah": {
-        "title": "📿 Perlengkapan Ibadah",
-        "icon": "📿",
+        "title": "Perlengkapan Ibadah",
+        "icon": "\U0001f4ff",
         "color": "#4ade80",
         "items": [
             {"id": "quran", "name": "Al-Quran Kecil", "priority": "wajib", "gender": "all"},
@@ -218,8 +215,8 @@ CHECKLIST_DATA = {
         ]
     },
     "kesehatan": {
-        "title": "💊 Obat & Kesehatan",
-        "icon": "💊",
+        "title": "Obat & Kesehatan",
+        "icon": "\U0001f48a",
         "color": "#f87171",
         "items": [
             {"id": "obat_rutin", "name": "Obat Rutin Pribadi", "priority": "wajib", "gender": "all"},
@@ -239,8 +236,8 @@ CHECKLIST_DATA = {
         ]
     },
     "toiletries": {
-        "title": "🧴 Toiletries",
-        "icon": "🧴",
+        "title": "Toiletries",
+        "icon": "\U0001f9f4",
         "color": "#60a5fa",
         "items": [
             {"id": "sabun", "name": "Sabun Mandi (travel size)", "priority": "wajib", "gender": "all"},
@@ -256,8 +253,8 @@ CHECKLIST_DATA = {
         ]
     },
     "elektronik": {
-        "title": "📱 Elektronik",
-        "icon": "📱",
+        "title": "Elektronik",
+        "icon": "\U0001f4f1",
         "color": "#a78bfa",
         "items": [
             {"id": "hp", "name": "Handphone + Charger", "priority": "wajib", "gender": "all"},
@@ -270,8 +267,8 @@ CHECKLIST_DATA = {
         ]
     },
     "uang": {
-        "title": "💰 Uang & Finansial",
-        "icon": "💰",
+        "title": "Uang & Finansial",
+        "icon": "\U0001f4b0",
         "color": "#fbbf24",
         "items": [
             {"id": "riyal", "name": "Uang Saudi Riyal (SAR)", "priority": "wajib", "gender": "all"},
@@ -284,8 +281,8 @@ CHECKLIST_DATA = {
         ]
     },
     "tas": {
-        "title": "🎒 Tas & Koper",
-        "icon": "🎒",
+        "title": "Tas & Koper",
+        "icon": "\U0001f392",
         "color": "#f97316",
         "items": [
             {"id": "koper", "name": "Koper Besar (max 23kg)", "priority": "wajib", "gender": "all"},
@@ -299,8 +296,8 @@ CHECKLIST_DATA = {
         ]
     },
     "lainnya": {
-        "title": "🔧 Lain-lain",
-        "icon": "🔧",
+        "title": "Lain-lain",
+        "icon": "\U0001f527",
         "color": "#888",
         "items": [
             {"id": "payung", "name": "Payung Lipat", "priority": "penting", "gender": "all"},
@@ -315,8 +312,8 @@ CHECKLIST_DATA = {
         ]
     },
     "apps": {
-        "title": "📲 Aplikasi Wajib Download",
-        "icon": "📲",
+        "title": "Aplikasi Wajib Download",
+        "icon": "\U0001f4f2",
         "color": "#4ade80",
         "items": [
             {"id": "app_nusuk", "name": "NUSUK (Visa & Permit)", "priority": "wajib", "gender": "all"},
@@ -353,7 +350,7 @@ WEATHER_ITEMS = {
 }
 
 # =============================================================================
-# 🔧 SESSION STATE & HELPERS
+# SESSION STATE & HELPERS
 # =============================================================================
 
 def init_checklist_state():
@@ -367,33 +364,39 @@ def init_checklist_state():
             "season": "normal",
             "health_conditions": []
         }
+    if "checklist_ai_tips" not in st.session_state:
+        st.session_state.checklist_ai_tips = None
+    if "checklist_xp_ai_tips" not in st.session_state:
+        st.session_state.checklist_xp_ai_tips = False
+    if "checklist_xp_categories" not in st.session_state:
+        st.session_state.checklist_xp_categories = set()
 
 def get_filtered_checklist(gender: str, season: str) -> Dict:
     """Get checklist filtered by gender and season."""
     filtered = {}
-    
+
     for cat_id, category in CHECKLIST_DATA.items():
         # Skip gender-specific categories
         if category.get("gender") and category["gender"] != gender:
             continue
-        
+
         # Filter items by gender
         items = []
         for item in category["items"]:
             if item["gender"] == "all" or item["gender"] == gender:
                 items.append(item)
-        
+
         if items:
             filtered[cat_id] = {
                 **category,
                 "items": items
             }
-    
+
     # Add weather-specific items
     if season in WEATHER_ITEMS:
         if "lainnya" in filtered:
             filtered["lainnya"]["items"].extend(WEATHER_ITEMS[season])
-    
+
     return filtered
 
 def calculate_progress(checklist: Dict, checked_items: Dict) -> tuple:
@@ -402,125 +405,221 @@ def calculate_progress(checklist: Dict, checked_items: Dict) -> tuple:
     done = 0
     wajib_total = 0
     wajib_done = 0
-    
+
     for cat_id, category in checklist.items():
         for item in category["items"]:
             total += 1
             if checked_items.get(item["id"]):
                 done += 1
-            
+
             if item["priority"] == "wajib":
                 wajib_total += 1
                 if checked_items.get(item["id"]):
                     wajib_done += 1
-    
+
     return done, total, wajib_done, wajib_total
+
+def calculate_category_progress(category: Dict, checked_items: Dict) -> tuple:
+    """Calculate progress for a single category. Returns (done, total)."""
+    items = category["items"]
+    total = len(items)
+    done = sum(1 for item in items if checked_items.get(item["id"]))
+    return done, total
 
 def export_to_text(checklist: Dict, checked_items: Dict, profile: Dict) -> str:
     """Export checklist to text format."""
     lines = []
     lines.append("=" * 50)
-    lines.append("📋 CHECKLIST UMRAH - LABBAIK.AI")
+    lines.append("\U0001f4cb CHECKLIST UMRAH - LABBAIK.AI")
     lines.append("=" * 50)
     lines.append(f"Durasi: {profile['duration']} hari")
-    lines.append(f"Gender: {'Pria' if profile['gender'] == 'male' else 'Wanita'}")
+    gender_label = "Pria" if profile["gender"] == "male" else "Wanita"
+    lines.append(f"Gender: {gender_label}")
     lines.append("")
-    
+
     done, total, wajib_done, wajib_total = calculate_progress(checklist, checked_items)
-    lines.append(f"Progress: {done}/{total} ({int(done/total*100) if total > 0 else 0}%)")
+    pct_val = int(done / total * 100) if total > 0 else 0
+    lines.append(f"Progress: {done}/{total} ({pct_val}%)")
     lines.append(f"Item Wajib: {wajib_done}/{wajib_total}")
     lines.append("")
     lines.append("-" * 50)
-    
+
     for cat_id, category in checklist.items():
         lines.append("")
         lines.append(f"{category['icon']} {category['title']}")
         lines.append("-" * 30)
-        
+
         for item in category["items"]:
-            check = "✅" if checked_items.get(item["id"]) else "⬜"
-            priority = f"[{PRIORITY[item['priority']]['label']}]" if item["priority"] == "wajib" else ""
+            check = "\u2705" if checked_items.get(item["id"]) else "\u2b1c"
+            priority = ""
+            if item["priority"] == "wajib":
+                priority = f"[{PRIORITY[item['priority']]['label']}]"
             lines.append(f"  {check} {item['name']} {priority}")
-    
+
     lines.append("")
     lines.append("=" * 50)
     lines.append("Generated by LABBAIK.AI")
     lines.append("labbaik-umrahplanner.streamlit.app")
     lines.append("=" * 50)
-    
+
     return "\n".join(lines)
 
 def export_to_whatsapp(checklist: Dict, checked_items: Dict, profile: Dict) -> str:
     """Export checklist to WhatsApp format."""
     lines = []
-    lines.append("📋 *CHECKLIST UMRAH*")
+    lines.append("\U0001f4cb *CHECKLIST UMRAH*")
     lines.append(f"_Durasi: {profile['duration']} hari_")
     lines.append("")
-    
+
     done, total, wajib_done, wajib_total = calculate_progress(checklist, checked_items)
-    lines.append(f"✅ Progress: *{done}/{total}* ({int(done/total*100) if total > 0 else 0}%)")
+    pct_val = int(done / total * 100) if total > 0 else 0
+    lines.append(f"\u2705 Progress: *{done}/{total}* ({pct_val}%)")
     lines.append("")
-    
+
     for cat_id, category in checklist.items():
         # Only show unchecked items
         unchecked = [item for item in category["items"] if not checked_items.get(item["id"])]
         if unchecked:
             lines.append(f"*{category['title']}*")
             for item in unchecked[:5]:  # Limit to 5 per category
-                priority = "🔴" if item["priority"] == "wajib" else "🟡" if item["priority"] == "penting" else "🔵"
-                lines.append(f"{priority} {item['name']}")
+                if item["priority"] == "wajib":
+                    priority_icon = "\U0001f534"
+                elif item["priority"] == "penting":
+                    priority_icon = "\U0001f7e1"
+                else:
+                    priority_icon = "\U0001f535"
+                lines.append(f"{priority_icon} {item['name']}")
             if len(unchecked) > 5:
-                lines.append(f"   _...dan {len(unchecked)-5} item lainnya_")
+                remaining = len(unchecked) - 5
+                lines.append(f"   _...dan {remaining} item lainnya_")
             lines.append("")
-    
-    lines.append("─" * 20)
-    lines.append("🔗 labbaik-umrahplanner.streamlit.app")
-    
+
+    lines.append("\u2500" * 20)
+    lines.append("\U0001f517 labbaik-umrahplanner.streamlit.app")
+
     return "\n".join(lines)
 
 # =============================================================================
-# 🎨 UI COMPONENTS
+# AI HELPERS
+# =============================================================================
+
+def _build_ai_prompt(profile: Dict, checklist: Dict, checked_items: Dict) -> str:
+    """Build a context-rich prompt for AI packing tips."""
+    done, total, wajib_done, wajib_total = calculate_progress(checklist, checked_items)
+    gender_label = "Pria" if profile["gender"] == "male" else "Wanita"
+    season_map = {
+        "normal": "Normal",
+        "summer": "Musim Panas",
+        "winter": "Musim Dingin",
+        "ramadan": "Bulan Ramadan",
+    }
+    season_label = season_map.get(profile["season"], profile["season"])
+
+    # Collect unchecked wajib items
+    unchecked_wajib = []
+    for cat_id, category in checklist.items():
+        for item in category["items"]:
+            if item["priority"] == "wajib" and not checked_items.get(item["id"]):
+                unchecked_wajib.append(item["name"])
+
+    # Collect health conditions
+    health = profile.get("health_conditions", [])
+    health_text = ", ".join(health) if health else "Tidak ada"
+
+    prompt_lines = [
+        f"Profil jamaah: {gender_label}, durasi {profile['duration']} hari, musim: {season_label}",
+        f"Kondisi kesehatan: {health_text}",
+        f"Progress packing: {done}/{total} item sudah disiapkan.",
+        f"Item wajib belum disiapkan: {len(unchecked_wajib)} item.",
+    ]
+    if unchecked_wajib:
+        top_missing = unchecked_wajib[:8]
+        prompt_lines.append("Beberapa item wajib yang belum disiapkan: " + ", ".join(top_missing))
+
+    prompt_lines.append("")
+    prompt_lines.append(
+        "Berikan 5-7 tips packing tambahan yang SPESIFIK untuk profil jamaah ini. "
+        "Tips harus praktis dan tidak duplikat dengan checklist standar. "
+        "Jika ada kondisi kesehatan, berikan saran khusus untuk kondisi tersebut. "
+        "Jika musim panas, beri tips anti-heatstroke. "
+        "Jika Ramadan, beri tips persiapan puasa di tanah suci."
+    )
+
+    return "\n".join(prompt_lines)
+
+
+def _markdown_to_html_simple(text: str) -> str:
+    """Convert basic markdown formatting to HTML for safe rendering."""
+    if not text:
+        return ""
+    lines = text.split("\n")
+    html_parts = []
+    for line in lines:
+        stripped = line.strip()
+        if not stripped:
+            html_parts.append("<br>")
+            continue
+        # Bold
+        import re
+        stripped = re.sub(r'\*\*(.+?)\*\*', r'<strong>\1</strong>', stripped)
+        stripped = re.sub(r'__(.+?)__', r'<strong>\1</strong>', stripped)
+        # Italic
+        stripped = re.sub(r'\*(.+?)\*', r'<em>\1</em>', stripped)
+        # Bullet points
+        if stripped.startswith("- ") or stripped.startswith("* "):
+            stripped = "\u2022 " + stripped[2:]
+        # Numbered lists
+        num_match = re.match(r'^(\d+)\.\s', stripped)
+        if num_match:
+            stripped = stripped  # keep as-is
+        html_parts.append(stripped)
+    return "<br>".join(html_parts)
+
+
+# =============================================================================
+# UI COMPONENTS
 # =============================================================================
 
 def render_hero():
-    """Render hero section."""
-    st.markdown(CHECKLIST_CSS, unsafe_allow_html=True)
-    
-    st.markdown("""
-    <div class="checklist-hero">
-        <h1>📋 Smart Checklist</h1>
-        <p class="subtitle">Checklist Packing Umrah yang Dipersonalisasi</p>
-    </div>
-    """, unsafe_allow_html=True)
+    """Render hero section with CSS."""
+    inject_css(HERO_CSS, CARD_CSS, AI_CARD_CSS, BADGE_CSS, CHECKLIST_CSS)
+
+    st.markdown(
+        '<div class="page-hero checklist-hero">'
+        '<h1>\U0001f4cb Smart Checklist</h1>'
+        '<p class="subtitle">Checklist Packing Umrah yang Dipersonalisasi</p>'
+        '</div>',
+        unsafe_allow_html=True,
+    )
 
 def render_profile_form():
     """Render profile configuration form."""
     with st.container(border=True):
-        st.markdown("### ⚙️ Personalisasi Checklist")
-        
+        st.markdown("### \u2699\ufe0f Personalisasi Checklist")
+
         col1, col2, col3 = st.columns(3)
-        
+
         with col1:
             gender = st.selectbox(
-                "👤 Jenis Kelamin",
+                "\U0001f464 Jenis Kelamin",
                 options=["male", "female"],
                 format_func=lambda x: "Pria" if x == "male" else "Wanita",
                 index=0 if st.session_state.checklist_profile["gender"] == "male" else 1
             )
             st.session_state.checklist_profile["gender"] = gender
-        
+
         with col2:
             duration = st.slider(
-                "📅 Durasi (hari)",
+                "\U0001f4c5 Durasi (hari)",
                 min_value=7,
                 max_value=21,
                 value=st.session_state.checklist_profile["duration"]
             )
             st.session_state.checklist_profile["duration"] = duration
-        
+
         with col3:
             season = st.selectbox(
-                "🌡️ Musim/Kondisi",
+                "\U0001f321\ufe0f Musim/Kondisi",
                 options=["normal", "summer", "winter", "ramadan"],
                 format_func=lambda x: {
                     "normal": "Normal",
@@ -530,12 +629,12 @@ def render_profile_form():
                 }[x]
             )
             st.session_state.checklist_profile["season"] = season
-        
+
         # Health conditions
-        st.markdown("**🏥 Kondisi Kesehatan (opsional):**")
+        st.markdown("**\U0001f3e5 Kondisi Kesehatan (opsional):**")
         health_cols = st.columns(4)
         health_options = ["Diabetes", "Hipertensi", "Asma", "Alergi"]
-        
+
         conditions = []
         for i, condition in enumerate(health_options):
             with health_cols[i]:
@@ -546,64 +645,70 @@ def render_profile_form():
 def render_progress_summary(checklist: Dict, checked_items: Dict):
     """Render progress summary."""
     done, total, wajib_done, wajib_total = calculate_progress(checklist, checked_items)
-    
+
     pct = int(done / total * 100) if total > 0 else 0
     wajib_pct = int(wajib_done / wajib_total * 100) if wajib_total > 0 else 0
-    
+
     col1, col2, col3, col4 = st.columns(4)
-    
+
     with col1:
-        st.markdown(f"""
-        <div class="progress-ring">
-            <div class="progress-number">{pct}%</div>
-            <div class="progress-label">Total Progress</div>
-        </div>
-        """, unsafe_allow_html=True)
-    
+        st.markdown(
+            '<div class="progress-ring">'
+            f'<div class="progress-number">{pct}%</div>'
+            '<div class="progress-label">Total Progress</div>'
+            '</div>',
+            unsafe_allow_html=True,
+        )
+
     with col2:
-        st.markdown(f"""
-        <div class="progress-ring">
-            <div class="progress-number">{done}/{total}</div>
-            <div class="progress-label">Item Tercek</div>
-        </div>
-        """, unsafe_allow_html=True)
-    
+        st.markdown(
+            '<div class="progress-ring">'
+            f'<div class="progress-number">{done}/{total}</div>'
+            '<div class="progress-label">Item Tercek</div>'
+            '</div>',
+            unsafe_allow_html=True,
+        )
+
     with col3:
         color = "#4ade80" if wajib_pct == 100 else "#f87171"
-        st.markdown(f"""
-        <div class="progress-ring" style="border-color:{color};">
-            <div class="progress-number" style="color:{color};">{wajib_pct}%</div>
-            <div class="progress-label">Item WAJIB</div>
-        </div>
-        """, unsafe_allow_html=True)
-    
+        st.markdown(
+            f'<div class="progress-ring" style="border-color:{color};">'
+            f'<div class="progress-number" style="color:{color};">{wajib_pct}%</div>'
+            '<div class="progress-label">Item WAJIB</div>'
+            '</div>',
+            unsafe_allow_html=True,
+        )
+
     with col4:
         remaining = total - done
-        st.markdown(f"""
-        <div class="progress-ring">
-            <div class="progress-number">{remaining}</div>
-            <div class="progress-label">Sisa Item</div>
-        </div>
-        """, unsafe_allow_html=True)
-    
+        st.markdown(
+            '<div class="progress-ring">'
+            f'<div class="progress-number">{remaining}</div>'
+            '<div class="progress-label">Sisa Item</div>'
+            '</div>',
+            unsafe_allow_html=True,
+        )
+
     # Warning if wajib items not complete
     if wajib_pct < 100:
-        st.warning(f"⚠️ **{wajib_total - wajib_done} item WAJIB belum dicentang!** Pastikan semua item wajib sudah siap.")
+        missing = wajib_total - wajib_done
+        st.warning(f"\u26a0\ufe0f **{missing} item WAJIB belum dicentang!** Pastikan semua item wajib sudah siap.")
 
 def render_category_checklist(cat_id: str, category: Dict, checked_items: Dict):
     """Render a single category checklist."""
     items = category["items"]
     done_count = sum(1 for item in items if checked_items.get(item["id"]))
-    
-    with st.expander(f"{category['icon']} {category['title']} ({done_count}/{len(items)})", expanded=done_count < len(items)):
+
+    expander_label = f"{category['icon']} {category['title']} ({done_count}/{len(items)})"
+    with st.expander(expander_label, expanded=done_count < len(items)):
         # Progress bar
         pct = done_count / len(items) if items else 0
         st.progress(pct)
-        
+
         # Items
         for item in items:
             col1, col2 = st.columns([4, 1])
-            
+
             with col1:
                 checked = st.checkbox(
                     item["name"],
@@ -611,204 +716,258 @@ def render_category_checklist(cat_id: str, category: Dict, checked_items: Dict):
                     key=f"check_{item['id']}"
                 )
                 st.session_state.checklist_items[item["id"]] = checked
-            
+
             with col2:
                 priority = PRIORITY[item["priority"]]
-                st.markdown(f"""
-                <span class="item-priority {priority['class']}">{priority['label']}</span>
-                """, unsafe_allow_html=True)
-            
+                priority_cls = priority["class"]
+                priority_lbl = priority["label"]
+                st.markdown(
+                    f'<span class="item-priority {priority_cls}">{priority_lbl}</span>',
+                    unsafe_allow_html=True,
+                )
+
             # Special warnings
             if item["id"] in IHRAM_PROHIBITED and checked:
-                st.caption("⚠️ Ingat: TIDAK boleh dipakai saat ihram!")
+                st.caption("\u26a0\ufe0f Ingat: TIDAK boleh dipakai saat ihram!")
+
+    # Gamification: award XP when all items in a category are completed (first time)
+    if done_count == len(items) and len(items) > 0:
+        if cat_id not in st.session_state.checklist_xp_categories:
+            st.session_state.checklist_xp_categories.add(cat_id)
+            add_xp_safe(20, f"Checklist kategori {category['title']} lengkap!")
 
 def render_tips():
     """Render packing tips."""
-    st.markdown("### 💡 Tips Packing")
-    
+    st.markdown("### \U0001f4a1 Tips Packing")
+
     tips = [
-        ("🎒", "**Berat Koper:** Max 23kg untuk bagasi, 7kg untuk kabin"),
-        ("📦", "**Pisahkan:** Taruh perlengkapan ihram di tas kabin"),
-        ("🔒", "**Keamanan:** Gunakan gembok TSA untuk koper"),
-        ("📱", "**Backup:** Foto semua dokumen, simpan di cloud"),
-        ("💊", "**Obat:** Bawa resep dokter untuk obat-obatan"),
-        ("🧴", "**Cairan:** Toiletries max 100ml untuk kabin"),
+        ("\U0001f392", "**Berat Koper:** Max 23kg untuk bagasi, 7kg untuk kabin"),
+        ("\U0001f4e6", "**Pisahkan:** Taruh perlengkapan ihram di tas kabin"),
+        ("\U0001f512", "**Keamanan:** Gunakan gembok TSA untuk koper"),
+        ("\U0001f4f1", "**Backup:** Foto semua dokumen, simpan di cloud"),
+        ("\U0001f48a", "**Obat:** Bawa resep dokter untuk obat-obatan"),
+        ("\U0001f9f4", "**Cairan:** Toiletries max 100ml untuk kabin"),
     ]
-    
+
     cols = st.columns(2)
     for i, (icon, tip) in enumerate(tips):
         with cols[i % 2]:
-            st.markdown(f"""
-            <div class="tip-card">
-                {icon} {tip}
-            </div>
-            """, unsafe_allow_html=True)
+            st.markdown(
+                f'<div class="tip-card">{icon} {tip}</div>',
+                unsafe_allow_html=True,
+            )
 
 def render_prohibited_items():
     """Render prohibited items warning."""
-    st.markdown("### 🚫 Barang Terlarang")
-    
-    st.markdown("""
-    <div class="warning-card">
-        <strong>❌ JANGAN BAWA:</strong><br>
-        • Narkoba & obat terlarang<br>
-        • Alkohol<br>
-        • Senjata tajam<br>
-        • Buku/materi yang bertentangan dengan Islam<br>
-        • Makanan dari babi<br>
-        • E-cigarette/Vape (ilegal di Saudi)
-    </div>
-    """, unsafe_allow_html=True)
-    
-    st.markdown("""
-    <div class="warning-card">
-        <strong>⚠️ SAAT IHRAM DILARANG:</strong><br>
-        • Parfum/wewangian<br>
-        • Menutup kepala (pria)<br>
-        • Pakaian berjahit (pria)<br>
-        • Memotong kuku & rambut<br>
-        • Berburu & membunuh binatang
-    </div>
-    """, unsafe_allow_html=True)
+    st.markdown("### \U0001f6ab Barang Terlarang")
+
+    st.markdown(
+        '<div class="warning-card">'
+        '<strong>\u274c JANGAN BAWA:</strong><br>'
+        '\u2022 Narkoba & obat terlarang<br>'
+        '\u2022 Alkohol<br>'
+        '\u2022 Senjata tajam<br>'
+        '\u2022 Buku/materi yang bertentangan dengan Islam<br>'
+        '\u2022 Makanan dari babi<br>'
+        '\u2022 E-cigarette/Vape (ilegal di Saudi)'
+        '</div>',
+        unsafe_allow_html=True,
+    )
+
+    st.markdown(
+        '<div class="warning-card">'
+        '<strong>\u26a0\ufe0f SAAT IHRAM DILARANG:</strong><br>'
+        '\u2022 Parfum/wewangian<br>'
+        '\u2022 Menutup kepala (pria)<br>'
+        '\u2022 Pakaian berjahit (pria)<br>'
+        '\u2022 Memotong kuku & rambut<br>'
+        '\u2022 Berburu & membunuh binatang'
+        '</div>',
+        unsafe_allow_html=True,
+    )
+
+def render_ai_packing_tips(profile: Dict, checklist: Dict, checked_items: Dict):
+    """Render AI-powered packing tips section."""
+    st.markdown("### \U0001f9e0 Tips Packing AI")
+
+    # Button to generate tips
+    if st.button("\U0001f9e0 Minta Tips AI", use_container_width=True, key="btn_ai_tips"):
+        prompt = _build_ai_prompt(profile, checklist, checked_items)
+        with st.spinner("AI sedang menyiapkan tips packing personal..."):
+            response = ai_complete(prompt, system_prompt=AI_SYSTEM_PROMPT, max_tokens=768)
+        if response:
+            st.session_state.checklist_ai_tips = response
+            # Gamification: +15 XP for AI tips (first time)
+            if not st.session_state.checklist_xp_ai_tips:
+                st.session_state.checklist_xp_ai_tips = True
+                add_xp_safe(15, "Mendapatkan tips packing AI")
+        else:
+            st.session_state.checklist_ai_tips = None
+            st.info("Layanan AI tidak tersedia saat ini. Silakan coba lagi nanti.")
+
+    # Display cached tips
+    cached_tips = st.session_state.get("checklist_ai_tips")
+    if cached_tips:
+        html_content = _markdown_to_html_simple(cached_tips)
+        st.markdown(
+            '<div class="ai-card">'
+            '<h4 style="color:#4ade80;margin-top:0;">\U0001f9e0 Tips Packing Personal dari AI</h4>'
+            f'<p>{html_content}</p>'
+            '</div>',
+            unsafe_allow_html=True,
+        )
+    else:
+        st.markdown(
+            '<div class="ai-card" style="border-color:#555;opacity:0.7;">'
+            '<p style="color:#888;text-align:center;">Klik tombol di atas untuk mendapatkan tips packing '
+            'yang dipersonalisasi berdasarkan profil Anda.</p>'
+            '</div>',
+            unsafe_allow_html=True,
+        )
 
 # =============================================================================
-# 🚀 MAIN PAGE FUNCTION
+# MAIN PAGE FUNCTION
 # =============================================================================
 
 def render_smart_checklist_page():
     """Main entry point for Smart Checklist page."""
-    
+
     # Initialize state
     init_checklist_state()
-    
+
     # Render hero
     render_hero()
-    
+
     # Profile form
     render_profile_form()
-    
+
     st.divider()
-    
+
     # Get filtered checklist
     profile = st.session_state.checklist_profile
     checklist = get_filtered_checklist(profile["gender"], profile["season"])
     checked_items = st.session_state.checklist_items
-    
+
     # Progress summary
     render_progress_summary(checklist, checked_items)
-    
+
     st.divider()
-    
+
     # Export buttons
     col1, col2, col3, col4 = st.columns(4)
-    
+
     with col1:
         text_export = export_to_text(checklist, checked_items, profile)
         st.download_button(
-            "📄 Download TXT",
+            "\U0001f4c4 Download TXT",
             data=text_export,
             file_name="checklist_umrah.txt",
             mime="text/plain",
             use_container_width=True
         )
-    
+
     with col2:
         wa_export = export_to_whatsapp(checklist, checked_items, profile)
         st.download_button(
-            "📱 Format WhatsApp",
+            "\U0001f4f1 Format WhatsApp",
             data=wa_export,
             file_name="checklist_umrah_wa.txt",
             mime="text/plain",
             use_container_width=True
         )
-    
+
     with col3:
         json_export = json.dumps({
             "profile": profile,
             "checked_items": checked_items,
             "timestamp": datetime.now().isoformat()
-        }, indent=2)
+        }, indent=2, default=str)
         st.download_button(
-            "💾 Backup JSON",
+            "\U0001f4be Backup JSON",
             data=json_export,
             file_name="checklist_backup.json",
             mime="application/json",
             use_container_width=True
         )
-    
+
     with col4:
-        if st.button("🔄 Reset Semua", use_container_width=True):
+        if st.button("\U0001f504 Reset Semua", use_container_width=True):
             st.session_state.checklist_items = {}
+            st.session_state.checklist_xp_categories = set()
             st.rerun()
-    
+
     st.divider()
-    
+
     # Main checklist
-    st.markdown("### ✅ Checklist Item")
-    
+    st.markdown("### \u2705 Checklist Item")
+
     # Quick filter
     filter_option = st.radio(
         "Filter:",
-        ["📋 Semua", "🔴 Wajib Saja", "⬜ Belum Dicentang"],
+        ["\U0001f4cb Semua", "\U0001f534 Wajib Saja", "\u2b1c Belum Dicentang"],
         horizontal=True
     )
-    
+
     # Render categories
     for cat_id, category in checklist.items():
         # Apply filter
-        if filter_option == "🔴 Wajib Saja":
+        if filter_option == "\U0001f534 Wajib Saja":
             category = {
                 **category,
                 "items": [i for i in category["items"] if i["priority"] == "wajib"]
             }
-        elif filter_option == "⬜ Belum Dicentang":
+        elif filter_option == "\u2b1c Belum Dicentang":
             category = {
                 **category,
                 "items": [i for i in category["items"] if not checked_items.get(i["id"])]
             }
-        
+
         if category["items"]:
             render_category_checklist(cat_id, category, checked_items)
-    
+
     st.divider()
-    
+
+    # AI Packing Tips
+    render_ai_packing_tips(profile, checklist, checked_items)
+
+    st.divider()
+
     # Tips & Warnings
     col1, col2 = st.columns(2)
-    
+
     with col1:
         render_tips()
-    
+
     with col2:
         render_prohibited_items()
-    
+
     # Share box
     st.divider()
     done, total, _, _ = calculate_progress(checklist, checked_items)
     pct = int(done / total * 100) if total > 0 else 0
-    
-    st.markdown(f"""
-    <div class="share-box">
-        <h3 style="color:#4ade80;margin-top:0;">📤 Bagikan Progress Anda!</h3>
-        <p style="color:#888;">Progress packing: <strong>{pct}%</strong> ({done}/{total} item)</p>
-        <p style="color:#666;font-size:0.85rem;">
-            Screenshot dan share ke grup WhatsApp keluarga! 📱
-        </p>
-    </div>
-    """, unsafe_allow_html=True)
-    
+
+    st.markdown(
+        '<div class="share-box">'
+        '<h3 style="color:#4ade80;margin-top:0;">\U0001f4e4 Bagikan Progress Anda!</h3>'
+        f'<p style="color:#888;">Progress packing: <strong>{pct}%</strong> ({done}/{total} item)</p>'
+        '<p style="color:#666;font-size:0.85rem;">'
+        'Screenshot dan share ke grup WhatsApp keluarga! \U0001f4f1'
+        '</p>'
+        '</div>',
+        unsafe_allow_html=True,
+    )
+
     # DYOR
     st.divider()
-    st.warning("""
-    ⚠️ **DYOR - Do Your Own Research**
-    
-    Checklist ini bersifat panduan umum. Sesuaikan dengan:
-    - Kebutuhan pribadi Anda
-    - Kondisi kesehatan
-    - Aturan maskapai penerbangan
-    - Regulasi terbaru Saudi Arabia
-    
-    **LABBAIK.AI tidak bertanggung jawab atas barang yang tertinggal.**
-    """)
+    st.warning(
+        "\u26a0\ufe0f **DYOR - Do Your Own Research**\n\n"
+        "Checklist ini bersifat panduan umum. Sesuaikan dengan:\n"
+        "- Kebutuhan pribadi Anda\n"
+        "- Kondisi kesehatan\n"
+        "- Aturan maskapai penerbangan\n"
+        "- Regulasi terbaru Saudi Arabia\n\n"
+        "**LABBAIK.AI tidak bertanggung jawab atas barang yang tertinggal.**"
+    )
 
 
 # =============================================================================

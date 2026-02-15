@@ -24,9 +24,13 @@ from typing import Dict, List, Any, Optional, Tuple
 from dataclasses import dataclass, field
 from enum import Enum
 import random
+import re
 import string
 import hashlib
 import json
+
+from services.ai.helpers import ai_complete, add_xp_safe
+from ui.components.shared_styles import inject_css, HERO_CSS, CARD_CSS, AI_CARD_CSS, BADGE_CSS
 
 # =============================================================================
 # ENUMS
@@ -461,6 +465,117 @@ BADGE_INFO = {
         "color": "#FF4081"
     },
 }
+
+
+# =============================================================================
+# PAGE-SPECIFIC CSS
+# =============================================================================
+
+PAGE_CSS = """
+/* Umrah Bareng hero overrides */
+:root {
+    --hero-bg: linear-gradient(135deg, #0d1b2a 0%, #1b2a4a 60%, #2a1a4a 100%);
+    --hero-border: #d4af37;
+    --hero-title: #d4af37;
+    --hero-subtitle: #94a3b8;
+}
+
+/* Stat cards row */
+.ub-stats-row {
+    display: flex;
+    gap: 1rem;
+    margin-bottom: 1.5rem;
+}
+
+.ub-stat-card {
+    flex: 1;
+    text-align: center;
+    padding: 1.25rem 0.75rem;
+    background: linear-gradient(145deg, #1a1a2e 0%, #1e293b 100%);
+    border-radius: 15px;
+    border: 1px solid #333;
+    transition: transform 0.2s ease;
+}
+
+.ub-stat-card:hover {
+    transform: translateY(-2px);
+}
+
+.ub-stat-card .number {
+    font-size: 1.6rem;
+    font-weight: bold;
+}
+
+.ub-stat-card .label {
+    color: #94a3b8;
+    font-size: 0.78rem;
+    margin-top: 0.25rem;
+}
+
+/* AI recommendation section */
+.ub-ai-section {
+    margin-top: 1.5rem;
+    margin-bottom: 1.5rem;
+}
+
+.ub-ai-prompt-card {
+    background: linear-gradient(145deg, #1a2e1a 0%, #1a3a1a 100%);
+    border: 1px solid #228B22;
+    border-radius: 15px;
+    padding: 1.5rem;
+    margin-bottom: 1rem;
+}
+
+.ub-ai-prompt-card h4 {
+    color: #4ade80;
+    margin: 0 0 0.5rem 0;
+}
+
+.ub-ai-prompt-card p {
+    color: #94a3b8;
+    font-size: 0.9rem;
+    margin: 0;
+}
+
+/* Match score badge */
+.ub-match-badge {
+    display: inline-block;
+    padding: 0.25rem 0.75rem;
+    border-radius: 12px;
+    font-size: 0.8rem;
+    font-weight: bold;
+}
+
+.ub-match-high {
+    background: #1a3a1a;
+    color: #4ade80;
+    border: 1px solid #228B22;
+}
+
+.ub-match-med {
+    background: #3a3a1a;
+    color: #fbbf24;
+    border: 1px solid #b8860b;
+}
+
+.ub-match-low {
+    background: #2a1a1a;
+    color: #f87171;
+    border: 1px solid #8b0000;
+}
+
+/* XP toast notification */
+.ub-xp-toast {
+    background: linear-gradient(135deg, #1a3a1a, #2a4a2a);
+    border: 1px solid #4ade80;
+    border-radius: 10px;
+    padding: 0.75rem 1rem;
+    color: #4ade80;
+    font-weight: bold;
+    text-align: center;
+    margin: 0.5rem 0;
+}
+"""
 
 
 # =============================================================================
@@ -998,9 +1113,19 @@ def init_umrah_bareng_state():
     # Create trip wizard state
     if "ub_create_step" not in st.session_state:
         st.session_state.ub_create_step = 1
-    
+
     if "ub_create_data" not in st.session_state:
         st.session_state.ub_create_data = {}
+
+    # Gamification XP tracking
+    if "ub_xp_group_action" not in st.session_state:
+        st.session_state.ub_xp_group_action = False
+    if "ub_xp_ai_recommendation" not in st.session_state:
+        st.session_state.ub_xp_ai_recommendation = False
+
+    # AI recommendation state
+    if "ub_ai_response" not in st.session_state:
+        st.session_state.ub_ai_response = None
 
 
 # =============================================================================
@@ -1242,6 +1367,10 @@ def render_trip_card(trip: UmrahTrip, show_match_score: bool = False, compact: b
         with col4:
             if trip.status in [TripStatus.OPEN, TripStatus.FILLING, TripStatus.ALMOST_FULL]:
                 if st.button("🚀 Join", key=f"join_{trip.id}", type="primary"):
+                    # Gamification: award XP for first group join
+                    if not st.session_state.get("ub_xp_group_action", False):
+                        st.session_state.ub_xp_group_action = True
+                        add_xp_safe(25, "Bergabung grup Umrah Bareng")
                     navigate_to("trip_detail", selected_trip=trip)
                     st.rerun()
             else:
@@ -1305,6 +1434,10 @@ def render_community_card(community: Community):
                 st.caption("rating")
             with col_d:
                 if st.button("Join", key=f"join_comm_{community.id}", type="primary"):
+                    # Gamification: award XP for first group join
+                    if not st.session_state.get("ub_xp_group_action", False):
+                        st.session_state.ub_xp_group_action = True
+                        add_xp_safe(25, "Bergabung komunitas Umrah Bareng")
                     st.success("✅ Bergabung!")
 
 
@@ -1671,6 +1804,151 @@ def render_leaderboard_view():
 
 
 # =============================================================================
+# HELPER: MARKDOWN TO HTML
+# =============================================================================
+
+def _markdown_to_html_simple(text: str) -> str:
+    """Simple markdown to HTML conversion for display in custom styled div."""
+    lines = text.split("\n")
+    html_lines = []
+    for line in lines:
+        line = line.strip()
+        if not line:
+            html_lines.append("<br/>")
+            continue
+        # Bold
+        line = re.sub(r"\*\*(.+?)\*\*", r"<strong>\1</strong>", line)
+        # Italic
+        line = re.sub(r"\*(.+?)\*", r"<em>\1</em>", line)
+        # Bullet points
+        if line.startswith("- ") or line.startswith("* "):
+            line = "&bull; " + line[2:]
+        # Numbered lists
+        match = re.match(r"^(\d+)\.\s+", line)
+        if match:
+            line = "<strong>" + match.group(1) + ".</strong> " + line[match.end():]
+        html_lines.append("<div style='margin-bottom:0.3rem;'>" + line + "</div>")
+
+    return "\n".join(html_lines)
+
+
+# =============================================================================
+# AI RECOMMENDATION SECTION
+# =============================================================================
+
+def render_ai_recommendation():
+    """Render AI-powered group recommendation section."""
+
+    st.markdown("---")
+    prompt_html = (
+        '<div class="ub-ai-prompt-card">'
+        '<h4>🤖 Rekomendasi AI - Teman Umrah</h4>'
+        '<p>Dapatkan rekomendasi grup dan tips mencocokkan teman perjalanan '
+        'berdasarkan preferensi Anda dari AI.</p>'
+        '</div>'
+    )
+    st.markdown(prompt_html, unsafe_allow_html=True)
+
+    user = st.session_state.ub_current_user
+    trips = st.session_state.ub_trips
+
+    # Collect summary data for the AI prompt
+    open_trips = [t for t in trips if t.status in [TripStatus.OPEN, TripStatus.FILLING]]
+    city_counts = {}
+    for t in open_trips:
+        city_counts[t.departure_city] = city_counts.get(t.departure_city, 0) + 1
+
+    city_summary_parts = []
+    for city, count in sorted(city_counts.items(), key=lambda x: x[1], reverse=True)[:5]:
+        city_summary_parts.append(city + " (" + str(count) + " trip)")
+    city_summary = ", ".join(city_summary_parts) if city_summary_parts else "Belum ada data"
+
+    exp_icon, exp_label = get_experience_label(user.experience_level)
+    style_icon, style_label = get_style_label(user.preferred_style)
+    budget_icon, budget_label, budget_range = get_budget_label(user.preferred_budget)
+
+    col1, col2 = st.columns([3, 1])
+    with col1:
+        user_question = st.text_input(
+            "Pertanyaan tambahan (opsional)",
+            placeholder="Contoh: Saya ingin umrah saat Ramadan dengan keluarga...",
+            key="ub_ai_question"
+        )
+    with col2:
+        ask_ai = st.button(
+            "🤖 Tanya AI",
+            type="primary",
+            use_container_width=True,
+            key="ub_ask_ai_btn"
+        )
+
+    if ask_ai:
+        extra_question = ""
+        if user_question:
+            extra_question = " Pertanyaan tambahan dari user: " + user_question
+
+        prompt_text = (
+            "Profil jamaah:\n"
+            "- Nama: " + user.name + "\n"
+            "- Kota: " + user.city + "\n"
+            "- Pengalaman: " + exp_label + " (" + str(user.umrah_count) + "x umrah)\n"
+            "- Gaya perjalanan: " + style_label + "\n"
+            "- Budget: " + budget_label + " (" + budget_range + ")\n"
+            "- Durasi preferensi: " + str(user.preferred_duration) + " hari\n\n"
+            "Trip yang tersedia saat ini:\n"
+            "- Total trip open: " + str(len(open_trips)) + "\n"
+            "- Kota keberangkatan populer: " + city_summary + "\n\n"
+            "Berikan rekomendasi:\n"
+            "1. Tipe grup yang paling cocok untuk profil ini\n"
+            "2. Tips memilih teman perjalanan umrah\n"
+            "3. Saran waktu terbaik berangkat\n"
+            "4. Tips agar pengalaman umrah bareng lebih berkesan\n"
+            + extra_question
+        )
+
+        system_prompt = (
+            "Kamu adalah konsultan perjalanan Umrah yang membantu mencocokkan grup. "
+            "Berikan saran praktis dan personal berdasarkan profil jamaah. "
+            "Gunakan Bahasa Indonesia yang sopan dan bersahabat. "
+            "Sertakan tips konkret yang bisa langsung diterapkan."
+        )
+
+        with st.spinner("AI sedang menganalisis profil Anda..."):
+            response = ai_complete(prompt_text, system_prompt=system_prompt, max_tokens=800)
+
+        if response:
+            st.session_state.ub_ai_response = response
+            # Gamification: award XP for first AI recommendation
+            if not st.session_state.ub_xp_ai_recommendation:
+                st.session_state.ub_xp_ai_recommendation = True
+                add_xp_safe(20, "Rekomendasi AI Umrah Bareng")
+                xp_html = (
+                    '<div class="ub-xp-toast">'
+                    '+20 XP - Rekomendasi AI Umrah Bareng!'
+                    '</div>'
+                )
+                st.markdown(xp_html, unsafe_allow_html=True)
+
+    # Render stored AI response
+    ai_response = st.session_state.get("ub_ai_response")
+    if ai_response:
+        html_content = _markdown_to_html_simple(ai_response)
+        ai_card_html = (
+            '<div class="ai-card">'
+            '<h4>🧠 Rekomendasi AI untuk Anda</h4>'
+            '<p>' + html_content + '</p>'
+            '</div>'
+        )
+        st.markdown(ai_card_html, unsafe_allow_html=True)
+    else:
+        if not ask_ai:
+            st.info(
+                "Klik **Tanya AI** untuk mendapatkan rekomendasi grup dan "
+                "tips mencocokkan teman perjalanan umrah yang sesuai profil Anda."
+            )
+
+
+# =============================================================================
 # 🚀 MAIN PAGE RENDERER
 # =============================================================================
 
@@ -1681,34 +1959,79 @@ def render_umrah_bareng_page():
     try:
         from services.analytics import track_page
         track_page("umrah_bareng")
-    except:
+    except Exception:
         pass
-    
+
     # Initialize state
     init_umrah_bareng_state()
-    
+
+    # Inject shared + page-specific CSS
+    inject_css(HERO_CSS, CARD_CSS, AI_CARD_CSS, BADGE_CSS, PAGE_CSS)
+
+    # Hero banner
+    hero_html = (
+        '<div class="page-hero">'
+        '<div class="bismillah">بِسْمِ اللَّهِ الرَّحْمَنِ الرَّحِيمِ</div>'
+        '<h1>🕋 Umrah Bareng</h1>'
+        '<div class="subtitle">Temukan teman perjalanan umrah yang sefrekuensi</div>'
+        '</div>'
+    )
+    st.markdown(hero_html, unsafe_allow_html=True)
+
+    # Summary stats row
+    trips = st.session_state.ub_trips
+    users = st.session_state.ub_users
+    communities = st.session_state.ub_communities
+    open_count = len([t for t in trips if t.status in [TripStatus.OPEN, TripStatus.FILLING]])
+    total_jamaah = sum(len(t.confirmed_members) for t in trips)
+
+    stats_html = (
+        '<div class="ub-stats-row">'
+        '<div class="ub-stat-card">'
+        '<div class="number" style="color:#4ade80;">' + str(len(trips)) + '</div>'
+        '<div class="label">Total Trip</div>'
+        '</div>'
+        '<div class="ub-stat-card">'
+        '<div class="number" style="color:#60a5fa;">' + str(open_count) + '</div>'
+        '<div class="label">Trip Open</div>'
+        '</div>'
+        '<div class="ub-stat-card">'
+        '<div class="number" style="color:#d4af37;">' + str(total_jamaah) + '</div>'
+        '<div class="label">Total Jamaah</div>'
+        '</div>'
+        '<div class="ub-stat-card">'
+        '<div class="number" style="color:#c084fc;">' + str(len(communities)) + '</div>'
+        '<div class="label">Komunitas</div>'
+        '</div>'
+        '</div>'
+    )
+    st.markdown(stats_html, unsafe_allow_html=True)
+
     # Render header
     render_header()
-    
+
     # Render sidebar
     render_sidebar()
-    
+
     st.divider()
-    
-    # Get current view
-    current_view = st.session_state.get("ub_current_view", "discover")
-    
+
+    # Get current view (use ub_view which is set by navigate_to)
+    current_view = st.session_state.get("ub_view", "discover")
+
     # Render appropriate view
     if current_view == "discover":
         render_discover_view()
     elif current_view == "communities":
         render_communities_view()
-    elif current_view == "smart_match":
+    elif current_view in ("match", "smart_match"):
         render_smart_match_view()
     elif current_view == "leaderboard":
         render_leaderboard_view()
     else:
         render_discover_view()
+
+    # AI Recommendation section (always visible at bottom)
+    render_ai_recommendation()
 
 
 # Export
