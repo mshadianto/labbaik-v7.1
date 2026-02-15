@@ -9,13 +9,19 @@ Features:
 - Price trend indicators
 - Best price highlighting
 - Filtering by city, stars, price range, source
+- AI price trend analysis
+- Gamification XP rewards
 """
 
 from __future__ import annotations
 
+import re
 import streamlit as st
 from datetime import date, datetime, timedelta
 from typing import Dict, List, Any, Optional, TYPE_CHECKING
+
+from services.ai.helpers import ai_complete, add_xp_safe
+from ui.components.shared_styles import inject_css, HERO_CSS, CARD_CSS, AI_CARD_CSS, BADGE_CSS
 
 # Type checking imports (not executed at runtime)
 if TYPE_CHECKING:
@@ -89,6 +95,80 @@ SORT_OPTIONS = {
 
 
 # =============================================================================
+# PAGE-SPECIFIC CSS
+# =============================================================================
+
+PRICE_COMPARISON_CSS = """
+/* Price comparison page overrides */
+.source-badge {
+    display: inline-block;
+    color: white;
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-size: 11px;
+    font-weight: 600;
+    vertical-align: middle;
+}
+
+.source-badge-large {
+    display: inline-block;
+    color: white;
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-size: 12px;
+    font-weight: 600;
+    vertical-align: middle;
+}
+
+.best-price-tag {
+    display: inline-block;
+    background: linear-gradient(135deg, #2e7d32 0%, #388e3c 100%);
+    color: #fff;
+    padding: 4px 12px;
+    border-radius: 8px;
+    font-size: 0.75rem;
+    font-weight: bold;
+    margin-top: 4px;
+}
+
+.trend-up {
+    color: #f87171;
+    font-weight: 600;
+}
+
+.trend-down {
+    color: #4ade80;
+    font-weight: 600;
+}
+
+.trend-stable {
+    color: #94a3b8;
+    font-weight: 600;
+}
+
+.price-summary-card {
+    background: linear-gradient(145deg, #1a1a2e 0%, #1e293b 100%);
+    border-radius: 15px;
+    padding: 1.25rem;
+    border: 1px solid #333;
+    text-align: center;
+}
+
+.price-summary-card .number {
+    font-size: 1.8rem;
+    font-weight: bold;
+    color: #d4af37;
+}
+
+.price-summary-card .label {
+    color: #888;
+    font-size: 0.8rem;
+    margin-top: 0.25rem;
+}
+"""
+
+
+# =============================================================================
 # HELPER FUNCTIONS
 # =============================================================================
 
@@ -122,12 +202,52 @@ def get_trend_indicator(trend: str, change_percent: float = 0) -> str:
         return "➡️ Stabil"
 
 
+def _markdown_to_html_simple(text: str) -> str:
+    """Simple markdown to HTML conversion for display in custom styled div."""
+    lines = text.split("\n")
+    html_lines = []
+    for line in lines:
+        line = line.strip()
+        if not line:
+            html_lines.append("<br/>")
+            continue
+        # Bold
+        line = re.sub(r"\*\*(.+?)\*\*", r"<strong>\1</strong>", line)
+        # Italic
+        line = re.sub(r"\*(.+?)\*", r"<em>\1</em>", line)
+        # Bullet points
+        if line.startswith("- ") or line.startswith("* "):
+            line = "&bull; " + line[2:]
+        # Numbered lists
+        match = re.match(r"^(\d+)\.\s+", line)
+        if match:
+            line = "<strong>" + match.group(1) + ".</strong> " + line[match.end():]
+        html_lines.append("<div style='margin-bottom:0.3rem;'>" + line + "</div>")
+    return "\n".join(html_lines)
+
+
+def _build_source_badge_html(source_name: str, size: str = "small") -> str:
+    """Build an HTML source badge span. size can be 'small' or 'large'."""
+    badge_label, badge_color = get_source_badge(source_name)
+    css_class = "source-badge-large" if size == "large" else "source-badge"
+    return (
+        '<span class="' + css_class + '" '
+        'style="background-color:' + badge_color + ';">'
+        + badge_label
+        + '</span>'
+    )
+
+
 # =============================================================================
 # MAIN PAGE RENDERER
 # =============================================================================
 
 def render_price_comparison_page():
     """Render the price comparison page."""
+
+    # Inject shared + page-specific CSS
+    inject_css(HERO_CSS, CARD_CSS, AI_CARD_CSS, BADGE_CSS, PRICE_COMPARISON_CSS)
+
     st.title("🔍 Perbandingan Harga Real-time")
     st.caption("Bandingkan harga dari berbagai sumber: API, OTA, dan Partner")
 
@@ -234,17 +354,18 @@ def render_price_comparison_page():
             duration = result.get("duration_ms", 0)
             st.metric("Waktu Proses", f"{duration:.0f} ms")
 
+        # Gamification: +20 XP for first price comparison
+        if not st.session_state.get("xp_price_compare_done"):
+            add_xp_safe(20, "Pertama kali membandingkan harga")
+            st.session_state["xp_price_compare_done"] = True
+
         # Source stats
         if result.get("source_stats"):
             with st.expander("📊 Detail Sumber Data"):
                 for source, count in result["source_stats"].items():
-                    badge_label, badge_color = get_source_badge(source)
-                    st.markdown(
-                        f"<span style='background-color:{badge_color};color:white;"
-                        f"padding:2px 8px;border-radius:4px;font-size:12px;'>{badge_label}</span> "
-                        f"**{source}**: {count} hasil",
-                        unsafe_allow_html=True
-                    )
+                    badge_html = _build_source_badge_html(source, size="large")
+                    source_line = badge_html + " <strong>" + source + "</strong>: " + str(count) + " hasil"
+                    st.markdown(source_line, unsafe_allow_html=True)
 
         # Errors
         if result.get("errors"):
@@ -263,6 +384,10 @@ def render_price_comparison_page():
 
         # Render offers
         render_offers_table(offers, offer_type)
+
+        # AI Price Trend Analysis section
+        st.divider()
+        _render_ai_price_analysis(offers, result)
 
     except Exception as e:
         st.error(f"❌ Terjadi kesalahan: {e}")
@@ -329,12 +454,8 @@ def render_hotel_cards(hotels: List[AggregatedOffer], best_price: float):
 
             with col2:
                 # Source badge
-                badge_label, badge_color = get_source_badge(hotel.source_name)
-                st.markdown(
-                    f"<span style='background-color:{badge_color};color:white;"
-                    f"padding:2px 8px;border-radius:4px;font-size:11px;'>{badge_label}</span>",
-                    unsafe_allow_html=True
-                )
+                badge_html = _build_source_badge_html(hotel.source_name)
+                st.markdown(badge_html, unsafe_allow_html=True)
 
                 # Per night price
                 if hotel.price_per_night_idr:
@@ -387,12 +508,8 @@ def render_flight_cards(flights: List[AggregatedOffer], best_price: float):
 
             with col2:
                 # Source badge
-                badge_label, badge_color = get_source_badge(flight.source_name)
-                st.markdown(
-                    f"<span style='background-color:{badge_color};color:white;"
-                    f"padding:2px 8px;border-radius:4px;font-size:11px;'>{badge_label}</span>",
-                    unsafe_allow_html=True
-                )
+                badge_html = _build_source_badge_html(flight.source_name)
+                st.markdown(badge_html, unsafe_allow_html=True)
 
                 # Inclusions (Direct/Transit, Class)
                 if flight.inclusions:
@@ -452,18 +569,15 @@ def render_package_cards(packages: List[AggregatedOffer], best_price: float):
 
             with col2:
                 # Source badge
-                badge_label, badge_color = get_source_badge(pkg.source_name)
-                st.markdown(
-                    f"<span style='background-color:{badge_color};color:white;"
-                    f"padding:2px 8px;border-radius:4px;font-size:11px;'>{badge_label}</span>",
-                    unsafe_allow_html=True
-                )
+                badge_html = _build_source_badge_html(pkg.source_name)
+                st.markdown(badge_html, unsafe_allow_html=True)
 
                 # Inclusions
                 if pkg.inclusions:
                     inclusions_text = ", ".join(pkg.inclusions[:3])
-                    if len(pkg.inclusions) > 3:
-                        inclusions_text += f" +{len(pkg.inclusions) - 3} lainnya"
+                    extra_count = len(pkg.inclusions) - 3
+                    if extra_count > 0:
+                        inclusions_text += " +" + str(extra_count) + " lainnya"
                     st.caption(f"✅ {inclusions_text}")
 
             with col3:
@@ -485,6 +599,198 @@ def render_package_cards(packages: List[AggregatedOffer], best_price: float):
 
             st.divider()
 
+
+# =============================================================================
+# AI PRICE TREND ANALYSIS
+# =============================================================================
+
+def _render_ai_price_analysis(offers: List[AggregatedOffer], result: Dict[str, Any]):
+    """Render AI-powered price trend analysis section."""
+    st.subheader("🤖 Analisis Tren Harga AI")
+    st.caption("Analisis cerdas berdasarkan data harga dari berbagai sumber")
+
+    # Check for cached response
+    cached_key = "price_comparison_ai_response"
+    cached = st.session_state.get(cached_key)
+
+    if cached:
+        html_content = _markdown_to_html_simple(cached)
+        ai_html = (
+            '<div class="ai-card">'
+            '<h4 style="color:#4ade80;margin-top:0;">🧠 Hasil Analisis Tren Harga</h4>'
+            '<p>' + html_content + '</p>'
+            '</div>'
+        )
+        st.markdown(ai_html, unsafe_allow_html=True)
+
+    # Button to trigger AI analysis
+    if st.button("🧠 Analisis Tren Harga dengan AI", use_container_width=True):
+        # Build price context for the AI prompt
+        price_context = _build_price_context(offers, result)
+
+        prompt_text = (
+            "Analisis data perbandingan harga umrah berikut dan berikan insight:\n\n"
+            + price_context
+            + "\n\nBerikan:\n"
+            "1. Ringkasan tren harga saat ini\n"
+            "2. Sumber mana yang paling kompetitif\n"
+            "3. Tips waktu terbaik untuk booking\n"
+            "4. Rekomendasi pilihan terbaik value-for-money\n"
+            "5. Peringatan jika ada harga yang terlalu murah (kemungkinan scam)\n"
+            "\nJawab dalam bahasa Indonesia, singkat dan praktis."
+        )
+
+        system_prompt = (
+            "Kamu adalah konsultan travel umrah berpengalaman yang ahli dalam "
+            "analisis harga dan tren pasar. Berikan analisis yang jujur, praktis, "
+            "dan membantu jamaah Indonesia mendapatkan harga terbaik untuk umrah. "
+            "Gunakan bahasa Indonesia yang sopan dan mudah dipahami."
+        )
+
+        with st.spinner("AI sedang menganalisis tren harga..."):
+            response = ai_complete(prompt_text, system_prompt=system_prompt, max_tokens=1024)
+
+        if response:
+            st.session_state[cached_key] = response
+            html_content = _markdown_to_html_simple(response)
+            ai_html = (
+                '<div class="ai-card">'
+                '<h4 style="color:#4ade80;margin-top:0;">🧠 Hasil Analisis Tren Harga</h4>'
+                '<p>' + html_content + '</p>'
+                '</div>'
+            )
+            st.markdown(ai_html, unsafe_allow_html=True)
+
+            # Gamification: +15 XP for first AI analysis
+            if not st.session_state.get("xp_price_ai_done"):
+                add_xp_safe(15, "Analisis harga dengan AI")
+                st.session_state["xp_price_ai_done"] = True
+        else:
+            _render_ai_fallback(offers, result)
+
+
+def _build_price_context(offers: List[AggregatedOffer], result: Dict[str, Any]) -> str:
+    """Build a text summary of price data for the AI prompt."""
+    lines = []
+
+    total_found = result.get("total_found", 0)
+    total_returned = result.get("total_returned", 0)
+    source_stats = result.get("source_stats", {})
+
+    lines.append(f"Total penawaran ditemukan: {total_found}")
+    lines.append(f"Ditampilkan: {total_returned}")
+    lines.append(f"Jumlah sumber: {len(source_stats)}")
+    lines.append("")
+
+    # Source breakdown
+    if source_stats:
+        lines.append("Sumber data:")
+        for source, count in source_stats.items():
+            badge_label, _ = get_source_badge(source)
+            lines.append(f"  - {source} ({badge_label}): {count} hasil")
+        lines.append("")
+
+    # Price statistics
+    prices = [o.price_idr for o in offers if o.price_idr > 0]
+    if prices:
+        min_p = min(prices)
+        max_p = max(prices)
+        avg_p = sum(prices) / len(prices)
+        lines.append("Statistik harga:")
+        lines.append(f"  - Terendah: {format_price(min_p)}")
+        lines.append(f"  - Tertinggi: {format_price(max_p)}")
+        lines.append(f"  - Rata-rata: {format_price(avg_p)}")
+        lines.append("")
+
+    # Top 10 offers summary
+    top_offers = offers[:10]
+    lines.append("Top 10 penawaran:")
+    for i, offer in enumerate(top_offers, 1):
+        offer_type_val = getattr(offer.offer_type, 'value', offer.offer_type)
+        city_str = offer.city if offer.city else "-"
+        source_str = offer.source_name if offer.source_name else "-"
+        stars_str = str(offer.stars) + " bintang" if offer.stars else ""
+        line = (
+            f"  {i}. {offer.name} | {offer_type_val} | "
+            f"{city_str} | {format_price(offer.price_idr)} | "
+            f"sumber: {source_str}"
+        )
+        if stars_str:
+            line += " | " + stars_str
+        lines.append(line)
+
+    return "\n".join(lines)
+
+
+def _render_ai_fallback(offers: List[AggregatedOffer], result: Dict[str, Any]):
+    """Render fallback analysis when AI service is unavailable."""
+    prices = [o.price_idr for o in offers if o.price_idr > 0]
+    if not prices:
+        st.info("Tidak cukup data untuk analisis.")
+        return
+
+    min_price = min(prices)
+    max_price = max(prices)
+    avg_price = sum(prices) / len(prices)
+    source_stats = result.get("source_stats", {})
+
+    # Find the cheapest source
+    source_prices = {}
+    for o in offers:
+        if o.price_idr > 0 and o.source_name:
+            if o.source_name not in source_prices:
+                source_prices[o.source_name] = []
+            source_prices[o.source_name].append(o.price_idr)
+
+    cheapest_source = ""
+    cheapest_avg = float("inf")
+    for src, src_prices in source_prices.items():
+        src_avg = sum(src_prices) / len(src_prices)
+        if src_avg < cheapest_avg:
+            cheapest_avg = src_avg
+            cheapest_source = src
+
+    tips_items = []
+    tips_items.append(
+        "<strong>Rentang Harga:</strong> "
+        + format_price(min_price) + " - " + format_price(max_price)
+        + " (rata-rata " + format_price(avg_price) + ")"
+    )
+
+    if cheapest_source:
+        tips_items.append(
+            "<strong>Sumber Termurah:</strong> "
+            + cheapest_source + " dengan rata-rata " + format_price(cheapest_avg)
+        )
+
+    tips_items.append(
+        "<strong>Jumlah Sumber:</strong> "
+        + str(len(source_stats)) + " sumber aktif"
+    )
+
+    tips_items.append(
+        "<strong>Tips:</strong> Bandingkan minimal 3 sumber sebelum booking. "
+        "Harga yang terlalu murah dari rata-rata bisa jadi tidak termasuk biaya tersembunyi."
+    )
+
+    tips_html = ""
+    for item in tips_items:
+        tips_html += "<div style='margin-bottom:0.5rem;'>&bull; " + item + "</div>"
+
+    fallback_html = (
+        '<div class="ai-card" style="border-color: #d4af37;">'
+        '<h4 style="color: #d4af37; margin-top:0;">💡 Ringkasan Harga</h4>'
+        '<p>' + tips_html + '</p>'
+        '<p style="color:#888;font-size:0.8rem;margin-top:0.75rem;">'
+        'AI tidak tersedia saat ini. Ini adalah analisis otomatis berdasarkan data.</p>'
+        '</div>'
+    )
+    st.markdown(fallback_html, unsafe_allow_html=True)
+
+
+# =============================================================================
+# SIDEBAR WIDGET
+# =============================================================================
 
 def render_best_prices_widget():
     """Render best prices widget for sidebar."""

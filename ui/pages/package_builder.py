@@ -1,7 +1,16 @@
 """
-LABBAIK AI - Package Builder
-=============================
-Fitur untuk travel mitra merancang paket umrah dengan berbagai skenario.
+================================================================================
+LABBAIK AI - PACKAGE BUILDER
+================================================================================
+Lokasi: ui/pages/package_builder.py
+Fitur: Tool untuk travel partner merancang paket umrah custom dengan margin
+       - Pilih komponen paket (hotel, penerbangan, transport, dll)
+       - Tentukan margin keuntungan
+       - Lihat breakdown biaya dan harga jual
+       - Simpan skenario untuk perbandingan
+       - AI pricing recommendation & optimization
+       - Gamification: XP rewards for building/analyzing packages
+================================================================================
 """
 
 import streamlit as st
@@ -9,8 +18,118 @@ from datetime import datetime
 import pandas as pd
 import logging
 
+from services.ai.helpers import ai_complete, add_xp_safe
+from ui.components.shared_styles import inject_css, HERO_CSS, CARD_CSS, AI_CARD_CSS, BADGE_CSS
+
 logger = logging.getLogger(__name__)
 
+# =============================================================================
+# PAGE-SPECIFIC CSS
+# =============================================================================
+
+PACKAGE_BUILDER_CSS = """
+/* Hero override for package builder */
+.pkg-hero {
+    --hero-bg: linear-gradient(135deg, #1a1a2e 0%, #2d1b4e 50%, #1a2a4a 100%);
+    --hero-border: #d4af37;
+    --hero-title: #d4af37;
+}
+
+/* Section card */
+.pkg-section {
+    background: linear-gradient(145deg, #1a1a2e 0%, #1e293b 100%);
+    border-radius: 15px;
+    padding: 1.5rem;
+    margin-bottom: 1rem;
+    border: 1px solid #333;
+    border-left: 4px solid #d4af37;
+}
+
+.pkg-section h3 {
+    color: #d4af37;
+    margin-top: 0;
+    font-size: 1.2rem;
+}
+
+/* Summary metric cards */
+.pkg-metric {
+    background: linear-gradient(145deg, #1a1a2e 0%, #1e293b 100%);
+    border-radius: 16px;
+    padding: 1.25rem;
+    text-align: center;
+    border: 1px solid #334155;
+    transition: border-color 0.2s;
+}
+
+.pkg-metric:hover {
+    border-color: #d4af37;
+}
+
+.pkg-metric .value {
+    font-size: 1.5rem;
+    font-weight: 700;
+    margin: 0.25rem 0;
+}
+
+.pkg-metric .label {
+    color: #94a3b8;
+    font-size: 0.82rem;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.pkg-metric .delta {
+    font-size: 0.85rem;
+    color: #4ade80;
+    margin-top: 0.2rem;
+}
+
+/* Scenario comparison card */
+.scenario-card {
+    background: linear-gradient(145deg, #1a1a2e 0%, #1e293b 100%);
+    border-radius: 14px;
+    padding: 1.25rem;
+    margin-bottom: 0.75rem;
+    border: 1px solid #333;
+    transition: transform 0.15s;
+}
+
+.scenario-card:hover {
+    transform: translateX(2px);
+}
+
+.scenario-card .name {
+    color: #d4af37;
+    font-weight: 600;
+    font-size: 1.05rem;
+}
+
+.scenario-card .price {
+    font-size: 1.3rem;
+    font-weight: 700;
+    color: #4ade80;
+}
+
+/* Tips box */
+.pkg-tip {
+    background: linear-gradient(145deg, #1a2a1a 0%, #1e3b1e 100%);
+    border: 1px solid #2d5a2d;
+    border-radius: 12px;
+    padding: 1rem 1.25rem;
+    margin-top: 0.75rem;
+    color: #a3d9a5;
+    font-size: 0.9rem;
+}
+
+.pkg-tip strong {
+    color: #4ade80;
+}
+"""
+
+
+# =============================================================================
+# CONFIG LOADER
+# =============================================================================
 
 def load_config():
     """Load package builder configuration."""
@@ -46,6 +165,10 @@ def load_config():
         return None
 
 
+# =============================================================================
+# HELPERS
+# =============================================================================
+
 def format_rupiah(amount: int) -> str:
     """Format as Rupiah."""
     return f"Rp {amount:,.0f}".replace(",", ".")
@@ -57,25 +180,48 @@ def init_session_state():
         st.session_state.pkg_scenarios = []
     if "pkg_current" not in st.session_state:
         st.session_state.pkg_current = {}
+    if "pkg_ai_result" not in st.session_state:
+        st.session_state.pkg_ai_result = None
+    if "pkg_build_xp_awarded" not in st.session_state:
+        st.session_state.pkg_build_xp_awarded = False
+    if "pkg_ai_xp_awarded" not in st.session_state:
+        st.session_state.pkg_ai_xp_awarded = False
 
 
-def render_header():
-    """Render page header."""
-    st.markdown("# 📦 Package Builder")
-    st.caption("Rancang paket umrah dengan berbagai skenario, tentukan margin, dan bandingkan harga jual")
+# =============================================================================
+# HERO
+# =============================================================================
 
-    st.info("""
-    **Cara Penggunaan:**
-    1. Pilih komponen paket (hotel, penerbangan, transport, dll)
-    2. Tentukan margin keuntungan
-    3. Lihat breakdown biaya dan harga jual
-    4. Simpan skenario untuk perbandingan
-    """)
+def render_hero():
+    """Render page hero banner with CSS injection."""
+    inject_css(HERO_CSS, CARD_CSS, AI_CARD_CSS, BADGE_CSS, PACKAGE_BUILDER_CSS)
 
+    st.markdown(
+        '<div class="page-hero pkg-hero">'
+        '<div class="bismillah">&#1576;&#1616;&#1587;&#1618;&#1605;&#1616; &#1575;&#1604;&#1604;&#1617;&#1607;&#1616; &#1575;&#1604;&#1585;&#1617;&#1581;&#1618;&#1605;&#1606;&#1616; &#1575;&#1604;&#1585;&#1617;&#1581;&#1610;&#1605;&#1616;</div>'
+        '<h1>Package Builder</h1>'
+        '<p class="subtitle">Rancang paket umrah dengan berbagai skenario, tentukan margin, dan bandingkan harga jual</p>'
+        '</div>',
+        unsafe_allow_html=True,
+    )
+
+    st.info(
+        "**Cara Penggunaan:**\n"
+        "1. Pilih komponen paket (hotel, penerbangan, transport, dll)\n"
+        "2. Tentukan margin keuntungan\n"
+        "3. Lihat breakdown biaya dan harga jual\n"
+        "4. Gunakan AI untuk analisis & rekomendasi harga\n"
+        "5. Simpan skenario untuk perbandingan"
+    )
+
+
+# =============================================================================
+# SECTION RENDERERS
+# =============================================================================
 
 def render_duration_section(config: dict) -> dict:
     """Render duration selection."""
-    st.markdown("### ⏱️ Durasi Perjalanan")
+    st.markdown("### Durasi Perjalanan")
 
     durations = config.get("durations", [])
     duration_options = {d["label"]: d for d in durations}
@@ -115,7 +261,7 @@ def render_duration_section(config: dict) -> dict:
 
 def render_hotel_section(config: dict) -> dict:
     """Render hotel selection."""
-    st.markdown("### 🏨 Akomodasi Hotel")
+    st.markdown("### Akomodasi Hotel")
 
     col1, col2 = st.columns(2)
 
@@ -176,7 +322,7 @@ def render_hotel_section(config: dict) -> dict:
 
 def render_flight_section(config: dict) -> dict:
     """Render flight selection."""
-    st.markdown("### ✈️ Penerbangan")
+    st.markdown("### Penerbangan")
 
     col1, col2, col3 = st.columns(3)
 
@@ -237,7 +383,7 @@ def render_flight_section(config: dict) -> dict:
 
 def render_transport_section(config: dict) -> dict:
     """Render transport selection."""
-    st.markdown("### 🚌 Transportasi")
+    st.markdown("### Transportasi")
 
     col1, col2 = st.columns(2)
 
@@ -288,7 +434,7 @@ def render_transport_section(config: dict) -> dict:
 
 def render_room_meal_section(config: dict) -> dict:
     """Render room and meal selection."""
-    st.markdown("### 🛏️ Kamar & Makan")
+    st.markdown("### Kamar & Makan")
 
     col1, col2, col3 = st.columns(3)
 
@@ -337,7 +483,7 @@ def render_room_meal_section(config: dict) -> dict:
 
 def render_additional_costs_section(config: dict) -> dict:
     """Render additional costs."""
-    st.markdown("### 💰 Biaya Tambahan")
+    st.markdown("### Biaya Tambahan")
 
     fixed_costs = config.get("fixed_costs", [])
 
@@ -375,7 +521,7 @@ def render_additional_costs_section(config: dict) -> dict:
 
 def render_margin_section(config: dict) -> dict:
     """Render margin settings."""
-    st.markdown("### 📊 Margin & Harga Jual")
+    st.markdown("### Margin & Harga Jual")
 
     presets = config.get("margin_presets", [])
 
@@ -452,64 +598,87 @@ def render_margin_section(config: dict) -> dict:
         }
 
 
+# =============================================================================
+# CALCULATION RESULT
+# =============================================================================
+
 def render_calculation_result(params: dict):
     """Render calculation result."""
     from utils.package_calculator import PackageScenario, calculate_package, format_currency
 
     st.markdown("---")
-    st.markdown("## 📋 Hasil Kalkulasi")
+    st.markdown("## Hasil Kalkulasi")
 
     # Create scenario from params
     scenario = PackageScenario(**params)
     breakdown = calculate_package(scenario)
 
-    # Summary cards
+    # Summary metric cards
+    cost_val = format_currency(breakdown.cost_per_person)
+    margin_val = format_currency(breakdown.margin_per_person)
+    margin_pct = f"{params.get('margin_percentage', 0):.0f}%"
+    sell_val = format_currency(breakdown.selling_price_per_person)
+    total_margin_val = format_currency(breakdown.total_margin)
+    group_label = f"{params.get('group_size', 45)} jamaah"
+
     col1, col2, col3, col4 = st.columns(4)
 
     with col1:
-        st.metric(
-            "💵 Modal per Orang",
-            format_currency(breakdown.cost_per_person)
+        st.markdown(
+            '<div class="pkg-metric">'
+            '<div class="label">Modal per Orang</div>'
+            '<div class="value" style="color: #60a5fa;">' + cost_val + '</div>'
+            '</div>',
+            unsafe_allow_html=True,
         )
 
     with col2:
-        st.metric(
-            "📈 Margin per Orang",
-            format_currency(breakdown.margin_per_person),
-            f"{params.get('margin_percentage', 0):.0f}%"
+        st.markdown(
+            '<div class="pkg-metric">'
+            '<div class="label">Margin per Orang</div>'
+            '<div class="value" style="color: #fbbf24;">' + margin_val + '</div>'
+            '<div class="delta">' + margin_pct + '</div>'
+            '</div>',
+            unsafe_allow_html=True,
         )
 
     with col3:
-        st.metric(
-            "🏷️ Harga Jual",
-            format_currency(breakdown.selling_price_per_person)
+        st.markdown(
+            '<div class="pkg-metric">'
+            '<div class="label">Harga Jual</div>'
+            '<div class="value" style="color: #4ade80;">' + sell_val + '</div>'
+            '</div>',
+            unsafe_allow_html=True,
         )
 
     with col4:
-        st.metric(
-            "💰 Total Keuntungan",
-            format_currency(breakdown.total_margin),
-            f"{params.get('group_size', 45)} jamaah"
+        st.markdown(
+            '<div class="pkg-metric">'
+            '<div class="label">Total Keuntungan</div>'
+            '<div class="value" style="color: #d4af37;">' + total_margin_val + '</div>'
+            '<div class="delta">' + group_label + '</div>'
+            '</div>',
+            unsafe_allow_html=True,
         )
 
     # Detailed breakdown
-    st.markdown("### 📊 Breakdown Biaya per Orang")
+    st.markdown("### Breakdown Biaya per Orang")
 
     breakdown_data = {
         "Komponen": [
-            "🏨 Hotel Makkah",
-            "🏨 Hotel Madinah",
-            "✈️ Penerbangan",
-            "🚌 Transportasi",
-            "🍽️ Makan",
-            "📋 Visa",
-            "🛡️ Asuransi",
-            "📦 Handling",
-            "🎒 Perlengkapan",
-            "👤 Guide (share)",
-            "🕌 Ziarah",
+            "Hotel Makkah",
+            "Hotel Madinah",
+            "Penerbangan",
+            "Transportasi",
+            "Makan",
+            "Visa",
+            "Asuransi",
+            "Handling",
+            "Perlengkapan",
+            "Guide (share)",
+            "Ziarah",
             "**TOTAL MODAL**",
-            "📈 Margin",
+            "Margin",
             "**HARGA JUAL**",
         ],
         "Biaya": [
@@ -534,18 +703,40 @@ def render_calculation_result(params: dict):
     st.dataframe(df, use_container_width=True, hide_index=True)
 
     # Group summary
-    st.markdown("### 👥 Ringkasan Grup")
+    st.markdown("### Ringkasan Grup")
 
-    col1, col2, col3 = st.columns(3)
-    with col1:
-        st.metric("Total Modal Grup", format_currency(breakdown.total_cost))
-    with col2:
-        st.metric("Total Pendapatan", format_currency(breakdown.total_revenue))
-    with col3:
-        st.metric("Total Keuntungan Bersih", format_currency(breakdown.total_margin))
+    total_cost_fmt = format_currency(breakdown.total_cost)
+    total_rev_fmt = format_currency(breakdown.total_revenue)
+    total_margin_fmt = format_currency(breakdown.total_margin)
+
+    gcol1, gcol2, gcol3 = st.columns(3)
+    with gcol1:
+        st.markdown(
+            '<div class="pkg-metric">'
+            '<div class="label">Total Modal Grup</div>'
+            '<div class="value" style="color: #60a5fa;">' + total_cost_fmt + '</div>'
+            '</div>',
+            unsafe_allow_html=True,
+        )
+    with gcol2:
+        st.markdown(
+            '<div class="pkg-metric">'
+            '<div class="label">Total Pendapatan</div>'
+            '<div class="value" style="color: #4ade80;">' + total_rev_fmt + '</div>'
+            '</div>',
+            unsafe_allow_html=True,
+        )
+    with gcol3:
+        st.markdown(
+            '<div class="pkg-metric">'
+            '<div class="label">Total Keuntungan Bersih</div>'
+            '<div class="value" style="color: #d4af37;">' + total_margin_fmt + '</div>'
+            '</div>',
+            unsafe_allow_html=True,
+        )
 
     # Price comparison with different margins
-    st.markdown("### 💡 Perbandingan Harga dengan Margin Berbeda")
+    st.markdown("### Perbandingan Harga dengan Margin Berbeda")
 
     from utils.package_calculator import generate_price_tiers
 
@@ -560,24 +751,126 @@ def render_calculation_result(params: dict):
 
     st.dataframe(pd.DataFrame(tier_data), use_container_width=True, hide_index=True)
 
+    # Gamification: first package build
+    if not st.session_state.get("pkg_build_xp_awarded"):
+        add_xp_safe(30, "Pertama kali merancang paket umrah")
+        st.session_state.pkg_build_xp_awarded = True
+
     return breakdown
 
+
+# =============================================================================
+# AI PRICING RECOMMENDATION
+# =============================================================================
+
+AI_SYSTEM_PROMPT = (
+    "Kamu adalah konsultan pricing paket umrah berpengalaman. "
+    "Berikan analisis singkat dan rekomendasi harga jual yang kompetitif "
+    "berdasarkan data paket yang diberikan. Jawab dalam Bahasa Indonesia. "
+    "Fokus pada: (1) apakah harga jual kompetitif di pasar, "
+    "(2) rekomendasi margin optimal, (3) tips mengoptimalkan biaya, "
+    "(4) strategi value-add untuk menarik jamaah. "
+    "Gunakan format poin-poin yang ringkas."
+)
+
+
+def build_ai_prompt(params: dict, breakdown) -> str:
+    """Build AI prompt from package parameters and breakdown."""
+    from utils.package_calculator import format_currency
+
+    hotel_cat_makkah = params.get("hotel_makkah_category", "bintang_4").replace("_", " ").title()
+    hotel_cat_madinah = params.get("hotel_madinah_category", "bintang_4").replace("_", " ").title()
+    margin_type_label = "persentase" if params.get("margin_type") == "percentage" else "nominal tetap"
+    margin_detail = ""
+    if params.get("margin_type") == "percentage":
+        margin_detail = f"{params.get('margin_percentage', 15)}%"
+    else:
+        margin_detail = format_currency(params.get("margin_fixed", 0))
+
+    lines = [
+        "Analisis paket umrah berikut:",
+        "",
+        f"- Durasi: {params.get('duration_days', 9)} hari ({params.get('nights_makkah', 4)} malam Makkah, {params.get('nights_madinah', 4)} malam Madinah)",
+        f"- Hotel Makkah: {hotel_cat_makkah} @ {format_currency(params.get('hotel_makkah_price', 0))}/malam",
+        f"- Hotel Madinah: {hotel_cat_madinah} @ {format_currency(params.get('hotel_madinah_price', 0))}/malam",
+        f"- Penerbangan: {params.get('airline_code', 'SV')} kelas {params.get('flight_class', 'economy')} - {format_currency(params.get('flight_price', 0))}",
+        f"- Asal: {params.get('origin_code', 'CGK')}",
+        f"- Kamar: {params.get('room_type', 'quad')} ({params.get('room_occupancy', 4)} orang/kamar)",
+        f"- Jumlah jamaah: {params.get('group_size', 45)}",
+        "",
+        f"- Modal per orang: {format_currency(breakdown.cost_per_person)}",
+        f"- Margin ({margin_type_label} {margin_detail}): {format_currency(breakdown.margin_per_person)}/orang",
+        f"- Harga jual: {format_currency(breakdown.selling_price_per_person)}/orang",
+        f"- Total keuntungan grup: {format_currency(breakdown.total_margin)}",
+        "",
+        "Berikan rekomendasi pricing dan tips optimasi biaya.",
+    ]
+    return "\n".join(lines)
+
+
+def render_ai_analysis(params: dict, breakdown):
+    """Render AI pricing analysis section."""
+    st.markdown("---")
+    st.markdown("## Analisis AI")
+
+    st.markdown(
+        '<div class="pkg-tip">'
+        '<strong>AI Pricing Assistant</strong> - '
+        'Dapatkan rekomendasi harga jual yang kompetitif dan tips optimasi biaya '
+        'dari AI berdasarkan konfigurasi paket Anda.'
+        '</div>',
+        unsafe_allow_html=True,
+    )
+
+    if st.button("Analisis dengan AI", type="primary", use_container_width=True, key="pkg_ai_btn"):
+        with st.spinner("AI sedang menganalisis paket Anda..."):
+            prompt = build_ai_prompt(params, breakdown)
+            response = ai_complete(prompt, system_prompt=AI_SYSTEM_PROMPT, max_tokens=1024)
+            if response:
+                st.session_state.pkg_ai_result = response
+                # Gamification: first AI analysis
+                if not st.session_state.get("pkg_ai_xp_awarded"):
+                    add_xp_safe(20, "Pertama kali menggunakan AI analisis paket")
+                    st.session_state.pkg_ai_xp_awarded = True
+            else:
+                st.session_state.pkg_ai_result = None
+                st.warning("Layanan AI tidak tersedia saat ini. Silakan coba lagi nanti.")
+
+    # Show cached AI result
+    cached = st.session_state.get("pkg_ai_result")
+    if cached:
+        escaped = cached.replace("<", "&lt;").replace(">", "&gt;")
+        st.markdown(
+            '<div class="ai-card">'
+            '<h3>Rekomendasi AI untuk Paket Anda</h3>'
+            '<p>' + escaped + '</p>'
+            '</div>',
+            unsafe_allow_html=True,
+        )
+
+
+# =============================================================================
+# SAVE & COMPARE SCENARIOS
+# =============================================================================
 
 def render_save_scenario(params: dict, breakdown):
     """Render save scenario button."""
     st.markdown("---")
+
+    default_name = params.get("hotel_makkah_category", "bintang_4").replace("_", " ").title()
+    default_val = f"Paket {params.get('duration_days', 9)}D - {default_name}"
 
     col1, col2 = st.columns([3, 1])
 
     with col1:
         scenario_name = st.text_input(
             "Nama Skenario",
-            value=f"Paket {params.get('duration_days', 9)}D - {params.get('hotel_makkah_category', 'bintang_4').replace('_', ' ').title()}"
+            value=default_val
         )
 
     with col2:
         st.markdown("<br>", unsafe_allow_html=True)
-        if st.button("💾 Simpan Skenario", type="primary", use_container_width=True):
+        if st.button("Simpan Skenario", type="primary", use_container_width=True):
             if "pkg_scenarios" not in st.session_state:
                 st.session_state.pkg_scenarios = []
 
@@ -600,11 +893,28 @@ def render_saved_scenarios():
         return
 
     st.markdown("---")
-    st.markdown("## 📑 Perbandingan Skenario Tersimpan")
+    st.markdown("## Perbandingan Skenario Tersimpan")
 
     scenarios = st.session_state.pkg_scenarios
 
-    # Create comparison table
+    # Render scenario cards
+    for idx, s in enumerate(scenarios):
+        cost_fmt = format_rupiah(s["cost"])
+        sell_fmt = format_rupiah(s["selling_price"])
+        margin_fmt = format_rupiah(s["margin"])
+        st.markdown(
+            '<div class="scenario-card">'
+            '<div class="name">' + s["name"] + '</div>'
+            '<div style="display: flex; gap: 2rem; margin-top: 0.5rem;">'
+            '<div><span style="color: #94a3b8;">Modal:</span> ' + cost_fmt + '</div>'
+            '<div><span style="color: #94a3b8;">Margin:</span> ' + margin_fmt + '</div>'
+            '<div class="price"><span style="color: #94a3b8;">Jual:</span> ' + sell_fmt + '</div>'
+            '</div>'
+            '</div>',
+            unsafe_allow_html=True,
+        )
+
+    # Also show as table
     comparison_data = {
         "Skenario": [s["name"] for s in scenarios],
         "Modal": [format_rupiah(s["cost"]) for s in scenarios],
@@ -614,10 +924,14 @@ def render_saved_scenarios():
 
     st.dataframe(pd.DataFrame(comparison_data), use_container_width=True, hide_index=True)
 
-    if st.button("🗑️ Hapus Semua Skenario"):
+    if st.button("Hapus Semua Skenario"):
         st.session_state.pkg_scenarios = []
         st.rerun()
 
+
+# =============================================================================
+# MAIN PAGE
+# =============================================================================
 
 def render_package_builder_page():
     """Main package builder page."""
@@ -626,7 +940,7 @@ def render_package_builder_page():
     try:
         from services.analytics import track_page
         track_page("package_builder")
-    except:
+    except Exception:
         pass
 
     # Initialize
@@ -638,8 +952,8 @@ def render_package_builder_page():
         st.error("Gagal memuat konfigurasi. Silakan coba lagi.")
         return
 
-    # Render sections
-    render_header()
+    # Hero with CSS injection
+    render_hero()
 
     st.markdown("---")
 
@@ -683,6 +997,9 @@ def render_package_builder_page():
     # Calculation
     breakdown = render_calculation_result(params)
 
+    # AI Analysis
+    render_ai_analysis(params, breakdown)
+
     # Save scenario
     render_save_scenario(params, breakdown)
 
@@ -691,7 +1008,13 @@ def render_package_builder_page():
 
     # Footer
     st.markdown("---")
-    st.caption("💡 Tips: Simpan beberapa skenario untuk membandingkan opsi paket yang berbeda")
+    st.markdown(
+        '<div class="pkg-tip">'
+        '<strong>Tips:</strong> Simpan beberapa skenario untuk membandingkan opsi paket yang berbeda. '
+        'Gunakan AI untuk mendapatkan rekomendasi harga jual yang kompetitif.'
+        '</div>',
+        unsafe_allow_html=True,
+    )
 
 
 # Export

@@ -1,7 +1,9 @@
 """
+================================================================================
 LABBAIK AI - CRM Lead Management
-==================================
-UI for managing leads and sales pipeline.
+================================================================================
+UI for managing leads and sales pipeline with AI scoring & follow-up suggestions.
+================================================================================
 """
 
 import streamlit as st
@@ -9,8 +11,103 @@ from datetime import datetime, timedelta
 import logging
 import html
 
+from services.ai.helpers import ai_complete, add_xp_safe
+from ui.components.shared_styles import inject_css, HERO_CSS, CARD_CSS, AI_CARD_CSS, BADGE_CSS
+
 logger = logging.getLogger(__name__)
 
+
+# =============================================================================
+# PAGE-SPECIFIC CSS
+# =============================================================================
+
+CRM_LEADS_CSS = """
+/* CRM Leads page overrides */
+:root {
+    --hero-bg: linear-gradient(135deg, #0d1b2a 0%, #1b2a4a 100%);
+    --hero-border: #d4af37;
+    --hero-title: #d4af37;
+    --hero-subtitle: #888;
+}
+
+.pipeline-card {
+    padding: 10px;
+    margin: 5px 0;
+    background: linear-gradient(145deg, #1a1a2e 0%, #1e293b 100%);
+    border-radius: 8px;
+    border-left: 4px solid #334155;
+    transition: transform 0.15s;
+}
+
+.pipeline-card:hover {
+    transform: translateX(2px);
+}
+
+.pipeline-card .lead-name {
+    font-weight: bold;
+    color: #e2e8f0;
+    margin-bottom: 2px;
+}
+
+.pipeline-card .lead-phone {
+    font-size: 0.85rem;
+    color: #94a3b8;
+}
+
+.pipeline-card .lead-package {
+    font-size: 0.82rem;
+    color: #64748b;
+    margin-top: 2px;
+}
+
+.lead-score-badge {
+    display: inline-block;
+    padding: 0.2rem 0.7rem;
+    border-radius: 12px;
+    font-size: 0.8rem;
+    font-weight: bold;
+}
+
+.score-high {
+    background: #1a3a1a;
+    color: #4ade80;
+}
+
+.score-medium {
+    background: #4a3a1a;
+    color: #fbbf24;
+}
+
+.score-low {
+    background: #4a1a1a;
+    color: #f87171;
+}
+
+.followup-suggestion {
+    background: linear-gradient(145deg, #1a1a2e 0%, #1e293b 100%);
+    border-radius: 12px;
+    padding: 1rem;
+    border-left: 3px solid #60a5fa;
+    margin-top: 0.5rem;
+}
+
+.followup-suggestion .suggestion-title {
+    color: #60a5fa;
+    font-weight: 600;
+    margin-bottom: 0.4rem;
+}
+
+.followup-suggestion .suggestion-text {
+    color: #cbd5e1;
+    font-size: 0.9rem;
+    line-height: 1.6;
+}
+"""
+
+
+# =============================================================================
+# HELPERS
+# =============================================================================
 
 def escape_html(text: str) -> str:
     """Escape HTML to prevent XSS."""
@@ -51,12 +148,12 @@ def get_status_color(status: str) -> str:
 def get_priority_emoji(priority: str) -> str:
     """Get priority emoji."""
     emojis = {
-        "urgent": "🔴",
-        "high": "🟠",
-        "medium": "🟡",
-        "low": "🟢",
+        "urgent": "\U0001f534",
+        "high": "\U0001f7e0",
+        "medium": "\U0001f7e1",
+        "low": "\U0001f7e2",
     }
-    return emojis.get(priority, "⚪")
+    return emojis.get(priority, "\u26aa")
 
 
 def init_session_state():
@@ -67,7 +164,15 @@ def init_session_state():
         st.session_state.crm_selected_lead = None
     if "crm_filter_status" not in st.session_state:
         st.session_state.crm_filter_status = None
+    if "crm_lead_add_xp_awarded" not in st.session_state:
+        st.session_state.crm_lead_add_xp_awarded = False
+    if "crm_lead_ai_xp_awarded" not in st.session_state:
+        st.session_state.crm_lead_ai_xp_awarded = False
 
+
+# =============================================================================
+# STATS
+# =============================================================================
 
 def render_lead_stats():
     """Render lead statistics."""
@@ -102,6 +207,10 @@ def render_lead_stats():
             st.metric("Perlu Follow-up", 0)
 
 
+# =============================================================================
+# PIPELINE VIEW
+# =============================================================================
+
 def render_pipeline_view():
     """Render kanban-style pipeline view."""
     st.markdown("### Pipeline View")
@@ -122,17 +231,27 @@ def render_pipeline_view():
 
                 for lead in leads:
                     with st.container():
-                        # XSS Prevention: Escape all user-provided data
                         safe_name = escape_html(lead.name)
                         safe_phone = escape_html(lead.phone)
                         safe_package = escape_html(lead.interested_package) if lead.interested_package else 'Belum ada paket'
-                        st.markdown(f"""
-                        <div style="padding: 10px; margin: 5px 0; background: #f8f9fa; border-radius: 8px; border-left: 4px solid {status['color']};">
-                            <strong>{get_priority_emoji(lead.priority)} {safe_name}</strong><br>
-                            <small>{safe_phone}</small><br>
-                            <small style="color: #666;">{safe_package}</small>
-                        </div>
-                        """, unsafe_allow_html=True)
+                        priority_emoji = get_priority_emoji(lead.priority)
+                        border_color = status['color']
+                        card_html = (
+                            '<div class="pipeline-card" style="border-left-color: '
+                            + border_color
+                            + ';">'
+                            + '<div class="lead-name">'
+                            + priority_emoji + " " + safe_name
+                            + '</div>'
+                            + '<div class="lead-phone">'
+                            + safe_phone
+                            + '</div>'
+                            + '<div class="lead-package">'
+                            + safe_package
+                            + '</div>'
+                            + '</div>'
+                        )
+                        st.markdown(card_html, unsafe_allow_html=True)
 
                         if st.button("Detail", key=f"lead_{lead.id}", use_container_width=True):
                             st.session_state.crm_selected_lead = lead.id
@@ -146,6 +265,10 @@ def render_pipeline_view():
         logger.error(f"Pipeline view error: {e}")
         st.info("Belum ada data lead")
 
+
+# =============================================================================
+# LEAD LIST
+# =============================================================================
 
 def render_lead_list():
     """Render lead list view."""
@@ -193,10 +316,10 @@ def render_lead_list():
             options=["Semua", "urgent", "high", "medium", "low"],
             format_func=lambda x: {
                 "Semua": "Semua",
-                "urgent": "🔴 Urgent",
-                "high": "🟠 Tinggi",
-                "medium": "🟡 Sedang",
-                "low": "🟢 Rendah"
+                "urgent": "\U0001f534 Urgent",
+                "high": "\U0001f7e0 Tinggi",
+                "medium": "\U0001f7e1 Sedang",
+                "low": "\U0001f7e2 Rendah"
             }.get(x, x)
         )
 
@@ -238,7 +361,7 @@ def render_lead_list():
                                 st.caption(f"Follow-up: {followup_date.strftime('%d %b')}")
 
                     with col5:
-                        if st.button("📝", key=f"edit_{lead.id}", help="Detail"):
+                        if st.button("\U0001f4dd", key=f"edit_{lead.id}", help="Detail"):
                             st.session_state.crm_selected_lead = lead.id
                             st.session_state.crm_view = "detail"
                             st.rerun()
@@ -251,6 +374,10 @@ def render_lead_list():
         logger.error(f"Failed to load leads: {e}")
         st.info("Belum ada data lead atau database belum terhubung.")
 
+
+# =============================================================================
+# ADD LEAD FORM
+# =============================================================================
 
 def render_add_lead_form():
     """Render add lead form."""
@@ -284,10 +411,10 @@ def render_add_lead_form():
                 "Prioritas",
                 options=["medium", "low", "high", "urgent"],
                 format_func=lambda x: {
-                    "low": "🟢 Rendah",
-                    "medium": "🟡 Sedang",
-                    "high": "🟠 Tinggi",
-                    "urgent": "🔴 Urgent"
+                    "low": "\U0001f7e2 Rendah",
+                    "medium": "\U0001f7e1 Sedang",
+                    "high": "\U0001f7e0 Tinggi",
+                    "urgent": "\U0001f534 Urgent"
                 }.get(x, x)
             )
 
@@ -370,7 +497,13 @@ def render_add_lead_form():
                             user_email=user.get("email"),
                             details={"name": name.strip(), "phone": validated_phone, "source": source}
                         )
-                        st.success(f"Lead berhasil ditambahkan!")
+
+                        # Gamification: +20 XP for first lead added
+                        if not st.session_state.crm_lead_add_xp_awarded:
+                            add_xp_safe(20, "Menambahkan lead pertama di CRM")
+                            st.session_state.crm_lead_add_xp_awarded = True
+
+                        st.success("Lead berhasil ditambahkan!")
                         st.session_state.crm_view = "list"
                         st.rerun()
                     else:
@@ -380,6 +513,77 @@ def render_add_lead_form():
                     logger.error(f"Failed to create lead: {e}")
                     st.error(f"Gagal menyimpan lead: {str(e)}")
 
+
+# =============================================================================
+# AI LEAD SCORING & FOLLOW-UP SUGGESTIONS
+# =============================================================================
+
+def render_ai_lead_analysis(lead):
+    """Render AI-powered lead scoring and follow-up suggestions."""
+    st.markdown("### \U0001f916 Analisis AI")
+
+    if st.button("\U0001f4a1 Analisis Lead dengan AI", use_container_width=True, key="ai_analyze_lead"):
+        safe_name = escape_html(lead.name)
+        package_info = lead.interested_package or "Belum ditentukan"
+        budget_info = ""
+        if lead.budget_min or lead.budget_max:
+            budget_info = f"{format_rupiah(lead.budget_min or 0)} - {format_rupiah(lead.budget_max or 0)}"
+        else:
+            budget_info = "Belum ditentukan"
+        preferred_month_info = lead.preferred_month or "Belum ditentukan"
+        group_size_info = str(lead.group_size) if lead.group_size else "1"
+        source_info = lead.source or "Tidak diketahui"
+        priority_info = lead.priority or "medium"
+        status_info = lead.status or "new"
+        notes_info = lead.notes or "Tidak ada catatan"
+
+        prompt = (
+            "Kamu adalah konsultan CRM travel umrah berpengalaman. "
+            "Analisis lead berikut dan berikan:\n"
+            "1. SKOR LEAD (1-100) berdasarkan potensi konversi\n"
+            "2. ALASAN skor tersebut (2-3 poin singkat)\n"
+            "3. REKOMENDASI FOLLOW-UP: strategi dan pesan yang tepat\n"
+            "4. WAKTU TERBAIK untuk menghubungi\n\n"
+            "Data Lead:\n"
+            "- Nama: " + safe_name + "\n"
+            "- Status: " + status_info + "\n"
+            "- Prioritas: " + priority_info + "\n"
+            "- Sumber: " + source_info + "\n"
+            "- Paket Diminati: " + package_info + "\n"
+            "- Budget: " + budget_info + "\n"
+            "- Bulan Preferensi: " + preferred_month_info + "\n"
+            "- Jumlah Jamaah: " + group_size_info + "\n"
+            "- Catatan: " + notes_info + "\n\n"
+            "Jawab dalam Bahasa Indonesia, singkat dan actionable."
+        )
+
+        with st.spinner("Menganalisis lead..."):
+            result = ai_complete(
+                prompt=prompt,
+                system_prompt="Kamu adalah AI CRM assistant untuk travel umrah. Berikan analisis singkat, praktis, dan actionable.",
+                max_tokens=600
+            )
+
+        if result:
+            ai_html = (
+                '<div class="ai-card">'
+                '<h4>\U0001f4ca Hasil Analisis AI</h4>'
+                '<p>' + escape_html(result) + '</p>'
+                '</div>'
+            )
+            st.markdown(ai_html, unsafe_allow_html=True)
+
+            # Gamification: +15 XP for first AI analysis
+            if not st.session_state.crm_lead_ai_xp_awarded:
+                add_xp_safe(15, "Analisis AI lead CRM")
+                st.session_state.crm_lead_ai_xp_awarded = True
+        else:
+            st.warning("Layanan AI sedang tidak tersedia. Silakan coba lagi nanti.")
+
+
+# =============================================================================
+# LEAD DETAIL
+# =============================================================================
 
 def render_lead_detail(lead_id: str):
     """Render lead detail view."""
@@ -396,10 +600,10 @@ def render_lead_detail(lead_id: str):
         col1, col2 = st.columns([3, 1])
         with col1:
             st.markdown(f"## {get_priority_emoji(lead.priority)} {lead.name}")
-            st.caption(f"📞 {lead.phone} | 📧 {lead.email or '-'}")
+            st.caption(f"\U0001f4de {lead.phone} | \U0001f4e7 {lead.email or '-'}")
 
         with col2:
-            if st.button("← Kembali"):
+            if st.button("\u2190 Kembali"):
                 st.session_state.crm_view = "list"
                 st.session_state.crm_selected_lead = None
                 st.rerun()
@@ -458,6 +662,9 @@ def render_lead_detail(lead_id: str):
             st.markdown("**Catatan:**")
             st.write(lead.notes)
 
+        # AI Analysis section
+        render_ai_lead_analysis(lead)
+
         # Activities
         st.markdown("### Riwayat Aktivitas")
 
@@ -468,11 +675,11 @@ def render_lead_detail(lead_id: str):
                     "Tipe",
                     options=["call", "whatsapp", "email", "meeting", "note"],
                     format_func=lambda x: {
-                        "call": "📞 Telepon",
-                        "whatsapp": "💬 WhatsApp",
-                        "email": "📧 Email",
-                        "meeting": "🤝 Meeting",
-                        "note": "📝 Catatan"
+                        "call": "\U0001f4de Telepon",
+                        "whatsapp": "\U0001f4ac WhatsApp",
+                        "email": "\U0001f4e7 Email",
+                        "meeting": "\U0001f91d Meeting",
+                        "note": "\U0001f4dd Catatan"
                     }.get(x, x)
                 )
 
@@ -509,12 +716,12 @@ def render_lead_detail(lead_id: str):
         if activities:
             for act in activities:
                 icon = {
-                    "call": "📞",
-                    "whatsapp": "💬",
-                    "email": "📧",
-                    "meeting": "🤝",
-                    "note": "📝"
-                }.get(act.activity_type, "📌")
+                    "call": "\U0001f4de",
+                    "whatsapp": "\U0001f4ac",
+                    "email": "\U0001f4e7",
+                    "meeting": "\U0001f91d",
+                    "note": "\U0001f4dd"
+                }.get(act.activity_type, "\U0001f4cc")
 
                 with st.container():
                     st.markdown(f"**{icon} {act.activity_type.title()}** - {format_date(act.created_at)}")
@@ -530,13 +737,13 @@ def render_lead_detail(lead_id: str):
         col1, col2, col3 = st.columns(3)
 
         with col1:
-            if st.button("📋 Buat Quote", use_container_width=True):
+            if st.button("\U0001f4cb Buat Quote", use_container_width=True):
                 st.session_state.quote_lead_id = lead_id
                 st.session_state.current_page = "quotes"
                 st.rerun()
 
         with col2:
-            if st.button("📅 Buat Booking", use_container_width=True):
+            if st.button("\U0001f4c5 Buat Booking", use_container_width=True):
                 st.session_state.booking_lead_id = lead_id
                 st.session_state.current_page = "bookings"
                 st.rerun()
@@ -546,29 +753,36 @@ def render_lead_detail(lead_id: str):
                 wa_number = (lead.whatsapp or lead.phone).replace("+", "").replace(" ", "")
                 if wa_number.startswith("0"):
                     wa_number = "62" + wa_number[1:]
-                st.link_button("💬 WhatsApp", f"https://wa.me/{wa_number}", use_container_width=True)
+                st.link_button("\U0001f4ac WhatsApp", f"https://wa.me/{wa_number}", use_container_width=True)
 
     except Exception as e:
         logger.error(f"Failed to load lead detail: {e}")
         st.error("Gagal memuat detail lead")
 
 
+# =============================================================================
+# MAIN RENDER
+# =============================================================================
+
 def render_crm_leads_page():
     """Main CRM leads page."""
     try:
         from services.analytics import track_page
         track_page("crm_leads")
-    except:
+    except Exception:
         pass
 
     init_session_state()
 
+    # Inject shared + page-specific CSS
+    inject_css(HERO_CSS, CARD_CSS, AI_CARD_CSS, BADGE_CSS, CRM_LEADS_CSS)
+
     # Header
     col1, col2 = st.columns([3, 1])
     with col1:
-        st.markdown("# 👥 CRM - Manajemen Lead")
+        st.markdown("# \U0001f465 CRM - Manajemen Lead")
     with col2:
-        if st.button("➕ Tambah Lead", type="primary", use_container_width=True):
+        if st.button("\u2795 Tambah Lead", type="primary", use_container_width=True):
             st.session_state.crm_view = "add"
             st.rerun()
 
@@ -586,7 +800,7 @@ def render_crm_leads_page():
         render_lead_detail(st.session_state.crm_selected_lead)
     else:
         # View tabs
-        tab1, tab2 = st.tabs(["📋 List View", "📊 Pipeline"])
+        tab1, tab2 = st.tabs(["\U0001f4cb List View", "\U0001f4ca Pipeline"])
 
         with tab1:
             render_lead_list()

@@ -1,14 +1,131 @@
 """
+================================================================================
 LABBAIK AI - Quote & Invoice Generator
-========================================
-Generate professional quotes and invoices.
+================================================================================
+Generate professional quotes and invoices with AI pricing suggestions.
+================================================================================
 """
 
 import streamlit as st
 from datetime import datetime, date, timedelta
 import logging
+import html as html_module
+
+from services.ai.helpers import ai_complete, add_xp_safe
+from ui.components.shared_styles import inject_css, HERO_CSS, CARD_CSS, AI_CARD_CSS, BADGE_CSS
 
 logger = logging.getLogger(__name__)
+
+
+# =============================================================================
+# PAGE-SPECIFIC CSS
+# =============================================================================
+
+QUOTES_CSS = """
+/* Quote & Invoice page-specific styles */
+.quote-header {
+    background: linear-gradient(135deg, #1a5f2a 0%, #2d8a3e 100%);
+    color: white;
+    padding: 30px;
+    border-radius: 15px;
+    margin-bottom: 20px;
+}
+
+.quote-header h1 {
+    margin: 0;
+    color: white;
+    text-align: center;
+}
+
+.quote-header p {
+    margin: 0;
+    opacity: 0.9;
+    text-align: center;
+}
+
+.quote-header hr {
+    border-color: rgba(255,255,255,0.3);
+}
+
+.quote-header .field {
+    margin: 4px 0;
+}
+
+.quote-header .field strong {
+    color: white;
+}
+
+.invoice-card {
+    background: #f8f9fa;
+    padding: 20px;
+    border-radius: 10px;
+    border: 1px solid #dee2e6;
+}
+
+.invoice-card h2 {
+    margin: 0;
+    text-align: center;
+}
+
+.invoice-card .subtitle {
+    margin: 0;
+    color: #666;
+    text-align: center;
+}
+
+.invoice-card hr {
+    border-color: #dee2e6;
+}
+
+.invoice-card .field {
+    margin: 4px 0;
+}
+
+.quote-status-draft {
+    display: inline-block;
+    background: #4a3a1a;
+    color: #fbbf24;
+    padding: 0.15rem 0.6rem;
+    border-radius: 10px;
+    font-size: 0.75rem;
+    font-weight: bold;
+}
+
+.quote-status-sent {
+    display: inline-block;
+    background: #1a2a4a;
+    color: #60a5fa;
+    padding: 0.15rem 0.6rem;
+    border-radius: 10px;
+    font-size: 0.75rem;
+    font-weight: bold;
+}
+
+.quote-status-accepted {
+    display: inline-block;
+    background: #1a3a1a;
+    color: #4ade80;
+    padding: 0.15rem 0.6rem;
+    border-radius: 10px;
+    font-size: 0.75rem;
+    font-weight: bold;
+}
+
+.ai-pricing-section {
+    margin-top: 1rem;
+}
+"""
+
+
+# =============================================================================
+# HELPERS
+# =============================================================================
+
+def escape(text):
+    """Escape HTML to prevent XSS."""
+    if text is None:
+        return ""
+    return html_module.escape(str(text))
 
 
 def format_rupiah(amount: int) -> str:
@@ -27,11 +144,42 @@ def format_date(dt) -> str:
     return dt.strftime("%d %b %Y")
 
 
+def _markdown_to_html_simple(text: str) -> str:
+    """Simple markdown to HTML conversion for AI output."""
+    import re
+
+    lines = text.split("\n")
+    html_lines = []
+    for line in lines:
+        line = line.strip()
+        if not line:
+            html_lines.append("<br/>")
+            continue
+        line = re.sub(r"\*\*(.+?)\*\*", r"<strong>\1</strong>", line)
+        if line.startswith("- ") or line.startswith("* "):
+            line = "&bull; " + line[2:]
+        match = re.match(r"^(\d+)\.\s+", line)
+        if match:
+            num = match.group(1)
+            rest = line[match.end():]
+            line = "<strong>" + num + ".</strong> " + rest
+        html_lines.append("<div style='margin-bottom:0.3rem;'>" + line + "</div>")
+    return "\n".join(html_lines)
+
+
 def init_session_state():
     """Initialize session state."""
     if "quote_view" not in st.session_state:
         st.session_state.quote_view = "list"
+    if "quote_create_xp_awarded" not in st.session_state:
+        st.session_state.quote_create_xp_awarded = False
+    if "quote_ai_xp_awarded" not in st.session_state:
+        st.session_state.quote_ai_xp_awarded = False
 
+
+# =============================================================================
+# QUOTE GENERATOR
+# =============================================================================
 
 def render_quote_generator():
     """Generate quote from package builder."""
@@ -207,12 +355,24 @@ def render_quote_generator():
                     "final_price": final_price,
                     "valid_until": (date.today() + timedelta(days=valid_days)).isoformat(),
                     "notes": notes,
-                    "breakdown": breakdown
+                    "breakdown": breakdown,
+                    "margin_percentage": margin_percentage,
+                    "nights_makkah": nights_makkah,
+                    "nights_madinah": nights_madinah,
                 }
+
+                # Gamification: +25 XP for creating a quote (first time)
+                if not st.session_state.get("quote_create_xp_awarded", False):
+                    st.session_state.quote_create_xp_awarded = True
+                    add_xp_safe(25, "Membuat quote umrah pertama")
 
                 st.session_state.quote_view = "preview"
                 st.rerun()
 
+
+# =============================================================================
+# QUOTE PREVIEW
+# =============================================================================
 
 def render_quote_preview():
     """Render quote preview."""
@@ -225,21 +385,25 @@ def render_quote_preview():
 
     st.markdown("### Preview Quote")
 
-    # Quote card
-    st.markdown(f"""
-    <div style="background: linear-gradient(135deg, #1a5f2a 0%, #2d8a3e 100%); color: white; padding: 30px; border-radius: 15px; margin-bottom: 20px;">
-        <div style="text-align: center; margin-bottom: 20px;">
-            <h1 style="margin: 0; color: white;">LABBAIK</h1>
-            <p style="margin: 0; opacity: 0.9;">Penawaran Paket Umrah</p>
-        </div>
-        <hr style="border-color: rgba(255,255,255,0.3);">
-        <p><strong>Kepada:</strong> {quote['recipient_name']}</p>
-        <p><strong>Telepon:</strong> {quote['recipient_phone']}</p>
-        <p><strong>Berlaku sampai:</strong> {quote['valid_until']}</p>
-    </div>
-    """, unsafe_allow_html=True)
+    # Build the quote header card HTML
+    safe_name = escape(quote['recipient_name'])
+    safe_phone = escape(quote['recipient_phone'])
+    safe_valid = escape(quote['valid_until'])
 
-    st.markdown(f"### {quote['package_name']}")
+    header_html = (
+        '<div class="quote-header">'
+        '<h1>LABBAIK</h1>'
+        '<p>Penawaran Paket Umrah</p>'
+        '<hr>'
+        '<p class="field"><strong>Kepada:</strong> ' + safe_name + '</p>'
+        '<p class="field"><strong>Telepon:</strong> ' + safe_phone + '</p>'
+        '<p class="field"><strong>Berlaku sampai:</strong> ' + safe_valid + '</p>'
+        '</div>'
+    )
+    st.markdown(header_html, unsafe_allow_html=True)
+
+    safe_pkg = escape(quote['package_name'])
+    st.markdown(f"### {safe_pkg}")
 
     col1, col2 = st.columns(2)
 
@@ -277,17 +441,21 @@ def render_quote_preview():
         st.markdown("**Catatan:**")
         st.write(quote['notes'])
 
+    # AI Pricing Suggestion Section
+    st.markdown("---")
+    _render_ai_pricing_suggestion(quote)
+
     st.markdown("---")
 
     col1, col2, col3 = st.columns(3)
 
     with col1:
-        if st.button("✏️ Edit", use_container_width=True):
+        if st.button("Edit", use_container_width=True):
             st.session_state.quote_view = "create"
             st.rerun()
 
     with col2:
-        if st.button("💾 Simpan", type="primary", use_container_width=True):
+        if st.button("Simpan", type="primary", use_container_width=True):
             # Save quote to database
             try:
                 from services.crm import CRMRepository, Quote
@@ -322,25 +490,125 @@ def render_quote_preview():
         if wa_number.startswith("0"):
             wa_number = "62" + wa_number[1:]
 
-        message = f"""Assalamualaikum {quote['recipient_name']},
-
-Berikut penawaran paket umrah dari Labbaik:
-
-*{quote['package_name']}*
-- Hotel Makkah: {quote['hotel_makkah']}
-- Hotel Madinah: {quote['hotel_madinah']}
-- Maskapai: {quote['airline']}
-
-*Harga: {format_rupiah(quote['final_price'])}*
-
-Berlaku sampai: {quote['valid_until']}
-
-Hubungi kami untuk informasi lebih lanjut!"""
+        message = (
+            "Assalamualaikum " + quote['recipient_name'] + ",\n\n"
+            "Berikut penawaran paket umrah dari Labbaik:\n\n"
+            "*" + quote['package_name'] + "*\n"
+            "- Hotel Makkah: " + quote['hotel_makkah'] + "\n"
+            "- Hotel Madinah: " + quote['hotel_madinah'] + "\n"
+            "- Maskapai: " + quote['airline'] + "\n\n"
+            "*Harga: " + format_rupiah(quote['final_price']) + "*\n\n"
+            "Berlaku sampai: " + quote['valid_until'] + "\n\n"
+            "Hubungi kami untuk informasi lebih lanjut!"
+        )
 
         import urllib.parse
         encoded_message = urllib.parse.quote(message)
-        st.link_button("📱 Kirim WA", f"https://wa.me/{wa_number}?text={encoded_message}", use_container_width=True)
+        st.link_button("Kirim WA", f"https://wa.me/{wa_number}?text={encoded_message}", use_container_width=True)
 
+
+# =============================================================================
+# AI PRICING SUGGESTION
+# =============================================================================
+
+def _render_ai_pricing_suggestion(quote):
+    """Render AI-powered pricing analysis and suggestions."""
+    st.markdown('<div class="ai-pricing-section">', unsafe_allow_html=True)
+    st.markdown("### Saran Harga AI")
+
+    if st.button("Analisis Harga dengan AI", use_container_width=True):
+        with st.spinner("AI sedang menganalisis harga paket..."):
+            base_price_str = format_rupiah(quote['base_price'])
+            final_price_str = format_rupiah(quote['final_price'])
+            discount_str = format_rupiah(quote['discount'])
+            margin_pct = quote.get('margin_percentage', 15)
+            nights_m = quote.get('nights_makkah', 4)
+            nights_d = quote.get('nights_madinah', 4)
+
+            prompt_text = (
+                "Analisis penawaran paket umrah berikut:\n\n"
+                "Paket: " + str(quote['package_name']) + "\n"
+                "Durasi: " + str(quote['duration']) + "\n"
+                "Hotel Makkah: " + str(quote['hotel_makkah']) + " (" + str(nights_m) + " malam)\n"
+                "Hotel Madinah: " + str(quote['hotel_madinah']) + " (" + str(nights_d) + " malam)\n"
+                "Maskapai: " + str(quote['airline']) + "\n"
+                "Keberangkatan: " + str(quote['origin']) + "\n"
+                "Tipe Kamar: " + str(quote['room']) + "\n"
+                "Paket Makan: " + str(quote['meal']) + "\n"
+                "Margin: " + str(margin_pct) + "%\n"
+                "Harga Dasar: " + base_price_str + "\n"
+                "Diskon: " + discount_str + "\n"
+                "Harga Final: " + final_price_str + "\n\n"
+                "Berikan analisis singkat:\n"
+                "1. Apakah harga ini kompetitif di pasar umrah Indonesia?\n"
+                "2. Saran margin yang optimal\n"
+                "3. Tips strategi diskon untuk meningkatkan closing rate\n"
+                "4. Rekomendasi paket add-on yang bisa ditawarkan\n"
+                "Jawab dalam bahasa Indonesia, singkat dan praktis."
+            )
+
+            system_prompt = (
+                "Kamu adalah konsultan pricing travel umrah berpengalaman di Indonesia. "
+                "Berikan analisis harga yang praktis dan actionable untuk agen travel. "
+                "Fokus pada strategi pricing yang kompetitif di pasar Indonesia. "
+                "Gunakan bahasa Indonesia yang profesional."
+            )
+
+            response = ai_complete(prompt_text, system_prompt=system_prompt, max_tokens=1024)
+
+            if response:
+                # Gamification: +15 XP for AI analysis (first time)
+                if not st.session_state.get("quote_ai_xp_awarded", False):
+                    st.session_state.quote_ai_xp_awarded = True
+                    add_xp_safe(15, "Analisis harga AI untuk quote")
+
+                ai_html = _markdown_to_html_simple(response)
+                card_html = (
+                    '<div class="ai-card">'
+                    '<h4>Analisis Harga AI</h4>'
+                    '<p>' + ai_html + '</p>'
+                    '</div>'
+                )
+                st.markdown(card_html, unsafe_allow_html=True)
+            else:
+                _render_fallback_pricing_tips(quote)
+
+    st.markdown('</div>', unsafe_allow_html=True)
+
+
+def _render_fallback_pricing_tips(quote):
+    """Render fallback pricing tips when AI is unavailable."""
+    margin_pct = quote.get('margin_percentage', 15)
+    if margin_pct < 10:
+        margin_tip = "Margin Anda di bawah 10%. Pertimbangkan menaikkan margin untuk menutupi biaya operasional."
+    elif margin_pct > 25:
+        margin_tip = "Margin di atas 25% mungkin kurang kompetitif. Pertimbangkan menurunkan sedikit untuk meningkatkan closing rate."
+    else:
+        margin_tip = "Margin " + str(margin_pct) + "% berada di kisaran standar industri travel umrah."
+
+    has_discount = quote.get('discount', 0) > 0
+    if has_discount:
+        discount_tip = "Diskon yang diberikan dapat meningkatkan daya tarik penawaran."
+    else:
+        discount_tip = "Pertimbangkan memberikan diskon early bird atau grup untuk meningkatkan konversi."
+
+    fallback_html = (
+        '<div class="ai-card">'
+        '<h4>Tips Pricing</h4>'
+        '<p>'
+        '<div style="margin-bottom:0.3rem;"><strong>Margin:</strong> ' + escape(margin_tip) + '</div>'
+        '<div style="margin-bottom:0.3rem;"><strong>Diskon:</strong> ' + escape(discount_tip) + '</div>'
+        '<div style="margin-bottom:0.3rem;"><strong>Tip:</strong> '
+        'Tawarkan paket add-on seperti city tour, laundry, atau SIM card untuk meningkatkan nilai transaksi.</div>'
+        '</p>'
+        '</div>'
+    )
+    st.markdown(fallback_html, unsafe_allow_html=True)
+
+
+# =============================================================================
+# QUOTE LIST
+# =============================================================================
 
 def render_quote_list():
     """Render saved quotes list."""
@@ -357,6 +625,10 @@ def render_quote_list():
         logger.error(f"Failed to load quotes: {e}")
         st.info("Tidak dapat memuat daftar quote")
 
+
+# =============================================================================
+# INVOICE GENERATOR
+# =============================================================================
 
 def render_invoice_generator():
     """Generate invoice from booking."""
@@ -422,21 +694,27 @@ def render_invoice_generator():
 
                     # Show invoice preview
                     st.markdown("---")
-                    st.markdown(f"""
-                    <div style="background: #f8f9fa; padding: 20px; border-radius: 10px; border: 1px solid #dee2e6;">
-                        <div style="text-align: center; margin-bottom: 15px;">
-                            <h2 style="margin: 0;">INVOICE</h2>
-                            <p style="margin: 0; color: #666;">LABBAIK TRAVEL</p>
-                        </div>
-                        <hr>
-                        <p><strong>No. Invoice:</strong> {repo.generate_invoice_number()}</p>
-                        <p><strong>Booking:</strong> {booking.booking_code}</p>
-                        <p><strong>Paket:</strong> {booking.package_name}</p>
-                        <hr>
-                        <p><strong>Total:</strong> {format_rupiah(amount)}</p>
-                        <p><strong>Jatuh Tempo:</strong> {format_date(due_date)}</p>
-                    </div>
-                    """, unsafe_allow_html=True)
+
+                    invoice_number = escape(str(repo.generate_invoice_number()))
+                    booking_code = escape(str(booking.booking_code))
+                    package_name = escape(str(booking.package_name))
+                    total_str = escape(format_rupiah(amount))
+                    due_str = escape(format_date(due_date))
+
+                    invoice_html = (
+                        '<div class="invoice-card">'
+                        '<h2>INVOICE</h2>'
+                        '<p class="subtitle">LABBAIK TRAVEL</p>'
+                        '<hr>'
+                        '<p class="field"><strong>No. Invoice:</strong> ' + invoice_number + '</p>'
+                        '<p class="field"><strong>Booking:</strong> ' + booking_code + '</p>'
+                        '<p class="field"><strong>Paket:</strong> ' + package_name + '</p>'
+                        '<hr>'
+                        '<p class="field"><strong>Total:</strong> ' + total_str + '</p>'
+                        '<p class="field"><strong>Jatuh Tempo:</strong> ' + due_str + '</p>'
+                        '</div>'
+                    )
+                    st.markdown(invoice_html, unsafe_allow_html=True)
                 else:
                     st.error("Gagal membuat invoice")
         else:
@@ -447,19 +725,26 @@ def render_invoice_generator():
         st.error("Gagal memuat data booking")
 
 
+# =============================================================================
+# MAIN PAGE ENTRY POINT
+# =============================================================================
+
 def render_crm_quotes_page():
     """Main quotes page."""
     try:
         from services.analytics import track_page
         track_page("crm_quotes")
-    except:
+    except Exception:
         pass
 
     init_session_state()
 
-    st.markdown("# 📋 Quote & Invoice")
+    # Inject shared + page-specific CSS
+    inject_css(HERO_CSS, CARD_CSS, AI_CARD_CSS, BADGE_CSS, QUOTES_CSS)
 
-    tab1, tab2, tab3 = st.tabs(["📝 Buat Quote", "📋 Daftar Quote", "🧾 Invoice"])
+    st.markdown("# Quote & Invoice")
+
+    tab1, tab2, tab3 = st.tabs(["Buat Quote", "Daftar Quote", "Invoice"])
 
     with tab1:
         if st.session_state.quote_view == "preview":
