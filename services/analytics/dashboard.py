@@ -30,7 +30,7 @@ class AnalyticsDashboard:
             try:
                 from services.database.repository import get_db
                 self._db = get_db()
-            except:
+            except Exception:
                 pass
         return self._db
     
@@ -59,7 +59,7 @@ class AnalyticsDashboard:
                 }
                 for r in result
             ] if result else self._mock_daily_trend(days)
-        except:
+        except Exception:
             return self._mock_daily_trend(days)
     
     def _mock_daily_trend(self, days: int) -> List[Dict]:
@@ -96,7 +96,7 @@ class AnalyticsDashboard:
             result = self.db.fetch_all(query)
             if result:
                 return [{"hour": int(r['hour']), "views": int(r['views'])} for r in result]
-        except:
+        except Exception:
             pass
         return self._mock_hourly()
     

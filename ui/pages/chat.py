@@ -257,7 +257,7 @@ def get_api_key(provider: str) -> Optional[str]:
     try:
         if hasattr(st, 'secrets') and env_key in st.secrets:
             return st.secrets[env_key]
-    except:
+    except Exception:
         pass
 
     # Try environment variable
@@ -661,7 +661,7 @@ def render_chat_features():
 
             user = get_current_user()
             has_expert_access = has_feature_access(user, Feature.PERSONALIZED_AI_ADVICE)
-        except:
+        except Exception:
             has_expert_access = False
 
         if has_expert_access:
@@ -759,7 +759,7 @@ def render_chat_features():
                         st.success("✓ TTS Aktif", icon="🔊")
                     else:
                         st.warning("edge-tts belum terinstall")
-                except:
+                except Exception:
                     st.warning("TTS tidak tersedia")
 
         st.divider()
@@ -816,7 +816,7 @@ def render_chat_page():
     try:
         from services.analytics import track_page
         track_page("chat")
-    except:
+    except Exception:
         pass
 
     # Initialize state

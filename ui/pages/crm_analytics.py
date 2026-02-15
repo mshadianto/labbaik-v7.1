@@ -404,7 +404,7 @@ def render_crm_analytics_page():
     try:
         from services.analytics import track_page
         track_page("crm_analytics")
-    except:
+    except Exception:
         pass
 
     inject_css(HERO_CSS, CARD_CSS, AI_CARD_CSS)

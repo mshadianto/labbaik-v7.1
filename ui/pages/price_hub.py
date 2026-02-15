@@ -970,7 +970,7 @@ def render_hotel_card(hotel: Dict, nights: int = 1, show_vendors: bool = True):
                 try:
                     user = get_current_user()
                     has_vendor_access = has_feature_access(user, Feature.DETAILED_PRICE_COMPARISON)
-                except:
+                except Exception:
                     has_vendor_access = True  # Default to show
 
             if has_vendor_access:
@@ -1011,7 +1011,7 @@ def render_hotel_results(result: Dict):
             check_in = datetime.strptime(result['check_in'], '%Y-%m-%d')
             check_out = datetime.strptime(result['check_out'], '%Y-%m-%d')
             nights = (check_out - check_in).days
-        except:
+        except Exception:
             pass
 
     if not hotels:

@@ -17,6 +17,9 @@ from dataclasses import dataclass, field
 from enum import Enum
 import random
 
+from services.ai.helpers import ai_complete, add_xp_safe
+from ui.components.shared_styles import inject_css, HERO_CSS, CARD_CSS, AI_CARD_CSS
+
 # =============================================================================
 # DATA STRUCTURES
 # =============================================================================
@@ -516,9 +519,19 @@ def render_preferences_form() -> UserPreferences:
 
 def render_smart_comparison_page():
     """Full smart comparison page."""
-    
-    st.markdown("# 🔍 Smart Package Comparison")
-    st.caption("Temukan paket umrah terbaik sesuai preferensi Anda")
+
+    inject_css(HERO_CSS, CARD_CSS, AI_CARD_CSS)
+
+    if not st.session_state.get("smart_comparison_xp_awarded"):
+        add_xp_safe(10, "Membandingkan paket umrah")
+        st.session_state.smart_comparison_xp_awarded = True
+
+    st.markdown("""
+        <div class="page-hero">
+            <h1>⚖️ Smart Comparison</h1>
+            <div class="subtitle">Bandingkan paket umrah secara cerdas dengan AI</div>
+        </div>
+    """, unsafe_allow_html=True)
     
     # Get preferences
     preferences = render_preferences_form()
@@ -570,11 +583,30 @@ def render_smart_comparison_page():
         st.markdown("### 🤖 Rekomendasi AI")
         st.success(f"""
         **{best_pkg.name}** adalah pilihan terbaik untuk Anda!
-        
+
         ✅ Skor kecocokan: **{best_score:.0f}%**
         ✅ {best_pkg.hotel_makkah} hanya {best_pkg.hotel_makkah_distance_m}m dari Masjidil Haram
         ✅ Rating: {best_pkg.rating_overall}/5 dari {best_pkg.review_count} review
         """)
+
+    st.markdown("---")
+    if st.button("🤖 Rekomendasi AI", key="comparison_ai_tips"):
+        with st.spinner("Menganalisis paket..."):
+            tips = ai_complete(
+                "Berikan 3 tips singkat untuk memilih paket umrah terbaik berdasarkan budget, "
+                "kenyamanan, dan kualitas pelayanan. Bahasa Indonesia.",
+                system_prompt="Kamu adalah konsultan perjalanan umrah berpengalaman.",
+                max_tokens=300,
+            )
+            if tips:
+                st.markdown(f'''
+                    <div class="ai-card">
+                        <h4>🤖 Rekomendasi AI</h4>
+                        <p>{tips}</p>
+                    </div>
+                ''', unsafe_allow_html=True)
+            else:
+                st.info("AI tidak tersedia saat ini")
 
 
 # =============================================================================

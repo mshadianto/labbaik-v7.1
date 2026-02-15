@@ -941,7 +941,7 @@ def handle_group_auth_callback():
                     )
                     st.session_state.auth_action = None
                     st.success(f"Anda bergabung ke grup '{group.name}'!")
-                except:
+                except Exception:
                     pass
 
 
@@ -1565,7 +1565,7 @@ def render_save_simulation(params: Dict, cost: CostBreakdown):
         from services.user.user_service import is_logged_in, get_current_user
         user_logged_in = is_logged_in()
         current_user = get_current_user()
-    except:
+    except Exception:
         user_logged_in = False
         current_user = None
 
@@ -2373,7 +2373,7 @@ def render_simulator_page():
     try:
         from services.analytics import track_page
         track_page("simulator")
-    except:
+    except Exception:
         pass
 
     # Initialize state
@@ -2467,7 +2467,7 @@ def render_simulator_page():
                 try:
                     from services.analytics.tracker import track_smart_nudge_show
                     track_smart_nudge_show(potential_savings)
-                except:
+                except Exception:
                     pass
 
                 st.success(f"""
@@ -2484,7 +2484,7 @@ Dengan **Umrah Bareng**, kamu bisa:
                     try:
                         from services.analytics.tracker import track_smart_nudge_click
                         track_smart_nudge_click()
-                    except:
+                    except Exception:
                         pass
                     st.session_state.current_page = "umrah_bareng"
                     st.rerun()

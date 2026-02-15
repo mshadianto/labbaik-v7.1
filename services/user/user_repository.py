@@ -26,7 +26,7 @@ def get_database_url() -> Optional[str]:
     try:
         if hasattr(st, 'secrets') and 'DATABASE_URL' in st.secrets:
             return st.secrets['DATABASE_URL']
-    except:
+    except Exception:
         pass
 
     return None
@@ -301,10 +301,10 @@ class UserRepository:
         if isinstance(value, str):
             try:
                 return datetime.fromisoformat(value.replace('Z', '+00:00'))
-            except:
+            except Exception:
                 try:
                     return datetime.strptime(value, "%Y-%m-%d %H:%M:%S")
-                except:
+                except Exception:
                     return datetime.now()
         return datetime.now()
 

@@ -13,6 +13,9 @@ from typing import Dict, List, Any
 from enum import Enum
 from dataclasses import dataclass
 
+from services.ai.helpers import ai_complete, add_xp_safe
+from ui.components.shared_styles import inject_css, HERO_CSS, CARD_CSS, AI_CARD_CSS
+
 # =============================================================================
 # RITUAL DATA
 # =============================================================================
@@ -536,9 +539,19 @@ def render_ritual_progress():
 
 def render_manasik_page():
     """Full manasik simulator page."""
-    
-    st.markdown("# 🕋 Manasik Virtual")
-    st.caption("Pelajari tata cara umrah dengan simulasi interaktif")
+
+    inject_css(HERO_CSS, CARD_CSS, AI_CARD_CSS)
+
+    if not st.session_state.get("manasik_xp_awarded"):
+        add_xp_safe(10, "Belajar manasik umrah")
+        st.session_state.manasik_xp_awarded = True
+
+    st.markdown("""
+        <div class="page-hero">
+            <h1>🕋 Manasik Umrah 3D</h1>
+            <div class="subtitle">Panduan interaktif manasik umrah dengan visualisasi 3D</div>
+        </div>
+    """, unsafe_allow_html=True)
     
     # Tabs
     tab1, tab2, tab3 = st.tabs(["🎮 3D Ka'bah", "📖 Panduan Lengkap", "✅ Progress"])
@@ -599,6 +612,25 @@ def render_manasik_page():
     | 3. Sa'i | Shafa-Marwah | 7 kali |
     | 4. Tahallul | Setelah Sa'i | Cukur/potong |
     """)
+
+    st.markdown("---")
+    if st.button("🤖 Tips Manasik dari AI", key="manasik_ai_tips"):
+        with st.spinner("Menganalisis..."):
+            tips = ai_complete(
+                "Berikan 4 tips penting untuk jamaah yang baru pertama kali melakukan manasik umrah. "
+                "Termasuk tips tawaf, sai, dan ihram. Bahasa Indonesia.",
+                system_prompt="Kamu adalah pembimbing manasik umrah berpengalaman.",
+                max_tokens=400,
+            )
+            if tips:
+                st.markdown(f'''
+                    <div class="ai-card">
+                        <h4>🤖 Tips AI Manasik Umrah</h4>
+                        <p>{tips}</p>
+                    </div>
+                ''', unsafe_allow_html=True)
+            else:
+                st.info("AI tidak tersedia saat ini")
 
 
 def render_manasik_mini_widget():

@@ -433,7 +433,7 @@ def render_crm_jamaah_page():
     try:
         from services.analytics import track_page
         track_page("crm_jamaah")
-    except:
+    except Exception:
         pass
 
     init_session_state()

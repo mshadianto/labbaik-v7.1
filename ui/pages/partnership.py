@@ -391,7 +391,7 @@ def render_partnership_page():
     try:
         from services.analytics import track_page
         track_page("partnership")
-    except:
+    except Exception:
         pass
 
     inject_css(HERO_CSS, CARD_CSS, AI_CARD_CSS, BADGE_CSS)

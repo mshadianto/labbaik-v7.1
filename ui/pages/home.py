@@ -38,7 +38,7 @@ def get_cached_db_stats():
                     'last_update': result.get('last_update'),
                     'source': 'database'
                 }
-    except:
+    except Exception:
         pass
     return None
 
@@ -144,7 +144,7 @@ def is_internal_user() -> bool:
 
             if email and email.lower() in [e.lower() for e in INTERNAL_EMAILS]:
                 return True
-    except:
+    except Exception:
         pass
     return False
 
@@ -1057,7 +1057,7 @@ def render_home_page():
     try:
         from services.analytics import track_page
         track_page("home")
-    except:
+    except Exception:
         pass
 
     # Debug widget (internal only)

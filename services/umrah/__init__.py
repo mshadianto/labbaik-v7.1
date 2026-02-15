@@ -67,7 +67,7 @@ def get_umrah_data_manager() -> HybridUmrahDataManager:
                     amadeus_key = st.secrets.get("AMADEUS_API_KEY")
                     amadeus_secret = st.secrets.get("AMADEUS_API_SECRET")
                     rapidapi_key = st.secrets.get("RAPIDAPI_KEY")
-            except:
+            except Exception:
                 pass
 
         _manager_instance = HybridUmrahDataManager(

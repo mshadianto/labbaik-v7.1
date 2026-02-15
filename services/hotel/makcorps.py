@@ -169,7 +169,7 @@ class MakcorpsClient:
         try:
             if hasattr(st, 'secrets'):
                 return st.secrets.get("MAKCORPS_API_KEY")
-        except:
+        except Exception:
             pass
 
         return None
@@ -370,7 +370,7 @@ class MakcorpsClient:
             # Remove non-breaking space, commas, spaces
             price_clean = price_clean.replace('\u00a0', '').replace(',', '').replace(' ', '').strip()
             return float(price_clean) if price_clean else 0.0
-        except:
+        except Exception:
             return 0.0
 
     def _parse_hotel(

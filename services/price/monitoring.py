@@ -234,7 +234,7 @@ def render_health_indicator():
                 # Convert to WIB (UTC+7)
                 wib_time = last_update + timedelta(hours=7)
                 st.caption(f"Update: {wib_time.strftime('%d %b %H:%M')} WIB")
-    except:
+    except Exception:
         st.caption("📊 Mode offline")
 
 
@@ -400,7 +400,7 @@ def render_last_update_badge():
                 st.caption(f"📊 Data: {freshness} | {time_str}")
         else:
             st.caption("📊 Data belum tersedia")
-    except:
+    except Exception:
         pass  # Silent fail
 
 

@@ -74,7 +74,7 @@ class DatabaseConnection:
             import streamlit as st
             if hasattr(st, 'secrets') and 'DATABASE_URL' in st.secrets:
                 return st.secrets['DATABASE_URL']
-        except:
+        except Exception:
             pass
         
         # Try settings (may cause circular import, so wrap in try)
@@ -83,7 +83,7 @@ class DatabaseConnection:
             settings = get_settings()
             if settings and hasattr(settings, 'database') and settings.database.url:
                 return settings.database.url
-        except:
+        except Exception:
             pass
         
         return None
@@ -116,7 +116,7 @@ class DatabaseConnection:
             try:
                 from core.config import get_settings
                 pool_size = get_settings().database.pool_size
-            except:
+            except Exception:
                 pass
 
             self._pool = pool.ThreadedConnectionPool(

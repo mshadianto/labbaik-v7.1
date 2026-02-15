@@ -275,7 +275,7 @@ def render_crm_competitors_page():
     try:
         from services.analytics import track_page
         track_page("crm_competitors")
-    except:
+    except Exception:
         pass
 
     init_session_state()

@@ -75,7 +75,7 @@ class AnalyticsTracker:
 
                 if email and email.lower() in [e.lower() for e in EXCLUDED_EMAILS]:
                     return True
-        except:
+        except Exception:
             pass
         return False
     
@@ -290,7 +290,7 @@ class AnalyticsTracker:
                 "mobile_users_pct": round(float(result.get('mobile_rate', 67) or 67), 0),
                 "top_region": "Jakarta"  # TODO: implement geo tracking
             }
-        except:
+        except Exception:
             return {
                 "avg_pages_per_visit": 1.3,
                 "avg_session_duration": "4m 32s",
@@ -516,9 +516,9 @@ class AnalyticsTracker:
                 ORDER BY date ASC
             """
             return self.db.fetch_all(query, (days,)) or []
-        except:
+        except Exception:
             return []
-    
+
     def get_hourly_distribution(self) -> List[Dict]:
         """Get hourly page view distribution."""
         if not self.db:
@@ -535,7 +535,7 @@ class AnalyticsTracker:
                 ORDER BY hour
             """
             return self.db.fetch_all(query) or []
-        except:
+        except Exception:
             return []
 
 

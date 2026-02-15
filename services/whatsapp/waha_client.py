@@ -56,7 +56,7 @@ class WAHAConfig:
                 api_key=st.secrets.get("WAHA_API_KEY", ""),
                 session_name=st.secrets.get("WAHA_SESSION", "default"),
             )
-        except:
+        except Exception:
             return cls.from_env()
 
 

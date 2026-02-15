@@ -164,7 +164,7 @@ def render_price_stats_widget():
             last_update = summary['last_update']
             if isinstance(last_update, datetime):
                 st.caption(f"🕐 Update: {last_update.strftime('%d %b %Y, %H:%M')}")
-    except:
+    except Exception:
         st.caption("📊 Statistik tidak tersedia")
 
 
@@ -203,9 +203,9 @@ def render_price_comparison_section():
                         st.divider()
                 else:
                     st.info("Belum ada data hotel Makkah")
-            except:
+            except Exception:
                 st.warning("Data hotel tidak tersedia")
-        
+
         with col2:
             st.markdown("### 🕌 Madinah")
             try:
@@ -216,7 +216,7 @@ def render_price_comparison_section():
                         st.divider()
                 else:
                     st.info("Belum ada data hotel Madinah")
-            except:
+            except Exception:
                 st.warning("Data hotel tidak tersedia")
     
     with tab3:
@@ -228,7 +228,7 @@ def render_price_comparison_section():
                     st.divider()
             else:
                 st.info("Belum ada data penerbangan")
-        except:
+        except Exception:
             st.warning("Data penerbangan tidak tersedia")
 
 
@@ -304,5 +304,5 @@ def render_live_price_indicator():
             st.success(f"🟢 Harga Live - Terakhir update: {time_str}")
         else:
             st.warning("🟡 Menggunakan harga estimasi")
-    except:
+    except Exception:
         st.info("📊 Mode offline - menggunakan harga estimasi")

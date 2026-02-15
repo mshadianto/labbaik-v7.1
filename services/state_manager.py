@@ -472,7 +472,7 @@ class StateManager:
             try:
                 json.dumps(value)  # Test serializable
                 exportable[key] = value
-            except:
+            except Exception:
                 pass
         return json.dumps(exportable, indent=2, default=str)
     

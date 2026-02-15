@@ -268,7 +268,7 @@ def render_crm_broadcast_page():
     try:
         from services.analytics import track_page
         track_page("crm_broadcast")
-    except:
+    except Exception:
         pass
 
     init_session_state()

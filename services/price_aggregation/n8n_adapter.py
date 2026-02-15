@@ -376,7 +376,7 @@ class N8nPriceAdapter:
                 if isinstance(transit, str):
                     try:
                         transit = json.loads(transit)
-                    except:
+                    except Exception:
                         pass
                 if isinstance(transit, list):
                     inclusions.append(f"Transit: {', '.join(transit)}")
@@ -418,7 +418,7 @@ class N8nPriceAdapter:
             if isinstance(includes, str):
                 try:
                     includes = json.loads(includes)
-                except:
+                except Exception:
                     includes = []
 
             return AggregatedOffer(
