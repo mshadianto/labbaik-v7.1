@@ -17,58 +17,73 @@ Features included:
 """
 
 # Crowd Prediction
-from features.crowd_prediction import (
-    CrowdPredictor,
-    render_crowd_widget,
-    render_24h_forecast,
-    render_weekly_heatmap,
-    render_crowd_prediction_page,
-)
+try:
+    from features.crowd_prediction import (
+        CrowdPredictor,
+        render_crowd_widget,
+        render_24h_forecast,
+        render_weekly_heatmap,
+        render_crowd_prediction_page,
+    )
+except ImportError:
+    pass
 
 # SOS Emergency
-from features.sos_emergency import (
-    SOSService,
-    EmergencyType,
-    EmergencyContact,
-    render_sos_button,
-    render_sos_setup,
-    render_sos_activated,
-    render_sos_page,
-    EMERGENCY_CONTACTS_SAUDI,
-)
+try:
+    from features.sos_emergency import (
+        SOSService,
+        EmergencyType,
+        EmergencyContact,
+        render_sos_button,
+        render_sos_setup,
+        render_sos_activated,
+        render_sos_page,
+        EMERGENCY_CONTACTS_SAUDI,
+    )
+except ImportError:
+    pass
 
 # Group Tracking
-from features.group_tracking import (
-    GroupTrackingService,
-    TravelGroup,
-    GroupMember,
-    MemberStatus,
-    render_group_tracking_page,
-    render_tracking_mini_widget,
-    render_member_card,
-    create_demo_group,
-)
+try:
+    from features.group_tracking import (
+        GroupTrackingService,
+        TravelGroup,
+        GroupMember,
+        MemberStatus,
+        render_group_tracking_page,
+        render_tracking_mini_widget,
+        render_member_card,
+        create_demo_group,
+    )
+except ImportError:
+    pass
 
 # 3D Manasik
-from features.manasik_3d import (
-    render_3d_kaaba,
-    render_manasik_page,
-    render_manasik_mini_widget,
-    render_ritual_step_card,
-    RITUALS_DATA,
-    RitualStep,
-)
+try:
+    from features.manasik_3d import (
+        render_3d_kaaba,
+        render_manasik_page,
+        render_manasik_mini_widget,
+        render_ritual_step_card,
+        RITUALS_DATA,
+        RitualStep,
+    )
+except ImportError:
+    pass
 
 # Smart Comparison
-from features.smart_comparison import (
-    render_smart_comparison_page,
-    render_package_card,
-    render_comparison_table,
-    get_sample_packages,
-    match_packages,
-    PackageDetails,
-    UserPreferences,
-)
+try:
+    from features.smart_comparison import (
+        render_smart_comparison_page,
+        render_package_card,
+        render_comparison_table,
+        get_sample_packages,
+        match_packages,
+        PackageDetails,
+        UserPreferences,
+    )
+except ImportError:
+    pass
 
 # WhatsApp Service (WAHA)
 try:
