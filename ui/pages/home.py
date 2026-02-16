@@ -122,20 +122,65 @@ HOME_PAGE_CSS = """
     50% { opacity: 0.5; }
 }
 
-/* Home page responsive overrides */
+/* Home page responsive overrides — tablet */
 @media (max-width: 768px) {
     .hero-section-v6 { padding: 1.2rem 0.8rem; }
     .brand-name-v6 { font-size: 1.5rem; letter-spacing: 0.15rem; }
     .arabic-calligraphy-v6 { font-size: 1.3rem; }
     .version-badge-v6 { font-size: 0.7rem; padding: 0.2rem 0.6rem; }
+    .tagline-v6 { font-size: 0.85rem; }
+    .subtitle-v6 { font-size: 0.75rem; }
     .stat-card-v6 { padding: 0.4rem; }
     .stat-icon-v6 { font-size: 1rem; }
     .stat-value-v6 { font-size: 0.8rem; }
     .stat-label-v6 { font-size: 0.55rem; }
     .gold-card { padding: 0.8rem; border-radius: 10px; }
+
+    /* Pilar framework cards */
+    .pilar-card { min-height: auto !important; padding: 1rem !important; }
+    .pilar-card h3 { font-size: 1rem; }
+    .pilar-card p { font-size: 0.82rem; }
+    .pilar-icon { font-size: 2rem !important; }
+
+    /* Highlight cards (public) */
+    .highlight-card { min-height: auto !important; padding: 1rem !important; }
+    .highlight-icon { font-size: 1.8rem !important; }
+    .highlight-title { font-size: 0.95rem !important; }
+    .highlight-desc { font-size: 0.78rem !important; }
+
+    /* Budget cards */
+    .budget-card { min-height: auto !important; padding: 1rem !important; }
+    .budget-icon { font-size: 1.5rem !important; }
+    .budget-name { font-size: 0.95rem !important; }
+    .budget-price { font-size: 1.1rem !important; }
+    .budget-desc { font-size: 0.72rem !important; }
+
+    /* Visitor stats cards (internal) */
+    .vstats-card { padding: 0.8rem !important; }
+    .vstats-icon { font-size: 1.8rem !important; }
+    .vstats-value { font-size: 1.3rem !important; }
+    .vstats-label { font-size: 0.72rem !important; }
 }
+
+/* Home page responsive overrides — small phone */
 @media (max-width: 480px) {
     .brand-name-v6 { font-size: 1.2rem; letter-spacing: 0.1rem; }
+    .arabic-calligraphy-v6 { font-size: 1.1rem; }
+    .tagline-v6 { font-size: 0.78rem; }
+
+    /* Pilar cards stack naturally via shared_styles 100% columns */
+    .pilar-card { padding: 0.8rem !important; }
+    .pilar-icon { font-size: 1.8rem !important; }
+
+    /* Budget cards */
+    .budget-card { padding: 0.8rem !important; }
+    .budget-price { font-size: 1rem !important; }
+
+    /* Visitor stats */
+    .vstats-card { padding: 0.6rem !important; }
+    .vstats-icon { font-size: 1.5rem !important; }
+    .vstats-value { font-size: 1.1rem !important; }
+    .vstats-label { font-size: 0.68rem !important; }
 }
 """
 
@@ -244,11 +289,11 @@ def render_public_highlights_section():
     for col, (icon, title, desc) in zip([col1, col2, col3, col4], highlights):
         with col:
             st.markdown(f"""
-            <div style="background: linear-gradient(135deg, #1a1a1a 0%, #2d2d2d 100%);
+            <div class="highlight-card" style="background: linear-gradient(135deg, #1a1a1a 0%, #2d2d2d 100%);
                         border: 1px solid #d4af37; border-radius: 15px; padding: 1.5rem; text-align: center; min-height: 180px;">
-                <div style="font-size: 2.5rem;">{icon}</div>
-                <div style="font-size: 1.1rem; font-weight: bold; color: #d4af37; margin: 0.5rem 0;">{title}</div>
-                <div style="color: #b0b0b0; font-size: 0.85rem;">{desc}</div>
+                <div class="highlight-icon" style="font-size: 2.5rem;">{icon}</div>
+                <div class="highlight-title" style="font-size: 1.1rem; font-weight: bold; color: #d4af37; margin: 0.5rem 0;">{title}</div>
+                <div class="highlight-desc" style="color: #b0b0b0; font-size: 0.85rem;">{desc}</div>
             </div>
             """, unsafe_allow_html=True)
 
@@ -351,41 +396,41 @@ def render_visitor_stats_section():
     
     with col1:
         st.markdown(f"""
-        <div style="background: linear-gradient(135deg, #1a1a1a 0%, #2d2d2d 100%); 
+        <div class="vstats-card" style="background: linear-gradient(135deg, #1a1a1a 0%, #2d2d2d 100%);
                     border: 1px solid #d4af37; border-radius: 15px; padding: 1.5rem; text-align: center;">
-            <div style="font-size: 2.5rem;">👥</div>
-            <div style="font-size: 2rem; font-weight: bold; color: #d4af37;">{stats['total_visitors']:,}</div>
-            <div style="color: #b0b0b0; font-size: 0.85rem;">Total Pengunjung</div>
+            <div class="vstats-icon" style="font-size: 2.5rem;">👥</div>
+            <div class="vstats-value" style="font-size: 2rem; font-weight: bold; color: #d4af37;">{stats['total_visitors']:,}</div>
+            <div class="vstats-label" style="color: #b0b0b0; font-size: 0.85rem;">Total Pengunjung</div>
         </div>
         """, unsafe_allow_html=True)
-    
+
     with col2:
         st.markdown(f"""
-        <div style="background: linear-gradient(135deg, #1a1a1a 0%, #2d2d2d 100%); 
+        <div class="vstats-card" style="background: linear-gradient(135deg, #1a1a1a 0%, #2d2d2d 100%);
                     border: 1px solid #d4af37; border-radius: 15px; padding: 1.5rem; text-align: center;">
-            <div style="font-size: 2.5rem;">👁️</div>
-            <div style="font-size: 2rem; font-weight: bold; color: #d4af37;">{stats['total_views']:,}</div>
-            <div style="color: #b0b0b0; font-size: 0.85rem;">Total Page Views</div>
+            <div class="vstats-icon" style="font-size: 2.5rem;">👁️</div>
+            <div class="vstats-value" style="font-size: 2rem; font-weight: bold; color: #d4af37;">{stats['total_views']:,}</div>
+            <div class="vstats-label" style="color: #b0b0b0; font-size: 0.85rem;">Total Page Views</div>
         </div>
         """, unsafe_allow_html=True)
-    
+
     with col3:
         st.markdown(f"""
-        <div style="background: linear-gradient(135deg, #1a1a1a 0%, #2d2d2d 100%); 
+        <div class="vstats-card" style="background: linear-gradient(135deg, #1a1a1a 0%, #2d2d2d 100%);
                     border: 1px solid #d4af37; border-radius: 15px; padding: 1.5rem; text-align: center;">
-            <div style="font-size: 2.5rem;">📅</div>
-            <div style="font-size: 2rem; font-weight: bold; color: #d4af37;">{stats.get('visitors_today', 47)}</div>
-            <div style="color: #b0b0b0; font-size: 0.85rem;">Hari Ini</div>
+            <div class="vstats-icon" style="font-size: 2.5rem;">📅</div>
+            <div class="vstats-value" style="font-size: 2rem; font-weight: bold; color: #d4af37;">{stats.get('visitors_today', 47)}</div>
+            <div class="vstats-label" style="color: #b0b0b0; font-size: 0.85rem;">Hari Ini</div>
         </div>
         """, unsafe_allow_html=True)
-    
+
     with col4:
         st.markdown(f"""
-        <div style="background: linear-gradient(135deg, #1a1a1a 0%, #2d2d2d 100%); 
+        <div class="vstats-card" style="background: linear-gradient(135deg, #1a1a1a 0%, #2d2d2d 100%);
                     border: 1px solid #d4af37; border-radius: 15px; padding: 1.5rem; text-align: center;">
-            <div style="font-size: 2.5rem;">📈</div>
-            <div style="font-size: 2rem; font-weight: bold; color: #d4af37;">{stats.get('visitors_week', 312)}</div>
-            <div style="color: #b0b0b0; font-size: 0.85rem;">Minggu Ini</div>
+            <div class="vstats-icon" style="font-size: 2.5rem;">📈</div>
+            <div class="vstats-value" style="font-size: 2rem; font-weight: bold; color: #d4af37;">{stats.get('visitors_week', 312)}</div>
+            <div class="vstats-label" style="color: #b0b0b0; font-size: 0.85rem;">Minggu Ini</div>
         </div>
         """, unsafe_allow_html=True)
     
@@ -730,10 +775,10 @@ def render_3_pilar_framework():
 
     with col1:
         st.markdown(f"""
-        <div style="background: linear-gradient(135deg, #1a1a1a 0%, #2d2d2d 100%);
-             padding: 1.5rem; border-radius: 15px; text-align: center; height: 200px;
+        <div class="pilar-card" style="background: linear-gradient(135deg, #1a1a1a 0%, #2d2d2d 100%);
+             padding: 1.5rem; border-radius: 15px; text-align: center; min-height: 200px;
              border-top: 4px solid #d4af37; border: 1px solid #333;">
-            <div style="font-size: 3rem;">📋</div>
+            <div class="pilar-icon" style="font-size: 3rem;">📋</div>
             <h3 style="color: #d4af37; margin: 0.5rem 0;">{SMART_PREP}</h3>
             <p style="color: #b0b0b0; font-size: 0.9rem;">Persiapan cerdas dengan panduan AI personal & checklist otomatis</p>
         </div>
@@ -741,10 +786,10 @@ def render_3_pilar_framework():
 
     with col2:
         st.markdown(f"""
-        <div style="background: linear-gradient(135deg, #1a1a1a 0%, #2d2d2d 100%);
-             padding: 1.5rem; border-radius: 15px; text-align: center; height: 200px;
+        <div class="pilar-card" style="background: linear-gradient(135deg, #1a1a1a 0%, #2d2d2d 100%);
+             padding: 1.5rem; border-radius: 15px; text-align: center; min-height: 200px;
              border-top: 4px solid #d4af37; border: 1px solid #333;">
-            <div style="font-size: 3rem;">💰</div>
+            <div class="pilar-icon" style="font-size: 3rem;">💰</div>
             <h3 style="color: #d4af37; margin: 0.5rem 0;">{SMART_SAVINGS}</h3>
             <p style="color: #b0b0b0; font-size: 0.9rem;">Optimasi budget cerdas, hemat hingga jutaan rupiah</p>
         </div>
@@ -752,10 +797,10 @@ def render_3_pilar_framework():
 
     with col3:
         st.markdown(f"""
-        <div style="background: linear-gradient(135deg, #1a1a1a 0%, #2d2d2d 100%);
-             padding: 1.5rem; border-radius: 15px; text-align: center; height: 200px;
+        <div class="pilar-card" style="background: linear-gradient(135deg, #1a1a1a 0%, #2d2d2d 100%);
+             padding: 1.5rem; border-radius: 15px; text-align: center; min-height: 200px;
              border-top: 4px solid #d4af37; border: 1px solid #333;">
-            <div style="font-size: 3rem;">🕌</div>
+            <div class="pilar-icon" style="font-size: 3rem;">🕌</div>
             <h3 style="color: #d4af37; margin: 0.5rem 0;">{SMART_JOURNEY}</h3>
             <p style="color: #b0b0b0; font-size: 0.9rem;">AI companion 24/7 selama di Tanah Suci</p>
         </div>
@@ -861,12 +906,12 @@ def render_package_preview():
     for col, info in zip(cols, budget_info):
         with col:
             st.markdown(f"""
-            <div style="background: linear-gradient(135deg, #1a1a1a 0%, #2d2d2d 100%);
+            <div class="budget-card" style="background: linear-gradient(135deg, #1a1a1a 0%, #2d2d2d 100%);
                         border: 1px solid #333; border-radius: 15px; padding: 1.2rem; text-align: center; min-height: 200px;">
-                <div style="font-size: 2rem;">{info['icon']}</div>
-                <div style="color: #d4af37; font-size: 1.1rem; font-weight: bold; margin: 0.5rem 0;">{info['name']}</div>
-                <div style="color: #fafafa; font-size: 1.3rem; font-weight: bold;">Rp {info['range']}</div>
-                <div style="color: #b0b0b0; font-size: 0.8rem; margin-top: 0.5rem;">{info['desc']}</div>
+                <div class="budget-icon" style="font-size: 2rem;">{info['icon']}</div>
+                <div class="budget-name" style="color: #d4af37; font-size: 1.1rem; font-weight: bold; margin: 0.5rem 0;">{info['name']}</div>
+                <div class="budget-price" style="color: #fafafa; font-size: 1.3rem; font-weight: bold;">Rp {info['range']}</div>
+                <div class="budget-desc" style="color: #b0b0b0; font-size: 0.8rem; margin-top: 0.5rem;">{info['desc']}</div>
             </div>
             """, unsafe_allow_html=True)
 

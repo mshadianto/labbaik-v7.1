@@ -1038,7 +1038,7 @@ def render_tips_and_analysis():
 
             if response:
                 st.markdown(
-                    f'<div class="ai-card">'
+                    f'<div class="ai-card" role="status" aria-live="polite">'
                     f'<h3>\U0001f9e0 Hasil Analisis AI</h3>'
                     f'<p>{_markdown_to_html_simple(response)}</p>'
                     f'</div>',
@@ -1059,7 +1059,7 @@ def render_tips_and_analysis():
 def render_budget_fallback(budget_sar: float):
     """Render static budget tips when AI is unavailable."""
     st.markdown(
-        '<div class="ai-card" style="border-color: #d4af37;">'
+        '<div class="ai-card" role="status" aria-live="polite" style="border-color: #d4af37;">'
         '<h3 style="color: #d4af37;">\U0001f4a1 Saran Budget</h3>'
         '</div>',
         unsafe_allow_html=True,

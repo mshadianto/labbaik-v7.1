@@ -586,7 +586,7 @@ def render_hero():
 
     st.markdown(
         '<div class="page-hero checklist-hero">'
-        '<h1>\U0001f4cb Smart Checklist</h1>'
+        '<h1><span aria-hidden="true">\U0001f4cb </span>Smart Checklist</h1>'
         '<p class="subtitle">Checklist Packing Umrah yang Dipersonalisasi</p>'
         '</div>',
         unsafe_allow_html=True,
@@ -810,7 +810,7 @@ def render_ai_packing_tips(profile: Dict, checklist: Dict, checked_items: Dict):
     if cached_tips:
         html_content = _markdown_to_html_simple(cached_tips)
         st.markdown(
-            '<div class="ai-card">'
+            '<div class="ai-card" role="status" aria-live="polite">'
             '<h4 style="color:#4ade80;margin-top:0;">\U0001f9e0 Tips Packing Personal dari AI</h4>'
             f'<p>{html_content}</p>'
             '</div>',
@@ -818,7 +818,7 @@ def render_ai_packing_tips(profile: Dict, checklist: Dict, checked_items: Dict):
         )
     else:
         st.markdown(
-            '<div class="ai-card" style="border-color:#555;opacity:0.7;">'
+            '<div class="ai-card" role="status" aria-live="polite" style="border-color:#555;opacity:0.7;">'
             '<p style="color:#b0b0b0;text-align:center;">Klik tombol di atas untuk mendapatkan tips packing '
             'yang dipersonalisasi berdasarkan profil Anda.</p>'
             '</div>',

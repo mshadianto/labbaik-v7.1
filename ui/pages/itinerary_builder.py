@@ -1275,7 +1275,7 @@ def render_ai_analysis(itinerary, preferences, start_date):
         if response:
             html_content = _markdown_to_html_simple(response)
             st.markdown(
-                f'<div class="ai-card">'
+                f'<div class="ai-card" role="status" aria-live="polite">'
                 f'<h4 style="color:#4ade80;margin-top:0;">\U0001f9e0 Analisis AI</h4>'
                 f'{html_content}'
                 f'</div>',

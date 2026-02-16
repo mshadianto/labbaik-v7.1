@@ -964,7 +964,7 @@ def render_ai_booking_insights():
                     add_xp_safe(15, "Analisis booking dengan AI")
 
                 ai_html = (
-                    '<div class="ai-card">'
+                    '<div class="ai-card" role="status" aria-live="polite">'
                     '<h4>Hasil Analisis AI</h4>'
                     '<p>' + _markdown_to_html_simple(response) + '</p>'
                     '</div>'
@@ -977,7 +977,7 @@ def render_ai_booking_insights():
 def _render_fallback_insights(stats_summary: str):
     """Render fallback insights when AI is unavailable."""
     fallback_html = (
-        '<div class="ai-card">'
+        '<div class="ai-card" role="status" aria-live="polite">'
         '<h4>Ringkasan Booking</h4>'
         '<p>'
         '<strong>Tips Pengelolaan Booking:</strong><br/>'

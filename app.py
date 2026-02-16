@@ -509,6 +509,9 @@ def init_session_state():
         # First visit welcome
         "is_first_visit": True,
         "first_visit_dismissed": False,
+
+        # Onboarding tour
+        "onboarding_step": 0,  # 0=not started, 1-5=active steps, 6=done
         
         # Gamification
         "xp": 0,
@@ -1116,10 +1119,10 @@ def main():
     # First-visit welcome banner
     if st.session_state.get("is_first_visit") and not st.session_state.get("first_visit_dismissed"):
         st.markdown("""
-        <div style="background: linear-gradient(135deg, #1a3a1a 0%, #0d2b0d 100%);
+        <div role="alert" style="background: linear-gradient(135deg, #1a3a1a 0%, #0d2b0d 100%);
                     border: 1px solid #d4af37; border-radius: 12px; padding: 1.25rem;
                     margin-bottom: 1rem; text-align: center;">
-            <div style="font-size: 1.5rem; margin-bottom: 0.5rem;">🕋</div>
+            <div style="font-size: 1.5rem; margin-bottom: 0.5rem;" aria-hidden="true">🕋</div>
             <div style="color: #d4af37; font-size: 1.1rem; font-weight: bold;">
                 Assalamu'alaikum! Selamat datang di LABBAIK Smart Planner
             </div>
@@ -1146,7 +1149,154 @@ def main():
             if st.button("Tutup", key="welcome_dismiss", use_container_width=True):
                 st.session_state.first_visit_dismissed = True
                 st.session_state.is_first_visit = False
+                st.session_state.onboarding_step = 1
                 st.rerun()
+
+    # =========================================================================
+    # GUIDED ONBOARDING TOUR
+    # =========================================================================
+    onboarding_step = st.session_state.get("onboarding_step", 0)
+
+    if 1 <= onboarding_step <= 5:
+        # Tour step definitions
+        tour_steps = {
+            1: {
+                "title": "Selamat Datang!",
+                "text": "Selamat datang di LABBAIK AI! Mari kami pandu Anda mengenal fitur-fitur utama platform ini.",
+                "icon": "&#x1F54B;",  # Kaaba
+            },
+            2: {
+                "title": "Menu Navigasi",
+                "text": "Gunakan menu di sidebar (panel kiri) untuk navigasi ke berbagai fitur. Klik panah di kiri atas jika sidebar tertutup.",
+                "icon": "&#x2630;",  # Menu
+            },
+            3: {
+                "title": "Simulasi Biaya",
+                "text": "Coba Simulasi Biaya untuk menghitung estimasi biaya Umrah Anda. Fitur ini ada di menu Smart Savings.",
+                "icon": "&#x1F4B0;",  # Money bag
+            },
+            4: {
+                "title": "AI Assistant",
+                "text": "Tanya AI Assistant untuk mendapatkan jawaban seputar Umrah. Tersedia di menu Smart Journey.",
+                "icon": "&#x1F916;",  # Robot
+            },
+            5: {
+                "title": "Anda Siap!",
+                "text": "Anda siap menjelajahi semua fitur LABBAIK AI. Selamat merencanakan Umrah Anda!",
+                "icon": "&#x2705;",  # Check mark
+            },
+        }
+
+        step = tour_steps[onboarding_step]
+        total_steps = 5
+
+        # Build step indicator dots
+        dots_html = ""
+        for i in range(1, total_steps + 1):
+            if i == onboarding_step:
+                dots_html += '<span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:#d4af37;margin:0 4px;"></span>'
+            else:
+                dots_html += '<span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:#555;margin:0 4px;"></span>'
+
+        # Inject onboarding CSS + tooltip HTML
+        st.markdown(f"""
+        <style>
+        @keyframes onboardingFadeIn {{
+            from {{ opacity: 0; transform: translateY(20px); }}
+            to {{ opacity: 1; transform: translateY(0); }}
+        }}
+        .onboarding-overlay {{
+            position: fixed;
+            bottom: 24px;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 999999;
+            width: 480px;
+            max-width: calc(100vw - 32px);
+            animation: onboardingFadeIn 0.4s ease-out;
+        }}
+        .onboarding-tooltip {{
+            background: #1a1a2e;
+            border: 2px solid #d4af37;
+            border-radius: 16px;
+            padding: 1.5rem;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.5), 0 0 0 1px rgba(212,175,55,0.2);
+            text-align: center;
+        }}
+        .onboarding-tooltip .ob-icon {{
+            font-size: 2rem;
+            margin-bottom: 0.5rem;
+        }}
+        .onboarding-tooltip .ob-step-label {{
+            color: #d4af37;
+            font-size: 0.75rem;
+            font-weight: bold;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 0.25rem;
+        }}
+        .onboarding-tooltip .ob-title {{
+            color: #f0f0f0;
+            font-size: 1.15rem;
+            font-weight: bold;
+            margin-bottom: 0.5rem;
+        }}
+        .onboarding-tooltip .ob-text {{
+            color: #b0b0b0;
+            font-size: 0.9rem;
+            line-height: 1.5;
+            margin-bottom: 1rem;
+        }}
+        .onboarding-tooltip .ob-dots {{
+            margin-bottom: 1rem;
+        }}
+        @media (max-width: 640px) {{
+            .onboarding-overlay {{
+                width: calc(100vw - 16px);
+                bottom: 12px;
+            }}
+            .onboarding-tooltip {{
+                padding: 1rem;
+                border-radius: 12px;
+            }}
+            .onboarding-tooltip .ob-title {{
+                font-size: 1rem;
+            }}
+            .onboarding-tooltip .ob-text {{
+                font-size: 0.85rem;
+            }}
+        }}
+        </style>
+        <div class="onboarding-overlay">
+            <div class="onboarding-tooltip">
+                <div class="ob-icon">{step['icon']}</div>
+                <div class="ob-step-label">Langkah {onboarding_step} dari {total_steps}</div>
+                <div class="ob-title">{step['title']}</div>
+                <div class="ob-text">{step['text']}</div>
+                <div class="ob-dots">{dots_html}</div>
+            </div>
+        </div>
+        """, unsafe_allow_html=True)
+
+        # Navigation buttons for the tour (rendered as Streamlit buttons)
+        ob_col1, ob_col2 = st.columns(2)
+        with ob_col1:
+            if st.button("Lewati Tour", key="onboarding_skip", use_container_width=True):
+                st.session_state.onboarding_step = 6
+                st.session_state.first_visit_dismissed = True
+                add_xp(10, "Menyelesaikan tour")
+                st.rerun()
+        with ob_col2:
+            if onboarding_step < 5:
+                if st.button("Selanjutnya →", key="onboarding_next", use_container_width=True, type="primary"):
+                    st.session_state.onboarding_step = onboarding_step + 1
+                    st.rerun()
+            else:
+                if st.button("Mulai Jelajahi! →", key="onboarding_finish", use_container_width=True, type="primary"):
+                    st.session_state.onboarding_step = 6
+                    st.session_state.first_visit_dismissed = True
+                    add_xp(25, "Menyelesaikan onboarding tour")
+                    st.rerun()
 
     # Content anchor for skip link
     st.markdown('<div id="main-content"></div>', unsafe_allow_html=True)

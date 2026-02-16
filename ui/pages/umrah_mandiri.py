@@ -889,7 +889,7 @@ def render_tab_manasik():
 
         if response:
             st.markdown(
-                '<div class="ai-card">'
+                '<div class="ai-card" role="status" aria-live="polite">'
                 '<h4>Panduan AI - Manasik</h4>'
                 f'<p>{response}</p>'
                 '</div>',
@@ -987,7 +987,7 @@ def render_tab_budget():
 
         if response:
             st.markdown(
-                '<div class="ai-card">'
+                '<div class="ai-card" role="status" aria-live="polite">'
                 '<h4>Analisis AI - Budget Umrah</h4>'
                 f'<p>{response}</p>'
                 '</div>',
@@ -1083,7 +1083,7 @@ def render_tab_visa():
 
         if response:
             st.markdown(
-                '<div class="ai-card">'
+                '<div class="ai-card" role="status" aria-live="polite">'
                 '<h4>Panduan AI - Visa Umrah</h4>'
                 f'<p>{response}</p>'
                 '</div>',
@@ -1166,7 +1166,7 @@ def render_tab_miqat():
 
         if response:
             st.markdown(
-                '<div class="ai-card">'
+                '<div class="ai-card" role="status" aria-live="polite">'
                 '<h4>Panduan AI - Miqat & Ihram</h4>'
                 f'<p>{response}</p>'
                 '</div>',

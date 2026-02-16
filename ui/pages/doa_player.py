@@ -850,7 +850,7 @@ def render_ai_explanation(doa: Doa):
     cached = st.session_state.get(result_key)
     if cached:
         st.markdown(
-            '<div class="ai-card">'
+            '<div class="ai-card" role="status" aria-live="polite">'
             '<h4>Penjelasan AI: ' + doa.name + '</h4>'
             '<p>' + cached + '</p>'
             '</div>',
@@ -890,7 +890,7 @@ def render_ai_contextual_doa():
 
             if response:
                 st.markdown(
-                    '<div class="ai-card">'
+                    '<div class="ai-card" role="status" aria-live="polite">'
                     '<h4>Saran Doa untuk Situasi Anda</h4>'
                     '<p>' + response + '</p>'
                     '</div>',

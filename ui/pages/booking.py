@@ -589,7 +589,7 @@ def render_ai_booking_tips():
         if response:
             escaped = response.replace("<", "&lt;").replace(">", "&gt;")
             st.markdown(
-                '<div class="ai-card">'
+                '<div class="ai-card" role="status" aria-live="polite">'
                 '<h3>\U0001f9e0 Tips AI untuk Perjalanan Anda</h3>'
                 '<p>' + escaped + '</p>'
                 '</div>',
@@ -626,7 +626,7 @@ def _render_ai_tips_fallback(package):
             "4. Perbanyak doa dan dzikir selama perjalanan"
         )
     st.markdown(
-        '<div class="ai-card" style="border-color: #d4af37;">'
+        '<div class="ai-card" role="status" aria-live="polite" style="border-color: #d4af37;">'
         '<h3 style="color: #d4af37;">\U0001f4a1 Tips Booking</h3>'
         '</div>',
         unsafe_allow_html=True,

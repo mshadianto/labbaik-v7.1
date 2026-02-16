@@ -841,7 +841,7 @@ def render_ai_analysis(params: dict, breakdown):
     if cached:
         escaped = cached.replace("<", "&lt;").replace(">", "&gt;")
         st.markdown(
-            '<div class="ai-card">'
+            '<div class="ai-card" role="status" aria-live="polite">'
             '<h3>Rekomendasi AI untuk Paket Anda</h3>'
             '<p>' + escaped + '</p>'
             '</div>',

@@ -229,6 +229,54 @@ EMPTY_STATE_CSS = """
 
 
 # =============================================================================
+# SKELETON / LOADING PLACEHOLDERS (opt-in, not auto-included by inject_css)
+# =============================================================================
+
+SKELETON_CSS = """
+/* Skeleton loading animation */
+@keyframes skeleton-pulse {
+    0% { opacity: 0.6; }
+    50% { opacity: 0.3; }
+    100% { opacity: 0.6; }
+}
+
+.skeleton {
+    background: linear-gradient(90deg, #1a1a2e 25%, #2a2a3e 50%, #1a1a2e 75%);
+    background-size: 200% 100%;
+    animation: skeleton-pulse 1.5s ease-in-out infinite;
+    border-radius: 8px;
+}
+
+.skeleton-text {
+    height: 1rem;
+    margin-bottom: 0.5rem;
+    border-radius: 4px;
+}
+
+.skeleton-text.short { width: 40%; }
+.skeleton-text.medium { width: 70%; }
+.skeleton-text.long { width: 100%; }
+
+.skeleton-card {
+    height: 120px;
+    border-radius: 15px;
+    margin-bottom: 1rem;
+}
+
+.skeleton-stat {
+    height: 80px;
+    border-radius: 15px;
+}
+
+.skeleton-hero {
+    height: 180px;
+    border-radius: 20px;
+    margin-bottom: 1.5rem;
+}
+"""
+
+
+# =============================================================================
 # PRIORITY / STATUS BADGES
 # =============================================================================
 
@@ -271,36 +319,212 @@ BADGE_CSS = """
 # =============================================================================
 
 RESPONSIVE_CSS = """
-/* Tablet and below */
+/* ================================================================
+   TABLET (max-width: 768px)
+   - 3-col and 4-col layouts wrap to 2 columns
+   - Touch-friendly sizing for buttons and form elements
+   - Tabs: smaller text, horizontal scroll
+   - Expander: full-width, larger tap target
+   - Metric: scaled-down font sizes
+   - Dataframe / table: horizontal scroll wrapper
+   - Sidebar mobile refinements
+   ================================================================ */
 @media (max-width: 768px) {
+    /* --- Hero --- */
     .page-hero { padding: 1.5rem 1rem; border-radius: 12px; margin-bottom: 1rem; }
     .page-hero h1 { font-size: 1.5rem; }
     .page-hero .subtitle { font-size: 0.85rem; }
     .page-hero .ayat, .page-hero .arabic, .page-hero .bismillah { font-size: 1rem; }
 
+    /* --- Cards --- */
     .dark-card { padding: 1rem; border-radius: 10px; }
     .stat-card { padding: 0.8rem; }
     .stat-card .number { font-size: 1.3rem; }
     .metric-card { padding: 0.8rem; }
     .metric-value { font-size: 1.2rem; }
+    .metric-label { font-size: 0.72rem; }
     .ai-card { padding: 1rem; }
     .empty-state { padding: 1.5rem 0.5rem; }
     .empty-state .icon, .empty-state .empty-icon { font-size: 2rem; }
 
-    .stButton > button { min-height: 44px; font-size: 0.9rem; }
-    div[data-testid="stHorizontalBlock"] { gap: 0.5rem; }
-    [data-testid="column"] { padding: 0 0.25rem; }
+    /* --- Skeleton placeholders --- */
+    .skeleton-hero { height: 120px; border-radius: 12px; margin-bottom: 1rem; }
+    .skeleton-card { height: 90px; border-radius: 10px; }
+    .skeleton-stat { height: 60px; border-radius: 10px; }
+
+    /* --- Column wrapping: 3-col and 4-col layouts → 2 columns --- */
+    div[data-testid="stHorizontalBlock"] {
+        gap: 0.5rem;
+        flex-wrap: wrap;
+    }
+    div[data-testid="stHorizontalBlock"] > div[data-testid="column"] {
+        flex: 1 1 48% !important;
+        min-width: 46%;
+        padding: 0 0.25rem;
+    }
+
+    /* --- Touch-friendly buttons --- */
+    .stButton > button {
+        min-height: 44px;
+        font-size: 0.9rem;
+        padding: 0.5rem 0.75rem;
+    }
+
+    /* --- Form elements: larger tap targets and spacing --- */
+    .stTextInput > div > div > input,
+    .stSelectbox > div > div,
+    .stMultiSelect > div > div,
+    .stNumberInput > div > div > input,
+    .stDateInput > div > div > input,
+    .stTextArea > div > div > textarea {
+        min-height: 44px;
+        font-size: 0.95rem;
+    }
+    .stRadio > div, .stCheckbox > label {
+        padding: 0.35rem 0;
+    }
+    div[data-testid="stForm"] > div {
+        gap: 0.75rem;
+    }
+
+    /* --- Tabs: smaller text, horizontal scroll --- */
+    .stTabs [data-baseweb="tab-list"] {
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+        scrollbar-width: thin;
+        gap: 0;
+        flex-wrap: nowrap;
+    }
+    .stTabs [data-baseweb="tab-list"]::-webkit-scrollbar {
+        height: 3px;
+    }
+    .stTabs [data-baseweb="tab-list"]::-webkit-scrollbar-thumb {
+        background: #555;
+        border-radius: 3px;
+    }
+    .stTabs [data-baseweb="tab"] {
+        font-size: 0.8rem;
+        padding: 0.5rem 0.75rem;
+        white-space: nowrap;
+        flex-shrink: 0;
+    }
+
+    /* --- Expander: full width, larger tap target --- */
+    .streamlit-expanderHeader {
+        font-size: 0.95rem;
+        padding: 0.75rem 1rem !important;
+        min-height: 48px;
+        display: flex;
+        align-items: center;
+    }
+    details[data-testid="stExpander"] {
+        width: 100%;
+    }
+
+    /* --- Metric widget: scaled fonts --- */
+    [data-testid="stMetric"] {
+        padding: 0.5rem;
+    }
+    [data-testid="stMetricValue"] {
+        font-size: 1.3rem !important;
+    }
+    [data-testid="stMetricLabel"] {
+        font-size: 0.75rem !important;
+    }
+    [data-testid="stMetricDelta"] {
+        font-size: 0.7rem !important;
+    }
+
+    /* --- Dataframe / table: horizontal scroll --- */
+    [data-testid="stDataFrame"],
+    [data-testid="stTable"],
+    .stDataFrame, .stTable {
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+        max-width: 100%;
+    }
+    [data-testid="stDataFrame"] > div,
+    [data-testid="stTable"] > div {
+        min-width: 100%;
+    }
+
+    /* --- Sidebar mobile: tighter spacing under hamburger --- */
+    section[data-testid="stSidebar"] {
+        min-width: 260px;
+        max-width: 85vw;
+    }
+    section[data-testid="stSidebar"] .stButton > button {
+        min-height: 42px;
+        font-size: 0.85rem;
+    }
+    section[data-testid="stSidebar"] .streamlit-expanderHeader {
+        font-size: 0.9rem;
+        min-height: 44px;
+    }
 }
 
-/* Small phone */
+/* ================================================================
+   SMALL PHONE (max-width: 480px)
+   - All columns stack to single column (100% width)
+   - Further font size reductions
+   - Extra touch padding
+   ================================================================ */
 @media (max-width: 480px) {
+    /* --- Hero --- */
     .page-hero h1 { font-size: 1.3rem; }
+    .page-hero .subtitle { font-size: 0.78rem; }
+
+    /* --- Cards --- */
     .stat-card .number { font-size: 1.1rem; }
     .metric-value { font-size: 1rem; }
+    .metric-label { font-size: 0.68rem; }
 
-    div[data-testid="stHorizontalBlock"] { flex-wrap: wrap; }
+    /* --- Skeleton placeholders --- */
+    .skeleton-hero { height: 100px; border-radius: 10px; }
+    .skeleton-card { height: 70px; }
+    .skeleton-stat { height: 50px; }
+
+    /* --- Single-column stacking --- */
+    div[data-testid="stHorizontalBlock"] {
+        flex-wrap: wrap;
+    }
     div[data-testid="stHorizontalBlock"] > div[data-testid="column"] {
-        flex: 1 1 100%; min-width: 100%;
+        flex: 1 1 100% !important;
+        min-width: 100% !important;
+    }
+
+    /* --- Touch-friendly buttons: even larger --- */
+    .stButton > button {
+        min-height: 48px;
+        font-size: 0.9rem;
+        padding: 0.6rem 0.75rem;
+    }
+
+    /* --- Tabs: even smaller to fit --- */
+    .stTabs [data-baseweb="tab"] {
+        font-size: 0.72rem;
+        padding: 0.4rem 0.55rem;
+    }
+
+    /* --- Metric widget: compact --- */
+    [data-testid="stMetricValue"] {
+        font-size: 1.1rem !important;
+    }
+    [data-testid="stMetricLabel"] {
+        font-size: 0.68rem !important;
+    }
+
+    /* --- Expander: bigger tap target on small screen --- */
+    .streamlit-expanderHeader {
+        font-size: 0.9rem;
+        padding: 0.8rem 1rem !important;
+        min-height: 52px;
+    }
+
+    /* --- Sidebar: full-width overlay on phone --- */
+    section[data-testid="stSidebar"] {
+        min-width: 100vw;
+        max-width: 100vw;
     }
 }
 """
@@ -338,6 +562,7 @@ select:focus-visible, textarea:focus-visible,
     .page-hero::before { animation: none; }
     .progress-fill { transition: none; }
     .dark-card, .stat-card, .metric-card { transition: none; }
+    .skeleton { animation: none; opacity: 0.4; }
 }
 """
 
@@ -358,6 +583,33 @@ def inject_css(*css_blocks):
     st.markdown(f"<style>{combined}</style>", unsafe_allow_html=True)
 
 
+def render_skeleton(skeleton_type="card", count=3):
+    """Render skeleton loading placeholder.
+
+    Requires SKELETON_CSS to be included via inject_css().
+
+    Args:
+        skeleton_type: One of "hero", "stats", "cards", "text".
+        count: Number of skeleton elements (used by "stats" and "cards").
+    """
+    if skeleton_type == "hero":
+        st.markdown('<div class="skeleton skeleton-hero"></div>', unsafe_allow_html=True)
+    elif skeleton_type == "stats":
+        cols_html = ''.join(
+            [f'<div style="flex:1"><div class="skeleton skeleton-stat"></div></div>' for _ in range(count)]
+        )
+        st.markdown(f'<div style="display:flex;gap:1rem">{cols_html}</div>', unsafe_allow_html=True)
+    elif skeleton_type == "cards":
+        for _ in range(count):
+            st.markdown('<div class="skeleton skeleton-card"></div>', unsafe_allow_html=True)
+    elif skeleton_type == "text":
+        st.markdown('''
+            <div class="skeleton skeleton-text long"></div>
+            <div class="skeleton skeleton-text medium"></div>
+            <div class="skeleton skeleton-text short"></div>
+        ''', unsafe_allow_html=True)
+
+
 __all__ = [
     "FONT_IMPORT",
     "HERO_CSS",
@@ -365,8 +617,10 @@ __all__ = [
     "AI_CARD_CSS",
     "PROGRESS_CSS",
     "EMPTY_STATE_CSS",
+    "SKELETON_CSS",
     "BADGE_CSS",
     "RESPONSIVE_CSS",
     "ACCESSIBILITY_CSS",
     "inject_css",
+    "render_skeleton",
 ]

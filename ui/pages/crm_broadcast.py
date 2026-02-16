@@ -52,7 +52,7 @@ def render_broadcast_templates():
             )
             if template:
                 st.markdown(f"""
-                    <div class="ai-card">
+                    <div class="ai-card" role="status" aria-live="polite">
                         <h4>🤖 Template Hasil AI</h4>
                         <p>{template}</p>
                     </div>

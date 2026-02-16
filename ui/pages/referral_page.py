@@ -141,7 +141,7 @@ def render_referral_code(code: str):
         )
     if tips:
         st.markdown(f"""
-            <div class="ai-card">
+            <div class="ai-card" role="status" aria-live="polite">
                 <h4>🤖 Tips AI: Cara Efektif Mengajak Teman</h4>
                 <p>{tips}</p>
             </div>

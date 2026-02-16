@@ -613,7 +613,7 @@ def render_ai_analysis(result: Dict):
             if response:
                 ai_html = _markdown_to_html_simple(response)
                 card_html = (
-                    '<div class="ai-card">'
+                    '<div class="ai-card" role="status" aria-live="polite">'
                     '<h4>Rekomendasi AI</h4>'
                     '<p>' + ai_html + '</p>'
                     '</div>'
@@ -671,7 +671,7 @@ def _render_ai_fallback(result: Dict):
         '<div style="margin-bottom:0.5rem;">&bull; ' + t + '</div>' for t in tips
     )
     fallback_html = (
-        '<div class="ai-card">'
+        '<div class="ai-card" role="status" aria-live="polite">'
         '<h4>Tips Harga Umrah</h4>'
         '<p>' + tip_items + '</p>'
         '</div>'
@@ -744,7 +744,7 @@ def render_flight_ai_analysis(result: Dict):
             if response:
                 ai_html = _markdown_to_html_simple(response)
                 card_html = (
-                    '<div class="ai-card">'
+                    '<div class="ai-card" role="status" aria-live="polite">'
                     '<h4>Rekomendasi AI - Penerbangan</h4>'
                     '<p>' + ai_html + '</p>'
                     '</div>'
@@ -828,7 +828,7 @@ def render_package_ai_analysis(result: Dict):
             if response:
                 ai_html = _markdown_to_html_simple(response)
                 card_html = (
-                    '<div class="ai-card">'
+                    '<div class="ai-card" role="status" aria-live="polite">'
                     '<h4>Rekomendasi AI - Paket Umrah</h4>'
                     '<p>' + ai_html + '</p>'
                     '</div>'

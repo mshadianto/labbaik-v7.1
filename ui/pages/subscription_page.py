@@ -35,7 +35,7 @@ def render_subscription_page():
 
     st.markdown("""
         <div class="page-hero">
-            <h1>⭐ Upgrade ke Premium</h1>
+            <h1><span aria-hidden="true">⭐ </span>Upgrade ke Premium</h1>
             <div class="subtitle">Akses penuh semua fitur LABBAIK AI untuk perjalanan umrah terbaik</div>
         </div>
     """, unsafe_allow_html=True)
@@ -136,7 +136,7 @@ def render_premium_benefits():
         )
     if recommendation:
         st.markdown(f"""
-            <div class="ai-card">
+            <div class="ai-card" role="status" aria-live="polite">
                 <h4>🤖 Rekomendasi AI</h4>
                 <p>{recommendation}</p>
             </div>

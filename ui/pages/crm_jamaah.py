@@ -484,7 +484,7 @@ def render_crm_jamaah_page():
                 )
                 if insight:
                     st.markdown(f"""
-                        <div class="ai-card">
+                        <div class="ai-card" role="status" aria-live="polite">
                             <h4>🤖 Tips Manajemen Jamaah</h4>
                             <p>{insight}</p>
                         </div>

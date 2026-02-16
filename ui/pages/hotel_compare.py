@@ -360,7 +360,7 @@ def render_hotel_compare_page():
     # Page header
     st.markdown("""
         <div class="page-hero">
-            <h1>🏨 Perbandingan Harga Hotel</h1>
+            <h1><span aria-hidden="true">🏨 </span>Perbandingan Harga Hotel</h1>
             <div class="subtitle">Bandingkan harga hotel dari 200+ OTA untuk Makkah & Madinah</div>
         </div>
     """, unsafe_allow_html=True)
@@ -430,7 +430,7 @@ def render_hotel_compare_page():
             )
             if tips:
                 st.markdown(f'''
-                    <div class="ai-card">
+                    <div class="ai-card" role="status" aria-live="polite">
                         <h4>🤖 Tips AI Memilih Hotel</h4>
                         <p>{tips}</p>
                     </div>

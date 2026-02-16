@@ -621,7 +621,7 @@ def _render_ai_price_analysis(offers: List[AggregatedOffer], result: Dict[str, A
     if cached:
         html_content = _markdown_to_html_simple(cached)
         ai_html = (
-            '<div class="ai-card">'
+            '<div class="ai-card" role="status" aria-live="polite">'
             '<h4 style="color:#4ade80;margin-top:0;">🧠 Hasil Analisis Tren Harga</h4>'
             '<p>' + html_content + '</p>'
             '</div>'
@@ -659,7 +659,7 @@ def _render_ai_price_analysis(offers: List[AggregatedOffer], result: Dict[str, A
             st.session_state[cached_key] = response
             html_content = _markdown_to_html_simple(response)
             ai_html = (
-                '<div class="ai-card">'
+                '<div class="ai-card" role="status" aria-live="polite">'
                 '<h4 style="color:#4ade80;margin-top:0;">🧠 Hasil Analisis Tren Harga</h4>'
                 '<p>' + html_content + '</p>'
                 '</div>'
@@ -783,7 +783,7 @@ def _render_ai_fallback(offers: List[AggregatedOffer], result: Dict[str, Any]):
         tips_html += "<div style='margin-bottom:0.5rem;'>&bull; " + item + "</div>"
 
     fallback_html = (
-        '<div class="ai-card" style="border-color: #d4af37;">'
+        '<div class="ai-card" role="status" aria-live="polite" style="border-color: #d4af37;">'
         '<h4 style="color: #d4af37; margin-top:0;">💡 Ringkasan Harga</h4>'
         '<p>' + tips_html + '</p>'
         '<p style="color:#b0b0b0;font-size:0.8rem;margin-top:0.75rem;">'

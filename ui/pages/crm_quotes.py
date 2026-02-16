@@ -551,7 +551,7 @@ def _render_ai_pricing_suggestion(quote):
 
                 ai_html = _markdown_to_html_simple(response)
                 card_html = (
-                    '<div class="ai-card">'
+                    '<div class="ai-card" role="status" aria-live="polite">'
                     '<h4>Analisis Harga AI</h4>'
                     '<p>' + ai_html + '</p>'
                     '</div>'
@@ -580,7 +580,7 @@ def _render_fallback_pricing_tips(quote):
         discount_tip = "Pertimbangkan memberikan diskon early bird atau grup untuk meningkatkan konversi."
 
     fallback_html = (
-        '<div class="ai-card">'
+        '<div class="ai-card" role="status" aria-live="polite">'
         '<h4>Tips Pricing</h4>'
         '<p>'
         '<div style="margin-bottom:0.3rem;"><strong>Margin:</strong> ' + escape(margin_tip) + '</div>'

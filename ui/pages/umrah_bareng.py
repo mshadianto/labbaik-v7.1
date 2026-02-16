@@ -1934,7 +1934,7 @@ def render_ai_recommendation():
     if ai_response:
         html_content = _markdown_to_html_simple(ai_response)
         ai_card_html = (
-            '<div class="ai-card">'
+            '<div class="ai-card" role="status" aria-live="polite">'
             '<h4>🧠 Rekomendasi AI untuk Anda</h4>'
             '<p>' + html_content + '</p>'
             '</div>'
@@ -1972,7 +1972,7 @@ def render_umrah_bareng_page():
     hero_html = (
         '<div class="page-hero">'
         '<div class="bismillah">بِسْمِ اللَّهِ الرَّحْمَنِ الرَّحِيمِ</div>'
-        '<h1>🕋 Umrah Bareng</h1>'
+        '<h1><span aria-hidden="true">🕋 </span>Umrah Bareng</h1>'
         '<div class="subtitle">Temukan teman perjalanan umrah yang sefrekuensi</div>'
         '</div>'
     )

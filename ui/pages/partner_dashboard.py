@@ -358,7 +358,7 @@ def _render_fallback_insights(stats: Dict) -> None:
     tips_html = "\n".join(tips_html_parts)
 
     html = (
-        '<div class="ai-card">'
+        '<div class="ai-card" role="status" aria-live="polite">'
         '<h4>Rekomendasi Bisnis</h4>'
         '<p>' + tips_html + '</p>'
         '</div>'
@@ -616,7 +616,7 @@ def render_ai_insights_section(stats: Dict, bookings: List[Dict], monthly_data: 
         # Show cached insights
         cached = st.session_state[cache_key]
         html = (
-            '<div class="ai-card">'
+            '<div class="ai-card" role="status" aria-live="polite">'
             '<h4>🤖 Analisis AI - Performa Bisnis Anda</h4>'
             '<p>' + _markdown_to_html(cached) + '</p>'
             '</div>'
@@ -635,7 +635,7 @@ def render_ai_insights_section(stats: Dict, bookings: List[Dict], monthly_data: 
         if response:
             st.session_state[cache_key] = response
             html = (
-                '<div class="ai-card">'
+                '<div class="ai-card" role="status" aria-live="polite">'
                 '<h4>🤖 Analisis AI - Performa Bisnis Anda</h4>'
                 '<p>' + _markdown_to_html(response) + '</p>'
                 '</div>'

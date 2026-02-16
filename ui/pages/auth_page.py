@@ -349,7 +349,7 @@ def render_auth_page():
 
     st.markdown("""
         <div class="page-hero">
-            <h1>🔐 Selamat Datang</h1>
+            <h1><span aria-hidden="true">🔐 </span>Selamat Datang</h1>
             <div class="subtitle">Masuk atau daftar untuk mengakses LABBAIK AI</div>
         </div>
     """, unsafe_allow_html=True)

@@ -553,7 +553,7 @@ def render_ai_lead_analysis(lead):
 
         if result:
             ai_html = (
-                '<div class="ai-card">'
+                '<div class="ai-card" role="status" aria-live="polite">'
                 '<h4>\U0001f4ca Hasil Analisis AI</h4>'
                 '<p>' + escape_html(result) + '</p>'
                 '</div>'

@@ -842,7 +842,7 @@ def render_ai_insights(db, start_date, end_date):
         if response:
             response_html = _markdown_to_html(response)
             st.markdown(
-'<div class="ai-card">'
+'<div class="ai-card" role="status" aria-live="polite">'
 '<h3>AI Analytics Insights</h3>'
 '<p>' + response_html + '</p>'
 '</div>',
@@ -850,7 +850,7 @@ def render_ai_insights(db, start_date, end_date):
             )
         else:
             st.markdown(
-'<div class="ai-card">'
+'<div class="ai-card" role="status" aria-live="polite">'
 '<h3>AI Analytics Insights</h3>'
 '<p>Layanan AI tidak tersedia saat ini. Pastikan API key sudah dikonfigurasi.</p>'
 '</div>',
