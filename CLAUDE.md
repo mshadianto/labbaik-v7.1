@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-LABBAIK AI is a Streamlit-based AI platform for Umrah (Islamic pilgrimage) planning. It helps Indonesian Muslims plan their Umrah journey with features like AI chat, cost simulation, group matching, Travel CRM, and emergency SOS.
+LABBAIK Smart Planner is a Streamlit-based AI platform for Umrah (Islamic pilgrimage) planning. It helps Indonesian Muslims plan their Umrah journey with features like AI chat, cost simulation, hotel/flight price comparison, group matching, Travel CRM, guided onboarding, and emergency SOS.
 
 **Tech Stack:** Python 3.9+, Streamlit, PostgreSQL (Supabase/Neon), Groq/GLM-4/OpenAI LLM, ChromaDB for RAG
 
@@ -100,7 +100,7 @@ services/               # Backend services
   audio/                # TTS service (edge-tts, gTTS) shared by doa_player & umrah_complete
   whatsapp/             # WAHA WhatsApp client
 features/               # Standalone feature modules (SOS, crowd prediction, etc.)
-ui/pages/               # Streamlit page renderers (includes readiness_checker, cost_tracker, tanya_ustadz, doc_checker, peta_interaktif, kurs_calculator)
+ui/pages/               # Streamlit page renderers (35+ pages)
 ui/components/          # Reusable UI components (shared_styles, price_widgets, crm_helpers)
 data/                   # Static data and knowledge bases
 config/                 # YAML configuration files
@@ -116,9 +116,9 @@ umrah-crawler/          # Separate FastAPI backend for data crawling
 ### Key Patterns
 
 **Feature Flags:** Features are lazy-imported with try/except and `HAS_*` boolean flags in `app.py`. Check these flags before using features. Full list:
-`HAS_ITINERARY`, `HAS_HOTEL_COMPARE`, `HAS_PRICE_HUB`, `HAS_CHECKLIST`, `HAS_CROWD_PREDICTION`, `HAS_SOS`, `HAS_TRACKING`, `HAS_MANASIK`, `HAS_COMPARISON`, `HAS_ANALYTICS`, `HAS_USER_MANAGEMENT`, `HAS_SUBSCRIPTION`, `HAS_PARTNER_SYSTEM`, `HAS_CRM`, `HAS_PRICE_AGGREGATION`, `HAS_WHATSAPP`, `HAS_DOA_PLAYER`, `HAS_PWA`, `HAS_TRACKING_SERVICE`, `HAS_READINESS`, `HAS_COST_TRACKER`, `HAS_TANYA_USTADZ`, `HAS_DOC_CHECKER`
+`HAS_ITINERARY`, `HAS_HOTEL_COMPARE`, `HAS_PRICE_HUB`, `HAS_CHECKLIST`, `HAS_READINESS`, `HAS_COST_TRACKER`, `HAS_TANYA_USTADZ`, `HAS_DOC_CHECKER`, `HAS_PETA`, `HAS_KURS`, `HAS_CROWD_PREDICTION`, `HAS_SOS`, `HAS_TRACKING`, `HAS_MANASIK`, `HAS_COMPARISON`, `HAS_ANALYTICS`, `HAS_USER_MANAGEMENT`, `HAS_SUBSCRIPTION`, `HAS_PARTNER_SYSTEM`, `HAS_CRM`, `HAS_PRICE_AGGREGATION`, `HAS_WHATSAPP`, `HAS_DOA_PLAYER`, `HAS_PWA`, `HAS_TRACKING_SERVICE`
 
-**Session State:** All state is managed via `st.session_state`. See `init_session_state()` in `app.py` for all keys including navigation, auth, chat, gamification, SOS, tracking, and more.
+**Session State:** All state is managed via `st.session_state`. See `init_session_state()` in `app.py` for all keys including navigation, auth, chat, gamification, onboarding (guided tour), SOS, tracking, and more.
 
 **Singletons:** Both `DatabaseConnection` (`services/database/repository.py`) and `ConfigManager` (`core/config.py`) use the singleton pattern via `__new__`. Access via `get_db()` and `get_settings()` respectively.
 
@@ -226,8 +226,43 @@ CNAME  app  labbaik-v7-production.up.railway.app
 - Feature modules export `render_*_page()` and `render_*_widget()` for sidebar
 - Use `track_page(page_name)` for analytics
 - Gamification: Use `add_xp(amount, reason)` to award points
-- AI service pattern for new pages: `GroqChatService` with `st.secrets.get("GROQ_API_KEY")` then `os.getenv("GROQ_API_KEY")` fallback, call `simple_complete(prompt, system_prompt, max_tokens)`, always include graceful fallback when AI unavailable
+- AI service pattern for new pages: use `ai_complete()` from `services/ai/helpers.py` (auto-handles provider fallback). Always wrap AI calls with `st.spinner()` and include graceful fallback when AI unavailable
 - New features: Add `HAS_*` flag in `app.py`, lazy-import with try/except
+
+## UX & Accessibility
+
+The app follows WCAG AA guidelines and mobile-first responsive design:
+
+**CSS Architecture (`ui/components/shared_styles.py`):**
+- `inject_css()` auto-includes `RESPONSIVE_CSS` + `ACCESSIBILITY_CSS` on every page
+- Available CSS blocks: `HERO_CSS`, `CARD_CSS`, `AI_CARD_CSS`, `PROGRESS_CSS`, `EMPTY_STATE_CSS`, `SKELETON_CSS`, `BADGE_CSS`, `RESPONSIVE_CSS`, `ACCESSIBILITY_CSS`
+- `SKELETON_CSS` + `render_skeleton()` are opt-in (not auto-included)
+
+**Responsive Design:**
+- 3 `@media` breakpoints: 768px (tablet), 480px (phone), `prefers-reduced-motion`
+- Streamlit columns auto-wrap via `flex-wrap` on `[data-testid="column"]`
+- Touch targets: min-height 44px (tablet), 48px (phone) for buttons/inputs
+
+**Accessibility:**
+- All AI response cards use `role="status" aria-live="polite"` (46 instances across 29 files)
+- Decorative emoji in page heroes wrapped with `<span aria-hidden="true">`
+- `focus-visible` outlines (2px solid #d4af37) on interactive elements
+- Skip-to-content link (hidden until `:focus`)
+- `prefers-reduced-motion` disables animations
+
+**Contrast:**
+- Never use `#888` on dark backgrounds — minimum `#b0b0b0` for WCAG AA (7:1 ratio)
+- Secondary text: `#b0b0b0`, muted text: `#8e9fb3` or `#b8c5d4`
+
+**Onboarding:**
+- First-visit welcome banner with CTA buttons in `app.py`
+- 5-step guided tour (session state key: `onboarding_step`, 0=not started, 1-5=active, 6=done)
+- XP rewards: 10 XP for skipping tour, 25 XP for completing
+
+**Form Validation (`ui/pages/auth_page.py`):**
+- `validate_email()` — regex validation with Indonesian error messages
+- `get_password_strength()` — 0-4 score with visual indicator
+- Real-time feedback on form submission
 
 ## Commit Message Format
 
