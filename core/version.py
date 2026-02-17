@@ -11,13 +11,13 @@ from typing import Dict, Any
 # =============================================================================
 
 MAJOR = 7
-MINOR = 1
-PATCH = 1
+MINOR = 8
+PATCH = 0
 RELEASE_TYPE = "stable"  # stable, beta, alpha, dev
 
 # Build info
-BUILD_DATE = "2026-01-03"
-BUILD_NUMBER = 1
+BUILD_DATE = "2026-02-18"
+BUILD_NUMBER = 2
 
 # =============================================================================
 # VERSION STRINGS
@@ -74,6 +74,22 @@ APP_TAGLINE = "Satu-satunya AI Companion untuk Umrah Anda"
 # =============================================================================
 
 CHANGELOG = [
+    {
+        "version": "7.8.0",
+        "date": "2026-02-18",
+        "changes": [
+            "Mobile responsive design with 3 breakpoints (768px, 480px, reduced-motion)",
+            "WCAG AA accessibility: ARIA live regions, focus-visible, skip-to-content",
+            "Onboarding guided tour (5-step) with XP rewards",
+            "Skeleton loading states for better perceived performance",
+            "Security hardening: eliminate bare excepts, proper logging",
+            "Shared CSS architecture with inject_css() auto-includes",
+            "30+ pages upgraded with shared CSS, AI integration & gamification",
+            "Real-time flight & package search in Price Hub",
+            "Extracted reusable TTS service & CRM helpers",
+            "WCAG contrast compliance (minimum #b0b0b0 on dark backgrounds)",
+        ]
+    },
     {
         "version": "7.1.1",
         "date": "2026-01-03",
