@@ -68,8 +68,8 @@ try:
     from core.version import get_display_version, APP_VERSION
 except ImportError:
     def get_display_version():
-        return "v7.1.1"
-    APP_VERSION = "7.1.1"
+        return "v7.8.0"
+    APP_VERSION = "7.8.0"
 
 # =============================================================================
 # BRAND IDENTITY - LABBAIK Smart Planner
@@ -77,7 +77,7 @@ except ImportError:
 BRAND_NAME = "LABBAIK Smart Planner"
 BRAND_TAGLINE_EN = "The Only AI-Powered Umrah Companion You Need"
 BRAND_TAGLINE_ID = "Satu-satunya AI Companion untuk Umrah Anda"
-BRAND_VERSION = "7.1.1"
+BRAND_VERSION = APP_VERSION
 
 # Smart Pillars (Premium Messaging)
 SMART_PREP = "Smart Prep"           # Persiapan Cerdas

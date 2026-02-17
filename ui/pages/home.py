@@ -47,8 +47,8 @@ try:
     from core.version import get_display_version, APP_VERSION
 except ImportError:
     def get_display_version():
-        return "v7.1.1"
-    APP_VERSION = "7.1.1"
+        return "v7.8.0"
+    APP_VERSION = "7.8.0"
 
 # Brand Identity
 BRAND_NAME = "LABBAIK Smart Planner"
