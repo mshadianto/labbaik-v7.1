@@ -13,7 +13,7 @@ import logging
 logger = logging.getLogger(__name__)
 
 from services.ai.helpers import ai_complete, add_xp_safe
-from ui.components.shared_styles import inject_css, HERO_CSS, CARD_CSS, AI_CARD_CSS
+from ui.components.shared_styles import inject_css, HERO_CSS, CARD_CSS, AI_CARD_CSS, SKELETON_CSS, render_skeleton
 
 # =============================================================================
 # IMPORTS
@@ -355,7 +355,7 @@ def render_hotel_compare_page():
     except Exception:
         pass
 
-    inject_css(HERO_CSS, CARD_CSS, AI_CARD_CSS)
+    inject_css(HERO_CSS, CARD_CSS, AI_CARD_CSS, SKELETON_CSS)
 
     # Page header
     st.markdown("""
@@ -402,15 +402,9 @@ def render_hotel_compare_page():
         if 'hotel_search_result' in st.session_state:
             render_hotel_list(st.session_state['hotel_search_result'])
         else:
-            # Placeholder
-            st.markdown("""
-            <div style="background: #1a1a1a; border: 1px dashed #333; border-radius: 15px;
-                        padding: 3rem; text-align: center;">
-                <div style="font-size: 3rem;">🔍</div>
-                <h3 style="color: #d4af37;">Mulai Pencarian</h3>
-                <p style="color: #b0b0b0;">Pilih kota dan tanggal untuk melihat harga hotel</p>
-            </div>
-            """, unsafe_allow_html=True)
+            # Skeleton placeholder
+            render_skeleton("cards", count=3)
+            st.caption("Pilih kota dan tanggal untuk melihat harga hotel")
 
     # Footer info
     st.markdown("---")

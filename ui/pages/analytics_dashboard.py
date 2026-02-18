@@ -21,7 +21,7 @@ from typing import Dict, Any, Optional
 import logging
 
 from services.ai.helpers import ai_complete, add_xp_safe
-from ui.components.shared_styles import inject_css, HERO_CSS, CARD_CSS, AI_CARD_CSS, BADGE_CSS
+from ui.components.shared_styles import inject_css, HERO_CSS, CARD_CSS, AI_CARD_CSS, BADGE_CSS, SKELETON_CSS, render_skeleton
 
 logger = logging.getLogger(__name__)
 
@@ -141,7 +141,7 @@ def render_analytics_dashboard():
         return
 
     # Inject shared + page-specific CSS
-    inject_css(HERO_CSS, CARD_CSS, AI_CARD_CSS, BADGE_CSS, ANALYTICS_CSS)
+    inject_css(HERO_CSS, CARD_CSS, AI_CARD_CSS, BADGE_CSS, SKELETON_CSS, ANALYTICS_CSS)
 
     # Gamification: +20 XP for viewing analytics (first time per session)
     if not st.session_state.get("_analytics_dash_xp_awarded"):
@@ -168,6 +168,8 @@ def render_analytics_dashboard():
 
     if not db:
         st.warning("Database tidak tersedia. Analytics membutuhkan koneksi database.")
+        render_skeleton("stats", count=4)
+        render_skeleton("cards", count=2)
         return
 
     # Date range selector

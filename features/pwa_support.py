@@ -21,6 +21,12 @@ import streamlit.components.v1 as components
 import json
 import os
 from typing import Dict, Any
+from ui.components.shared_styles import inject_css, HERO_CSS, CARD_CSS
+
+try:
+    from services.ai.helpers import add_xp_safe
+except ImportError:
+    def add_xp_safe(*a, **kw): pass
 
 # =============================================================================
 # PWA MANIFEST
@@ -684,8 +690,8 @@ def render_offline_indicator():
         }
     </style>
     
-    <div class="offline-banner">
-        📴 Anda sedang offline - Beberapa fitur mungkin tidak tersedia
+    <div class="offline-banner" role="alert" aria-live="assertive">
+        <span aria-hidden="true">📴</span> Anda sedang offline - Beberapa fitur mungkin tidak tersedia
     </div>
     
     <script>
@@ -711,9 +717,18 @@ def init_pwa():
 
 def render_pwa_settings_page():
     """Render PWA settings page."""
-    
-    st.markdown("# 📱 Install LABBAIK AI")
-    st.caption("Akses LABBAIK AI seperti aplikasi native")
+    inject_css(HERO_CSS, CARD_CSS)
+
+    if not st.session_state.get("pwa_xp_awarded"):
+        add_xp_safe(5, "Membuka halaman PWA")
+        st.session_state.pwa_xp_awarded = True
+
+    st.markdown("""
+        <div class="page-hero">
+            <h1><span aria-hidden="true">📱</span> Install LABBAIK AI</h1>
+            <div class="subtitle">Akses LABBAIK AI seperti aplikasi native</div>
+        </div>
+    """, unsafe_allow_html=True)
     
     # Install button
     render_install_button()

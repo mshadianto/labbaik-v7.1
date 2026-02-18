@@ -12,7 +12,7 @@ import logging
 import html
 
 from services.ai.helpers import ai_complete, add_xp_safe
-from ui.components.shared_styles import inject_css, HERO_CSS, CARD_CSS, AI_CARD_CSS, BADGE_CSS
+from ui.components.shared_styles import inject_css, HERO_CSS, CARD_CSS, AI_CARD_CSS, BADGE_CSS, SKELETON_CSS, render_skeleton
 
 logger = logging.getLogger(__name__)
 
@@ -762,7 +762,7 @@ def render_crm_leads_page():
     init_session_state()
 
     # Inject shared + page-specific CSS
-    inject_css(HERO_CSS, CARD_CSS, AI_CARD_CSS, BADGE_CSS, CRM_LEADS_CSS)
+    inject_css(HERO_CSS, CARD_CSS, AI_CARD_CSS, BADGE_CSS, SKELETON_CSS, CRM_LEADS_CSS)
 
     # Header
     col1, col2 = st.columns([3, 1])

@@ -417,8 +417,8 @@ def render_sos_activated():
     """Render SOS activated screen with emergency options."""
     
     st.markdown("""
-    <div style="background: linear-gradient(135deg, #ef4444, #dc2626); padding: 2rem; border-radius: 20px; text-align: center; margin-bottom: 2rem;">
-        <div style="font-size: 4rem;">🆘</div>
+    <div role="alert" aria-live="assertive" style="background: linear-gradient(135deg, #ef4444, #dc2626); padding: 2rem; border-radius: 20px; text-align: center; margin-bottom: 2rem;">
+        <div style="font-size: 4rem;" aria-hidden="true">🆘</div>
         <div style="color: white; font-size: 2rem; font-weight: bold;">MODE DARURAT AKTIF</div>
         <div style="color: rgba(255,255,255,0.8);">Pilih jenis darurat dan kirim pesan</div>
     </div>
@@ -517,9 +517,9 @@ def render_sos_activated():
             with cols[i % 3]:
                 wa_link = service.get_whatsapp_link(contact.phone, message)
                 st.markdown(f"""
-                <a href="{wa_link}" target="_blank" style="text-decoration: none;">
+                <a href="{wa_link}" target="_blank" style="text-decoration: none;" aria-label="Kirim WhatsApp ke {contact.name}">
                     <div style="background: #25D366; padding: 1rem; border-radius: 10px; text-align: center; margin-bottom: 0.5rem;">
-                        <div style="color: white; font-size: 1.5rem;">📱</div>
+                        <div style="color: white; font-size: 1.5rem;" aria-hidden="true">📱</div>
                         <div style="color: white; font-weight: bold;">{contact.name}</div>
                         <div style="color: rgba(255,255,255,0.8); font-size: 0.75rem;">WhatsApp</div>
                     </div>
@@ -579,7 +579,7 @@ def render_sos_page():
 
     st.markdown("""
         <div class="page-hero" style="--hero-bg: linear-gradient(135deg, #2a0d0d 0%, #4a1a1a 100%); --hero-border: #f87171; --hero-title: #f87171;">
-            <h1>🆘 SOS Darurat</h1>
+            <h1><span aria-hidden="true">🆘</span> SOS Darurat</h1>
             <div class="subtitle">Sistem darurat satu sentuhan untuk keadaan darurat saat umrah</div>
         </div>
     """, unsafe_allow_html=True)
@@ -611,17 +611,17 @@ def render_sos_page():
         
         with col1:
             st.markdown("""
-            <div style="background: linear-gradient(135deg, #1a1a1a, #2d2d2d); padding: 1rem; border-radius: 15px; border: 1px solid #d4af37;">
-                <div style="color: #d4af37; font-weight: bold; margin-bottom: 0.5rem;">🚨 Saudi Emergency</div>
+            <div role="status" aria-live="polite" style="background: linear-gradient(135deg, #1a1a1a, #2d2d2d); padding: 1rem; border-radius: 15px; border: 1px solid #d4af37;">
+                <div style="color: #d4af37; font-weight: bold; margin-bottom: 0.5rem;"><span aria-hidden="true">🚨</span> Saudi Emergency</div>
                 <div style="color: white; font-size: 2rem; font-weight: bold;">911</div>
                 <div style="color: #b0b0b0; font-size: 0.8rem;">Polisi, Ambulans, Pemadam</div>
             </div>
             """, unsafe_allow_html=True)
-        
+
         with col2:
             st.markdown("""
-            <div style="background: linear-gradient(135deg, #1a1a1a, #2d2d2d); padding: 1rem; border-radius: 15px; border: 1px solid #d4af37;">
-                <div style="color: #d4af37; font-weight: bold; margin-bottom: 0.5rem;">🇮🇩 KBRI Riyadh</div>
+            <div role="status" aria-live="polite" style="background: linear-gradient(135deg, #1a1a1a, #2d2d2d); padding: 1rem; border-radius: 15px; border: 1px solid #d4af37;">
+                <div style="color: #d4af37; font-weight: bold; margin-bottom: 0.5rem;"><span aria-hidden="true">🇮🇩</span> KBRI Riyadh</div>
                 <div style="color: white; font-size: 1.2rem; font-weight: bold;">+966-11-488-2800</div>
                 <div style="color: #b0b0b0; font-size: 0.8rem;">Kedutaan Besar RI</div>
             </div>

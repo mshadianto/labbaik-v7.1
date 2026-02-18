@@ -275,7 +275,7 @@ def render_public_highlights_section():
 
     st.markdown("""
     <div style="text-align: center; margin-bottom: 1.5rem;">
-        <h2 style="color: #d4af37; margin-bottom: 0.5rem;">🌟 Kenapa LABBAIK Smart Planner?</h2>
+        <h2 style="color: #d4af37; margin-bottom: 0.5rem;"><span aria-hidden="true">🌟</span> Kenapa LABBAIK Smart Planner?</h2>
         <p style="color: #b0b0b0;">Platform AI #1 untuk perencanaan umrah di Indonesia</p>
     </div>
     """, unsafe_allow_html=True)
@@ -295,7 +295,7 @@ def render_public_highlights_section():
             st.markdown(f"""
             <div class="highlight-card" style="background: linear-gradient(135deg, #1a1a1a 0%, #2d2d2d 100%);
                         border: 1px solid #d4af37; border-radius: 15px; padding: 1.5rem; text-align: center; min-height: 180px;">
-                <div class="highlight-icon" style="font-size: 2.5rem;">{icon}</div>
+                <div class="highlight-icon" style="font-size: 2.5rem;" aria-hidden="true">{icon}</div>
                 <div class="highlight-title" style="font-size: 1.1rem; font-weight: bold; color: #d4af37; margin: 0.5rem 0;">{title}</div>
                 <div class="highlight-desc" style="color: #b0b0b0; font-size: 0.85rem;">{desc}</div>
             </div>
@@ -400,9 +400,9 @@ def render_visitor_stats_section():
     
     with col1:
         st.markdown(f"""
-        <div class="vstats-card" style="background: linear-gradient(135deg, #1a1a1a 0%, #2d2d2d 100%);
+        <div class="vstats-card" role="status" aria-live="polite" style="background: linear-gradient(135deg, #1a1a1a 0%, #2d2d2d 100%);
                     border: 1px solid #d4af37; border-radius: 15px; padding: 1.5rem; text-align: center;">
-            <div class="vstats-icon" style="font-size: 2.5rem;">👥</div>
+            <div class="vstats-icon" style="font-size: 2.5rem;" aria-hidden="true">👥</div>
             <div class="vstats-value" style="font-size: 2rem; font-weight: bold; color: #d4af37;">{stats['total_visitors']:,}</div>
             <div class="vstats-label" style="color: #b0b0b0; font-size: 0.85rem;">Total Pengunjung</div>
         </div>
@@ -410,9 +410,9 @@ def render_visitor_stats_section():
 
     with col2:
         st.markdown(f"""
-        <div class="vstats-card" style="background: linear-gradient(135deg, #1a1a1a 0%, #2d2d2d 100%);
+        <div class="vstats-card" role="status" aria-live="polite" style="background: linear-gradient(135deg, #1a1a1a 0%, #2d2d2d 100%);
                     border: 1px solid #d4af37; border-radius: 15px; padding: 1.5rem; text-align: center;">
-            <div class="vstats-icon" style="font-size: 2.5rem;">👁️</div>
+            <div class="vstats-icon" style="font-size: 2.5rem;" aria-hidden="true">👁️</div>
             <div class="vstats-value" style="font-size: 2rem; font-weight: bold; color: #d4af37;">{stats['total_views']:,}</div>
             <div class="vstats-label" style="color: #b0b0b0; font-size: 0.85rem;">Total Page Views</div>
         </div>
@@ -420,9 +420,9 @@ def render_visitor_stats_section():
 
     with col3:
         st.markdown(f"""
-        <div class="vstats-card" style="background: linear-gradient(135deg, #1a1a1a 0%, #2d2d2d 100%);
+        <div class="vstats-card" role="status" aria-live="polite" style="background: linear-gradient(135deg, #1a1a1a 0%, #2d2d2d 100%);
                     border: 1px solid #d4af37; border-radius: 15px; padding: 1.5rem; text-align: center;">
-            <div class="vstats-icon" style="font-size: 2.5rem;">📅</div>
+            <div class="vstats-icon" style="font-size: 2.5rem;" aria-hidden="true">📅</div>
             <div class="vstats-value" style="font-size: 2rem; font-weight: bold; color: #d4af37;">{stats.get('visitors_today', 47)}</div>
             <div class="vstats-label" style="color: #b0b0b0; font-size: 0.85rem;">Hari Ini</div>
         </div>
@@ -430,9 +430,9 @@ def render_visitor_stats_section():
 
     with col4:
         st.markdown(f"""
-        <div class="vstats-card" style="background: linear-gradient(135deg, #1a1a1a 0%, #2d2d2d 100%);
+        <div class="vstats-card" role="status" aria-live="polite" style="background: linear-gradient(135deg, #1a1a1a 0%, #2d2d2d 100%);
                     border: 1px solid #d4af37; border-radius: 15px; padding: 1.5rem; text-align: center;">
-            <div class="vstats-icon" style="font-size: 2.5rem;">📈</div>
+            <div class="vstats-icon" style="font-size: 2.5rem;" aria-hidden="true">📈</div>
             <div class="vstats-value" style="font-size: 2rem; font-weight: bold; color: #d4af37;">{stats.get('visitors_week', 312)}</div>
             <div class="vstats-label" style="color: #b0b0b0; font-size: 0.85rem;">Minggu Ini</div>
         </div>
@@ -729,7 +729,7 @@ def render_hero_section():
         with col:
             st.markdown(f"""
             <div class="stat-card-v6">
-                <div class="stat-icon-v6">{icon}</div>
+                <div class="stat-icon-v6" aria-hidden="true">{icon}</div>
                 <div class="stat-value-v6">{value}</div>
                 <div class="stat-label-v6">{label}</div>
             </div>
@@ -782,7 +782,7 @@ def render_3_pilar_framework():
         <div class="pilar-card" style="background: linear-gradient(135deg, #1a1a1a 0%, #2d2d2d 100%);
              padding: 1.5rem; border-radius: 15px; text-align: center; min-height: 200px;
              border-top: 4px solid #d4af37; border: 1px solid #333;">
-            <div class="pilar-icon" style="font-size: 3rem;">📋</div>
+            <div class="pilar-icon" style="font-size: 3rem;" aria-hidden="true">📋</div>
             <h3 style="color: #d4af37; margin: 0.5rem 0;">{SMART_PREP}</h3>
             <p style="color: #b0b0b0; font-size: 0.9rem;">Persiapan cerdas dengan panduan AI personal & checklist otomatis</p>
         </div>
@@ -793,7 +793,7 @@ def render_3_pilar_framework():
         <div class="pilar-card" style="background: linear-gradient(135deg, #1a1a1a 0%, #2d2d2d 100%);
              padding: 1.5rem; border-radius: 15px; text-align: center; min-height: 200px;
              border-top: 4px solid #d4af37; border: 1px solid #333;">
-            <div class="pilar-icon" style="font-size: 3rem;">💰</div>
+            <div class="pilar-icon" style="font-size: 3rem;" aria-hidden="true">💰</div>
             <h3 style="color: #d4af37; margin: 0.5rem 0;">{SMART_SAVINGS}</h3>
             <p style="color: #b0b0b0; font-size: 0.9rem;">Optimasi budget cerdas, hemat hingga jutaan rupiah</p>
         </div>
@@ -804,7 +804,7 @@ def render_3_pilar_framework():
         <div class="pilar-card" style="background: linear-gradient(135deg, #1a1a1a 0%, #2d2d2d 100%);
              padding: 1.5rem; border-radius: 15px; text-align: center; min-height: 200px;
              border-top: 4px solid #d4af37; border: 1px solid #333;">
-            <div class="pilar-icon" style="font-size: 3rem;">🕌</div>
+            <div class="pilar-icon" style="font-size: 3rem;" aria-hidden="true">🕌</div>
             <h3 style="color: #d4af37; margin: 0.5rem 0;">{SMART_JOURNEY}</h3>
             <p style="color: #b0b0b0; font-size: 0.9rem;">AI companion 24/7 selama di Tanah Suci</p>
         </div>
@@ -912,7 +912,7 @@ def render_package_preview():
             st.markdown(f"""
             <div class="budget-card" style="background: linear-gradient(135deg, #1a1a1a 0%, #2d2d2d 100%);
                         border: 1px solid #333; border-radius: 15px; padding: 1.2rem; text-align: center; min-height: 200px;">
-                <div class="budget-icon" style="font-size: 2rem;">{info['icon']}</div>
+                <div class="budget-icon" style="font-size: 2rem;" aria-hidden="true">{info['icon']}</div>
                 <div class="budget-name" style="color: #d4af37; font-size: 1.1rem; font-weight: bold; margin: 0.5rem 0;">{info['name']}</div>
                 <div class="budget-price" style="color: #fafafa; font-size: 1.3rem; font-weight: bold;">Rp {info['range']}</div>
                 <div class="budget-desc" style="color: #b0b0b0; font-size: 0.8rem; margin-top: 0.5rem;">{info['desc']}</div>

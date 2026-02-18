@@ -21,7 +21,7 @@ from datetime import date, datetime, timedelta
 from typing import Dict, List, Any, Optional, TYPE_CHECKING
 
 from services.ai.helpers import ai_complete, add_xp_safe
-from ui.components.shared_styles import inject_css, HERO_CSS, CARD_CSS, AI_CARD_CSS, BADGE_CSS
+from ui.components.shared_styles import inject_css, HERO_CSS, CARD_CSS, AI_CARD_CSS, BADGE_CSS, SKELETON_CSS, render_skeleton
 
 # Type checking imports (not executed at runtime)
 if TYPE_CHECKING:
@@ -251,7 +251,7 @@ def render_price_comparison_page():
         pass
 
     # Inject shared + page-specific CSS
-    inject_css(HERO_CSS, CARD_CSS, AI_CARD_CSS, BADGE_CSS, PRICE_COMPARISON_CSS)
+    inject_css(HERO_CSS, CARD_CSS, AI_CARD_CSS, BADGE_CSS, SKELETON_CSS, PRICE_COMPARISON_CSS)
 
     st.title("🔍 Perbandingan Harga Real-time")
     st.caption("Bandingkan harga dari berbagai sumber: API, OTA, dan Partner")
@@ -259,6 +259,8 @@ def render_price_comparison_page():
     if not HAS_PRICE_AGGREGATION:
         st.error("❌ Module price_aggregation tidak tersedia")
         st.info("Pastikan semua dependencies terinstall dengan benar.")
+        render_skeleton("stats", count=3)
+        render_skeleton("cards", count=3)
         return
 
     # Sidebar filters

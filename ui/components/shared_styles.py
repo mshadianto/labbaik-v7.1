@@ -451,7 +451,7 @@ RESPONSIVE_CSS = """
     /* --- Sidebar mobile: tighter spacing under hamburger --- */
     section[data-testid="stSidebar"] {
         min-width: 260px;
-        max-width: 85vw;
+        max-width: 300px;
     }
     section[data-testid="stSidebar"] .stButton > button {
         min-height: 42px;
@@ -521,10 +521,10 @@ RESPONSIVE_CSS = """
         min-height: 52px;
     }
 
-    /* --- Sidebar: full-width overlay on phone --- */
+    /* --- Sidebar: compact overlay on phone --- */
     section[data-testid="stSidebar"] {
-        min-width: 100vw;
-        max-width: 100vw;
+        min-width: 260px;
+        max-width: 85vw;
     }
 }
 """

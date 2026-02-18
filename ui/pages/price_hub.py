@@ -18,7 +18,7 @@ import logging
 import re
 
 from services.ai.helpers import ai_complete, add_xp_safe
-from ui.components.shared_styles import inject_css, HERO_CSS, CARD_CSS, AI_CARD_CSS, BADGE_CSS
+from ui.components.shared_styles import inject_css, HERO_CSS, CARD_CSS, AI_CARD_CSS, BADGE_CSS, SKELETON_CSS, render_skeleton
 
 logger = logging.getLogger(__name__)
 
@@ -1095,14 +1095,8 @@ def render_hotel_tab():
         if st.session_state.get('price_hub_hotel_result'):
             render_hotel_results(st.session_state.price_hub_hotel_result)
         else:
-            empty_html = (
-                '<div class="tab-empty">'
-                '<div class="tab-empty-icon">&#127976;</div>'
-                '<h3>Cari Hotel Terbaik</h3>'
-                '<p>Pilih kota dan tanggal untuk melihat perbandingan harga</p>'
-                '</div>'
-            )
-            st.markdown(empty_html, unsafe_allow_html=True)
+            render_skeleton("cards", count=3)
+            st.caption("Pilih kota dan tanggal untuk melihat perbandingan harga")
 
 
 # =============================================================================
@@ -1385,14 +1379,8 @@ def render_flight_tab():
         if st.session_state.get("price_hub_flight_result"):
             render_flight_results(st.session_state.price_hub_flight_result)
         else:
-            empty_html = (
-                '<div class="tab-empty">'
-                '<div class="tab-empty-icon">&#9992;</div>'
-                '<h3>Cari Penerbangan</h3>'
-                '<p>Pilih kota asal dan tujuan untuk melihat harga penerbangan</p>'
-                '</div>'
-            )
-            st.markdown(empty_html, unsafe_allow_html=True)
+            render_skeleton("cards", count=3)
+            st.caption("Pilih kota asal dan tujuan untuk melihat harga penerbangan")
 
 
 # =============================================================================
@@ -1715,14 +1703,8 @@ def render_package_tab():
         if st.session_state.get("price_hub_package_result"):
             render_package_results(st.session_state.price_hub_package_result)
         else:
-            empty_html = (
-                '<div class="tab-empty">'
-                '<div class="tab-empty-icon">&#128230;</div>'
-                '<h3>Cari Paket Umrah</h3>'
-                '<p>Pilih kriteria untuk melihat paket dari berbagai travel agent</p>'
-                '</div>'
-            )
-            st.markdown(empty_html, unsafe_allow_html=True)
+            render_skeleton("cards", count=3)
+            st.caption("Pilih kriteria untuk melihat paket dari berbagai travel agent")
 
 
 # =============================================================================
@@ -1740,7 +1722,7 @@ def render_price_hub_page():
     init_session_state()
 
     # Inject shared + page-specific CSS
-    inject_css(HERO_CSS, CARD_CSS, AI_CARD_CSS, BADGE_CSS, PRICE_HUB_CSS)
+    inject_css(HERO_CSS, CARD_CSS, AI_CARD_CSS, BADGE_CSS, SKELETON_CSS, PRICE_HUB_CSS)
 
     # Header
     hero_html = (

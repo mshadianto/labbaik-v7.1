@@ -13,7 +13,7 @@ import random
 import os
 
 # Shared styles
-from ui.components.shared_styles import inject_css, HERO_CSS, CARD_CSS
+from ui.components.shared_styles import inject_css, HERO_CSS, CARD_CSS, SKELETON_CSS, render_skeleton
 
 # Gamification helper
 from services.ai.helpers import add_xp_safe
@@ -585,7 +585,10 @@ def render_chat_messages():
                 st.markdown(content)
         else:
             with st.chat_message("assistant", avatar="🕋"):
-                st.markdown(content)
+                st.markdown(
+                    f'<div role="status" aria-live="polite">{content}</div>',
+                    unsafe_allow_html=True,
+                ) if idx == len(messages) - 1 else st.markdown(content)
 
                 # TTS button for assistant messages (only last message to keep it clean)
                 if tts_enabled and idx == len(messages) - 1:
@@ -810,7 +813,7 @@ def render_chat_page():
     """Main chat page renderer."""
 
     # Inject shared + page-specific CSS
-    inject_css(HERO_CSS, CARD_CSS, CHAT_PAGE_CSS)
+    inject_css(HERO_CSS, CARD_CSS, SKELETON_CSS, CHAT_PAGE_CSS)
 
     # Track page view
     try:
@@ -823,7 +826,7 @@ def render_chat_page():
     init_chat_state()
     
     # Header
-    st.markdown("# 🤖 AI Assistant")
+    st.markdown('<h1><span aria-hidden="true">🤖</span> AI Assistant</h1>', unsafe_allow_html=True)
     st.caption("Asisten cerdas untuk semua pertanyaan seputar umrah")
     
     # AI Status

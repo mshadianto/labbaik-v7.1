@@ -28,7 +28,7 @@ def render_api_docs_page():
 
     st.markdown("""
         <div class="page-hero">
-            <h1>📚 Dokumentasi API</h1>
+            <h1><span aria-hidden="true">📚</span> Dokumentasi API</h1>
             <div class="subtitle">Referensi lengkap Partner REST API LABBAIK</div>
         </div>
     """, unsafe_allow_html=True)
@@ -38,7 +38,7 @@ def render_api_docs_page():
     with col1:
         st.markdown("""
             <div style="background: rgba(33,150,243,0.1); padding: 1rem; border-radius: 12px; text-align: center;">
-                <div style="font-size: 2rem;">🔑</div>
+                <div style="font-size: 2rem;" aria-hidden="true">🔑</div>
                 <div style="font-weight: bold;">Authentication</div>
                 <div style="font-size: 0.8rem; color: #b0b0b0;">API Key based auth</div>
             </div>
@@ -46,7 +46,7 @@ def render_api_docs_page():
     with col2:
         st.markdown("""
             <div style="background: rgba(76,175,80,0.1); padding: 1rem; border-radius: 12px; text-align: center;">
-                <div style="font-size: 2rem;">📦</div>
+                <div style="font-size: 2rem;" aria-hidden="true">📦</div>
                 <div style="font-weight: bold;">RESTful</div>
                 <div style="font-size: 0.8rem; color: #b0b0b0;">JSON responses</div>
             </div>
@@ -54,7 +54,7 @@ def render_api_docs_page():
     with col3:
         st.markdown("""
             <div style="background: rgba(255,152,0,0.1); padding: 1rem; border-radius: 12px; text-align: center;">
-                <div style="font-size: 2rem;">🔔</div>
+                <div style="font-size: 2rem;" aria-hidden="true">🔔</div>
                 <div style="font-weight: bold;">Webhooks</div>
                 <div style="font-size: 0.8rem; color: #b0b0b0;">Real-time events</div>
             </div>
@@ -422,7 +422,7 @@ def render_api_console():
                 break
 
         # Simulate response
-        st.markdown("#### Response")
+        st.markdown('<h4 role="status" aria-live="polite">Response</h4>', unsafe_allow_html=True)
 
         sample_response = {
             "success": True,
