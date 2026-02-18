@@ -7,6 +7,11 @@ Super enhanced Umrah feature combining guide + doa player + audio.
 import streamlit as st
 from typing import List, Optional
 import io
+from ui.components.shared_styles import inject_css, HERO_CSS, CARD_CSS
+try:
+    from services.ai.helpers import add_xp_safe
+except ImportError:
+    def add_xp_safe(*a, **kw): pass
 
 # Import from umrah_guide
 from features.umrah_guide import (
@@ -221,9 +226,18 @@ def render_historical_site(site: HistoricalSite):
 
 def render_umrah_complete_page():
     """Render the complete Umrah guide page."""
+    inject_css(HERO_CSS, CARD_CSS)
 
-    st.markdown("# 🕋 Panduan Umrah Lengkap")
-    st.caption("Berdasarkan Panduan Resmi Kementerian Haji dan Umrah Arab Saudi")
+    if not st.session_state.get("umrah_complete_xp_awarded"):
+        add_xp_safe(10, "Membuka panduan umrah lengkap")
+        st.session_state.umrah_complete_xp_awarded = True
+
+    st.markdown("""
+        <div class="page-hero">
+            <h1><span aria-hidden="true">🕋 </span>Panduan Umrah Lengkap</h1>
+            <div class="subtitle">Berdasarkan Panduan Resmi Kementerian Haji dan Umrah Arab Saudi</div>
+        </div>
+    """, unsafe_allow_html=True)
 
     # Initialize
     if "doa_bookmarks" not in st.session_state:

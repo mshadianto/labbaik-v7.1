@@ -15,6 +15,10 @@ from services.user.user_service import (
     get_current_user, set_current_user, is_logged_in
 )
 from ui.components.shared_styles import inject_css, HERO_CSS, CARD_CSS
+try:
+    from services.ai.helpers import add_xp_safe
+except ImportError:
+    def add_xp_safe(*a, **kw): pass
 
 
 # =============================================================================
@@ -110,6 +114,9 @@ def render_login_form():
 
             if success and user:
                 set_current_user(user)
+                if not st.session_state.get("login_xp_awarded"):
+                    add_xp_safe(10, "Login berhasil")
+                    st.session_state.login_xp_awarded = True
                 st.success(message)
                 st.balloons()
                 st.rerun()
@@ -224,6 +231,7 @@ def render_register_form():
 
             if success and user:
                 set_current_user(user)
+                add_xp_safe(50, "Berhasil mendaftar akun")
                 st.success(f"Selamat datang, {user.name}! Akun Anda telah dibuat.")
                 st.balloons()
                 st.rerun()
@@ -296,6 +304,7 @@ def render_user_profile():
                     city=city if city else None,
                     preferred_departure_city=departure if departure else None
                 )
+                add_xp_safe(5, "Memperbarui profil")
                 st.success("Profil berhasil diperbarui!")
                 st.rerun()
 

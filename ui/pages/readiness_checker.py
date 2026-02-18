@@ -722,7 +722,7 @@ def render_recommendations(recs: str):
     if recs:
         st.markdown(
             f"""
-            <div class="rec-card">
+            <div class="rec-card" role="status" aria-live="polite">
                 <h4>Rekomendasi Personal dari AI</h4>
                 <p>{recs.replace(chr(10), '<br>')}</p>
             </div>

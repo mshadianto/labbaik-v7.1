@@ -10,6 +10,10 @@ import random
 import os
 import logging
 from ui.components.shared_styles import inject_css, HERO_CSS, CARD_CSS, AI_CARD_CSS, BADGE_CSS
+try:
+    from services.ai.helpers import add_xp_safe
+except ImportError:
+    def add_xp_safe(*a, **kw): pass
 
 logger = logging.getLogger(__name__)
 
@@ -1120,6 +1124,11 @@ def render_home_page():
         track_page("home")
     except Exception:
         pass
+
+    # XP for first home visit
+    if not st.session_state.get("home_xp_awarded"):
+        add_xp_safe(5, "Mengunjungi halaman utama")
+        st.session_state.home_xp_awarded = True
 
     # Debug widget (internal only)
     render_debug_widget()

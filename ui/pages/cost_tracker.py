@@ -726,7 +726,7 @@ def render_savings_insights():
 
             if response:
                 st.markdown(f"""
-                <div class="insight-card">
+                <div class="insight-card" role="status" aria-live="polite">
                     <h3>\U0001f4a1 Hasil Analisis AI</h3>
                     {_markdown_to_html_simple(response)}
                 </div>
@@ -816,7 +816,7 @@ def _render_fallback_insights(
     )
 
     st.markdown("""
-    <div class="insight-card">
+    <div class="insight-card" role="status" aria-live="polite">
         <h3>\U0001f4a1 Saran Penghematan</h3>
     </div>
     """, unsafe_allow_html=True)

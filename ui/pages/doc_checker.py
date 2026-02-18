@@ -716,7 +716,7 @@ def render_document_checklist():
 
             if tips:
                 st.markdown(f"""
-                <div class="doc-ai-tips">
+                <div class="doc-ai-tips" role="status" aria-live="polite">
                     <div class="doc-ai-tips-header">Tips AI untuk {doc["name"]}</div>
                     {tips}
                 </div>
@@ -724,7 +724,7 @@ def render_document_checklist():
             else:
                 # Fallback tips when AI is not available
                 st.markdown(f"""
-                <div class="doc-ai-tips">
+                <div class="doc-ai-tips" role="status" aria-live="polite">
                     <div class="doc-ai-tips-header">Tips untuk {doc["name"]}</div>
                     <strong>Waktu proses:</strong> {doc["processing_time"]}<br>
                     <strong>Catatan:</strong> {doc["tips_short"]}<br>

@@ -664,7 +664,7 @@ def render_qa_history():
                 <span class="q-icon">❓</span>
                 <span>{question}</span>
             </div>
-            <div class="qa-answer">{answer_html}</div>
+            <div class="qa-answer" role="status" aria-live="polite">{answer_html}</div>
             <div class="qa-meta">
                 <span class="qa-category">{cat_label}</span>
                 <span class="qa-time">🕐 {timestamp}</span>

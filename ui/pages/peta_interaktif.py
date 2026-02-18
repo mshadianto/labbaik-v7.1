@@ -855,7 +855,7 @@ def render_ai_tips(poi):
 
     if cached_tips:
         st.markdown(f"""
-        <div class="peta-ai-card">
+        <div class="peta-ai-card" role="status" aria-live="polite">
             <h4>AI Tips: {poi['icon']} {poi['name']}</h4>
             <p>{cached_tips}</p>
         </div>
@@ -872,7 +872,7 @@ def render_ai_tips(poi):
 
         if response:
             st.markdown(f"""
-            <div class="peta-ai-card">
+            <div class="peta-ai-card" role="status" aria-live="polite">
                 <h4>AI Tips: {poi['icon']} {poi['name']}</h4>
                 <p>{response}</p>
             </div>
@@ -880,7 +880,7 @@ def render_ai_tips(poi):
         else:
             # Fallback to static tips
             st.markdown(f"""
-            <div class="peta-ai-card" style="border-color: #d4af37;">
+            <div class="peta-ai-card" role="status" aria-live="polite" style="border-color: #d4af37;">
                 <h4 style="color: #d4af37;">Tips: {poi['icon']} {poi['name']}</h4>
                 <p>{poi['tips']}</p>
             </div>

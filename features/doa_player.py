@@ -21,6 +21,11 @@ import base64
 import io
 import os
 import tempfile
+from ui.components.shared_styles import inject_css, HERO_CSS, CARD_CSS
+try:
+    from services.ai.helpers import add_xp_safe
+except ImportError:
+    def add_xp_safe(*a, **kw): pass
 
 # Try to import shared TTS service
 try:
@@ -889,9 +894,18 @@ def render_doa_answer(query: str):
 
 def render_doa_player_page():
     """Full doa player page."""
+    inject_css(HERO_CSS, CARD_CSS)
 
-    st.markdown("# 🤲 Doa & Dzikir Umrah")
-    st.caption("Kumpulan doa lengkap untuk perjalanan umrah dengan audio player")
+    if not st.session_state.get("doa_player_xp_awarded"):
+        add_xp_safe(10, "Membuka koleksi doa & dzikir")
+        st.session_state.doa_player_xp_awarded = True
+
+    st.markdown("""
+        <div class="page-hero">
+            <h1><span aria-hidden="true">🤲 </span>Doa & Dzikir Umrah</h1>
+            <div class="subtitle">Kumpulan doa lengkap untuk perjalanan umrah dengan audio player</div>
+        </div>
+    """, unsafe_allow_html=True)
 
     # Initialize session state
     if "doa_bookmarks" not in st.session_state:
