@@ -343,6 +343,127 @@ SIMULATOR_CSS = """
         font-size: 0.8rem;
     }
 }
+
+/* Saved Scenario Cards */
+.saved-scenario-card {
+    background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+    border: 1px solid #333;
+    border-radius: 12px;
+    padding: 1rem;
+    margin-bottom: 0.75rem;
+    transition: border-color 0.2s ease;
+}
+
+.saved-scenario-card:hover {
+    border-color: #d4af37;
+}
+
+.saved-scenario-card .scenario-name {
+    color: #d4af37;
+    font-weight: bold;
+    font-size: 1rem;
+    margin-bottom: 0.25rem;
+}
+
+.saved-scenario-card .scenario-cost {
+    color: #28a745;
+    font-weight: bold;
+    font-size: 1.15rem;
+    margin-bottom: 0.25rem;
+}
+
+.saved-scenario-card .scenario-meta {
+    color: #b0b0b0;
+    font-size: 0.8rem;
+}
+
+/* Scenario Comparison Table */
+.scenario-compare-table {
+    width: 100%;
+    border-collapse: separate;
+    border-spacing: 0;
+    border-radius: 10px;
+    overflow: hidden;
+    margin: 1rem 0;
+}
+
+.scenario-compare-table th {
+    background: #1a1a2e;
+    color: #d4af37;
+    padding: 0.75rem 1rem;
+    text-align: left;
+    font-size: 0.9rem;
+    border-bottom: 2px solid #d4af37;
+}
+
+.scenario-compare-table td {
+    background: #0d1b2a;
+    color: #e0e0e0;
+    padding: 0.65rem 1rem;
+    font-size: 0.9rem;
+    border-bottom: 1px solid #222;
+}
+
+.scenario-compare-table tr:last-child td {
+    border-bottom: none;
+}
+
+.scenario-compare-table .cheapest {
+    color: #28a745;
+    font-weight: bold;
+}
+
+.scenario-compare-table .diff-cell {
+    color: #b0b0b0;
+    font-size: 0.8rem;
+}
+
+.scenario-compare-header {
+    background: linear-gradient(135deg, #0d1b2a 0%, #1a2a4a 100%);
+    border: 1px solid #d4af37;
+    border-radius: 12px;
+    padding: 1.25rem;
+    margin-bottom: 1rem;
+    text-align: center;
+}
+
+.scenario-compare-header h3 {
+    color: #d4af37;
+    margin: 0 0 0.3rem 0;
+}
+
+.scenario-compare-header p {
+    color: #b0b0b0;
+    font-size: 0.85rem;
+    margin: 0;
+}
+
+/* PDF Report Styles */
+.sim-pdf-download {
+    background: linear-gradient(135deg, #1a2a1a 0%, #1a3a2a 100%);
+    border: 1px solid #28a745;
+    border-radius: 10px;
+    padding: 1rem;
+    text-align: center;
+    margin: 0.75rem 0;
+}
+
+.sim-pdf-download p {
+    color: #b0b0b0;
+    font-size: 0.85rem;
+    margin: 0.3rem 0 0 0;
+}
+
+@media (max-width: 768px) {
+    .saved-scenario-card {
+        padding: 0.75rem;
+    }
+    .scenario-compare-table th,
+    .scenario-compare-table td {
+        padding: 0.5rem 0.6rem;
+        font-size: 0.8rem;
+    }
+}
 """
 
 # =============================================================================
@@ -1045,12 +1166,19 @@ def init_simulator_state():
     if "is_group_view" not in st.session_state:
         st.session_state.is_group_view = False  # Flag for group mode
 
+    # Saved scenarios for comparison
+    if "saved_scenarios" not in st.session_state:
+        st.session_state.saved_scenarios = []
+
     # Gamification XP tracking (first-time-per-session)
     if "simulator_xp_simulate" not in st.session_state:
         st.session_state.simulator_xp_simulate = False
 
     if "simulator_xp_ai" not in st.session_state:
         st.session_state.simulator_xp_ai = False
+
+    if "simulator_xp_save_scenario" not in st.session_state:
+        st.session_state.simulator_xp_save_scenario = False
 
     # AI analysis cache
     if "simulator_ai_response" not in st.session_state:
@@ -1931,6 +2059,432 @@ def render_saved_simulations():
 
                 with col3:
                     st.markdown(f"**{format_currency(sim['total'])}**")
+
+
+# =============================================================================
+# SAVED SCENARIOS (Save & Compare)
+# =============================================================================
+
+def render_saved_scenarios(params: Dict, cost: CostBreakdown):
+    """Render scenario saving and comparison UI.
+
+    Allows users to save the current simulation as a named scenario,
+    view saved scenarios as compact cards, delete individual scenarios,
+    and compare 2-3 scenarios side-by-side.
+
+    Stores data in ``st.session_state.saved_scenarios`` (max 5).
+    Awards +10 XP on the first save per session.
+    """
+
+    st.markdown("## 📂 Skenario Tersimpan")
+    st.caption("Simpan hingga 5 skenario dan bandingkan")
+
+    saved: list = st.session_state.get("saved_scenarios", [])
+
+    # --- Save current scenario ---
+    with st.container(border=True):
+        st.markdown("### 💾 Simpan Skenario Saat Ini")
+
+        col_name, col_btn = st.columns([3, 1])
+
+        with col_name:
+            scenario_name = st.text_input(
+                "Nama Skenario",
+                placeholder="Contoh: Umrah Hemat Mei 2026",
+                max_chars=50,
+                key="save_scenario_name_input",
+                label_visibility="collapsed",
+            )
+
+        with col_btn:
+            save_disabled = len(saved) >= 5
+            save_label = "Simpan Skenario" if not save_disabled else "Maks 5"
+            if st.button(
+                save_label,
+                key="btn_save_scenario",
+                use_container_width=True,
+                type="primary",
+                disabled=save_disabled,
+            ):
+                if not scenario_name.strip():
+                    st.warning("Masukkan nama skenario terlebih dahulu.")
+                else:
+                    # Build scenario dict
+                    new_scenario = {
+                        "name": scenario_name.strip(),
+                        "timestamp": datetime.now().isoformat(),
+                        "params": {
+                            k: str(v) if isinstance(v, date) else v
+                            for k, v in params.items()
+                        },
+                        "cost": {
+                            "flight": cost.flight,
+                            "visa": cost.visa,
+                            "hotel_makkah": cost.hotel_makkah,
+                            "hotel_madinah": cost.hotel_madinah,
+                            "transport": cost.transport,
+                            "meals": cost.meals,
+                            "mutawif": cost.mutawif,
+                            "insurance": cost.insurance,
+                            "misc": cost.misc,
+                            "seasonal_adj": cost.seasonal_adj,
+                            "total": cost.total,
+                        },
+                    }
+                    saved.append(new_scenario)
+                    st.session_state.saved_scenarios = saved
+
+                    # XP for first save
+                    if not st.session_state.get("simulator_xp_save_scenario", False):
+                        add_xp_safe(10, "Simpan Skenario Simulator")
+                        st.session_state.simulator_xp_save_scenario = True
+
+                    st.success(f"Skenario '{scenario_name}' berhasil disimpan!")
+                    st.rerun()
+
+        if save_disabled:
+            st.caption("Hapus skenario lama untuk menyimpan yang baru.")
+
+    # --- Display saved scenarios ---
+    if not saved:
+        st.info("Belum ada skenario tersimpan. Simpan skenario pertama Anda di atas.")
+        return
+
+    st.markdown("---")
+
+    # Render each saved scenario as a compact card
+    delete_idx: Optional[int] = None
+
+    for idx, sc in enumerate(saved):
+        sc_params = sc.get("params", {})
+        sc_cost = sc.get("cost", {})
+        sc_total = sc_cost.get("total", 0)
+        sc_name = sc.get("name", f"Skenario {idx + 1}")
+        sc_time = sc.get("timestamp", "")
+
+        # Format date nicely
+        try:
+            dt = datetime.fromisoformat(sc_time)
+            date_str = dt.strftime("%d/%m/%Y %H:%M")
+        except Exception:
+            date_str = sc_time[:10] if len(sc_time) >= 10 else "-"
+
+        duration_val = sc_params.get("duration", "-")
+        hotel_star = sc_params.get("hotel_star_makkah", "-")
+        num_pax = sc_params.get("num_travelers", 1)
+        city = sc_params.get("departure_city", "-")
+
+        card_html = (
+            f'<div class="saved-scenario-card">'
+            f'<div class="scenario-name">{sc_name}</div>'
+            f'<div class="scenario-cost">{format_currency(sc_total)}</div>'
+            f'<div class="scenario-meta">'
+            f'{city} &middot; {duration_val} hari &middot; Hotel {"&#11088;" * int(hotel_star) if str(hotel_star).isdigit() else hotel_star} &middot; {num_pax} orang'
+            f'</div>'
+            f'<div class="scenario-meta">{date_str}</div>'
+            f'</div>'
+        )
+        col_card, col_del = st.columns([5, 1])
+
+        with col_card:
+            st.markdown(card_html, unsafe_allow_html=True)
+
+        with col_del:
+            if st.button("Hapus", key=f"del_scenario_{idx}", use_container_width=True):
+                delete_idx = idx
+
+    # Process deletion outside the loop to avoid mutation during iteration
+    if delete_idx is not None:
+        st.session_state.saved_scenarios.pop(delete_idx)
+        st.rerun()
+
+    # --- Compare button ---
+    st.markdown("---")
+    if len(saved) >= 2:
+        if st.button(
+            "Bandingkan Skenario",
+            key="btn_compare_scenarios",
+            use_container_width=True,
+            type="primary",
+        ):
+            st.session_state["show_scenario_comparison"] = True
+            st.rerun()
+
+        if st.session_state.get("show_scenario_comparison", False):
+            render_scenario_comparison(saved)
+    else:
+        st.caption("Simpan minimal 2 skenario untuk membandingkan.")
+
+
+def render_scenario_comparison(scenarios: list):
+    """Render a side-by-side comparison table of saved scenarios.
+
+    Compares: Nama, Durasi, Hotel Bintang, Jumlah Orang, Total Biaya.
+    Highlights the cheapest scenario in green and shows price differences.
+    """
+
+    # Use up to 3 scenarios for comparison
+    to_compare = scenarios[:3]
+
+    if len(to_compare) < 2:
+        st.info("Minimal 2 skenario diperlukan untuk perbandingan.")
+        return
+
+    # Header
+    header_html = (
+        '<div class="scenario-compare-header" role="status" aria-live="polite">'
+        '<h3><span aria-hidden="true">&#128200;</span> Perbandingan Skenario</h3>'
+        f'<p>Membandingkan {len(to_compare)} skenario</p>'
+        '</div>'
+    )
+    st.markdown(header_html, unsafe_allow_html=True)
+
+    # Find cheapest
+    totals = [sc.get("cost", {}).get("total", 0) for sc in to_compare]
+    min_total = min(totals) if totals else 0
+
+    # Build table HTML
+    # Header row
+    header_cells = '<th>Kriteria</th>'
+    for sc in to_compare:
+        header_cells += f'<th>{sc.get("name", "Skenario")}</th>'
+
+    # Data rows
+    rows_data = [
+        ("Durasi", [f'{sc.get("params", {}).get("duration", "-")} hari' for sc in to_compare]),
+        ("Hotel Makkah", [f'{"&#11088;" * int(sc.get("params", {}).get("hotel_star_makkah", 0))}' if str(sc.get("params", {}).get("hotel_star_makkah", "")).replace(".", "").isdigit() else "-" for sc in to_compare]),
+        ("Hotel Madinah", [f'{"&#11088;" * int(sc.get("params", {}).get("hotel_star_madinah", 0))}' if str(sc.get("params", {}).get("hotel_star_madinah", "")).replace(".", "").isdigit() else "-" for sc in to_compare]),
+        ("Jumlah Orang", [str(sc.get("params", {}).get("num_travelers", 1)) for sc in to_compare]),
+        ("Kota Berangkat", [sc.get("params", {}).get("departure_city", "-") for sc in to_compare]),
+        ("Kelas Penerbangan", [sc.get("params", {}).get("flight_class", "-").title() for sc in to_compare]),
+        ("Paket Makan", [sc.get("params", {}).get("meal_type", "-").title() for sc in to_compare]),
+    ]
+
+    body_rows = ''
+    for label, values in rows_data:
+        body_rows += f'<tr><td><strong>{label}</strong></td>'
+        for v in values:
+            body_rows += f'<td>{v}</td>'
+        body_rows += '</tr>'
+
+    # Total cost row with cheapest highlight
+    body_rows += '<tr><td><strong>Total Biaya</strong></td>'
+    for sc in to_compare:
+        t = sc.get("cost", {}).get("total", 0)
+        css_class = ' class="cheapest"' if t == min_total else ''
+        body_rows += f'<td{css_class}>{format_currency(t)}</td>'
+    body_rows += '</tr>'
+
+    # Difference row
+    body_rows += '<tr><td><strong>Selisih dari Termurah</strong></td>'
+    for sc in to_compare:
+        t = sc.get("cost", {}).get("total", 0)
+        diff = t - min_total
+        if diff == 0:
+            body_rows += '<td class="cheapest">Termurah</td>'
+        else:
+            body_rows += f'<td class="diff-cell">+{format_currency(diff)}</td>'
+    body_rows += '</tr>'
+
+    table_html = (
+        f'<table class="scenario-compare-table">'
+        f'<thead><tr>{header_cells}</tr></thead>'
+        f'<tbody>{body_rows}</tbody>'
+        f'</table>'
+    )
+    st.markdown(table_html, unsafe_allow_html=True)
+
+    # Summary insight
+    cheapest_name = to_compare[totals.index(min_total)].get("name", "Skenario")
+    most_expensive_total = max(totals)
+    savings = most_expensive_total - min_total
+
+    if savings > 0:
+        st.success(
+            f"**{cheapest_name}** adalah skenario termurah. "
+            f"Anda bisa hemat hingga **{format_currency(savings)}** dibanding skenario termahal."
+        )
+
+
+def _generate_simulator_pdf_html(params: Dict, cost_result: CostBreakdown) -> str:
+    """Generate a print-friendly HTML report of the simulation.
+
+    Returns an HTML string with LABBAIK branding, parameter summary,
+    and cost breakdown suitable for download/printing.
+    """
+
+    # Resolve parameter display values
+    departure_city = params.get("departure_city", "Jakarta")
+    departure_date_val = params.get("departure_date", "-")
+    if isinstance(departure_date_val, date):
+        departure_date_str = departure_date_val.strftime("%d/%m/%Y")
+    else:
+        departure_date_str = str(departure_date_val)
+
+    duration = params.get("duration", 10)
+    nights_makkah = params.get("nights_makkah", 5)
+    nights_madinah = params.get("nights_madinah", 4)
+    hotel_star_makkah = params.get("hotel_star_makkah", 4)
+    hotel_star_madinah = params.get("hotel_star_madinah", 4)
+    flight_class = params.get("flight_class", "economy").title()
+    meal_type = params.get("meal_type", "standard").title()
+    num_travelers = params.get("num_travelers", 1)
+    include_mutawif = params.get("include_mutawif", False)
+    include_insurance = params.get("include_insurance", False)
+
+    season, season_desc = get_season(
+        departure_date_val if isinstance(departure_date_val, date) else date.today()
+    )
+
+    generated_at = datetime.now().strftime("%d/%m/%Y %H:%M")
+
+    # Build cost breakdown rows
+    cost_items = [
+        ("Tiket Pesawat", cost_result.flight),
+        ("Visa Umrah", cost_result.visa),
+        ("Hotel Makkah", cost_result.hotel_makkah),
+        ("Hotel Madinah", cost_result.hotel_madinah),
+        ("Transportasi", cost_result.transport),
+        ("Makan", cost_result.meals),
+        ("Mutawif", cost_result.mutawif),
+        ("Asuransi", cost_result.insurance),
+        ("Lain-lain", cost_result.misc),
+    ]
+
+    cost_rows_html = ''
+    for label, amount in cost_items:
+        if amount > 0:
+            cost_rows_html += (
+                f'<tr><td style="padding:8px 12px;border-bottom:1px solid #ddd;">{label}</td>'
+                f'<td style="padding:8px 12px;border-bottom:1px solid #ddd;text-align:right;">'
+                f'{format_currency(amount)}</td></tr>'
+            )
+
+    if cost_result.seasonal_adj > 0:
+        cost_rows_html += (
+            f'<tr><td style="padding:8px 12px;border-bottom:1px solid #ddd;">Penyesuaian Musim</td>'
+            f'<td style="padding:8px 12px;border-bottom:1px solid #ddd;text-align:right;">'
+            f'+{format_currency(cost_result.seasonal_adj)}</td></tr>'
+        )
+
+    group_total_html = ''
+    if num_travelers > 1:
+        group_total = cost_result.total * num_travelers
+        group_total_html = (
+            f'<tr style="background:#e8f5e9;">'
+            f'<td style="padding:10px 12px;font-weight:bold;">Total {num_travelers} Orang</td>'
+            f'<td style="padding:10px 12px;font-weight:bold;text-align:right;">'
+            f'{format_currency(group_total)}</td></tr>'
+        )
+
+    html = f"""<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Laporan Simulasi Umrah - LABBAIK</title>
+<style>
+body {{
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    margin: 0; padding: 20px;
+    color: #333; background: #fff;
+    max-width: 800px; margin: 0 auto;
+}}
+.header {{
+    background: linear-gradient(135deg, #0d1b2a 0%, #1b2a4a 100%);
+    color: white; padding: 24px 30px; border-radius: 12px;
+    margin-bottom: 24px; text-align: center;
+}}
+.header h1 {{
+    color: #d4af37; margin: 0 0 4px 0; font-size: 1.6rem;
+}}
+.header p {{
+    color: #b0b0b0; margin: 0; font-size: 0.9rem;
+}}
+.section {{
+    margin-bottom: 20px;
+}}
+.section h2 {{
+    color: #1b2a4a; font-size: 1.15rem;
+    border-bottom: 2px solid #d4af37; padding-bottom: 6px;
+    margin-bottom: 12px;
+}}
+table {{
+    width: 100%; border-collapse: collapse;
+}}
+.param-table td {{
+    padding: 6px 12px; border-bottom: 1px solid #eee;
+}}
+.param-table td:first-child {{
+    color: #666; width: 45%;
+}}
+.cost-table {{
+    border: 1px solid #ddd; border-radius: 8px; overflow: hidden;
+}}
+.total-row {{
+    background: #1b2a4a; color: white;
+}}
+.total-row td {{
+    padding: 12px; font-size: 1.1rem; font-weight: bold;
+    border-bottom: none !important;
+}}
+.footer {{
+    text-align: center; color: #999; font-size: 0.8rem;
+    margin-top: 30px; padding-top: 16px;
+    border-top: 1px solid #eee;
+}}
+@media print {{
+    body {{ padding: 10px; }}
+    .header {{ -webkit-print-color-adjust: exact; print-color-adjust: exact; }}
+    .total-row {{ -webkit-print-color-adjust: exact; print-color-adjust: exact; }}
+}}
+</style>
+</head>
+<body>
+<div class="header">
+    <h1>LABBAIK Smart Planner</h1>
+    <p>Laporan Simulasi Biaya Umrah</p>
+</div>
+
+<div class="section">
+    <h2>Parameter Simulasi</h2>
+    <table class="param-table">
+        <tr><td>Kota Berangkat</td><td><strong>{departure_city}</strong></td></tr>
+        <tr><td>Tanggal Berangkat</td><td><strong>{departure_date_str}</strong></td></tr>
+        <tr><td>Durasi</td><td><strong>{duration} hari</strong></td></tr>
+        <tr><td>Malam di Makkah</td><td><strong>{nights_makkah} malam</strong></td></tr>
+        <tr><td>Malam di Madinah</td><td><strong>{nights_madinah} malam</strong></td></tr>
+        <tr><td>Hotel Makkah</td><td><strong>{"&#11088;" * hotel_star_makkah} ({hotel_star_makkah} bintang)</strong></td></tr>
+        <tr><td>Hotel Madinah</td><td><strong>{"&#11088;" * hotel_star_madinah} ({hotel_star_madinah} bintang)</strong></td></tr>
+        <tr><td>Kelas Penerbangan</td><td><strong>{flight_class}</strong></td></tr>
+        <tr><td>Paket Makan</td><td><strong>{meal_type}</strong></td></tr>
+        <tr><td>Jumlah Jamaah</td><td><strong>{num_travelers} orang</strong></td></tr>
+        <tr><td>Mutawif</td><td><strong>{"Ya" if include_mutawif else "Tidak"}</strong></td></tr>
+        <tr><td>Asuransi</td><td><strong>{"Ya" if include_insurance else "Tidak"}</strong></td></tr>
+        <tr><td>Musim</td><td><strong>{season_desc}</strong></td></tr>
+    </table>
+</div>
+
+<div class="section">
+    <h2>Rincian Biaya (per Orang)</h2>
+    <table class="cost-table">
+        {cost_rows_html}
+        <tr class="total-row">
+            <td>TOTAL PER ORANG</td>
+            <td style="text-align:right;">{format_currency(cost_result.total)}</td>
+        </tr>
+        {group_total_html}
+    </table>
+</div>
+
+<div class="footer">
+    <p>Dibuat pada {generated_at} oleh LABBAIK Smart Planner &mdash; app.labbaik.io</p>
+    <p>Harga bersifat estimasi dan dapat berubah sewaktu-waktu.</p>
+</div>
+</body>
+</html>"""
+
+    return html
 
 
 # =============================================================================
@@ -2935,6 +3489,23 @@ Dengan **Umrah Bareng**, kamu bisa:
     # Save/export
     render_save_simulation(params, cost)
 
+    # PDF / HTML download report
+    st.markdown("---")
+    report_html = _generate_simulator_pdf_html(params, cost)
+    st.download_button(
+        label="Download Laporan (HTML)",
+        data=report_html,
+        file_name="laporan_simulasi_umrah.html",
+        mime="text/html",
+        use_container_width=True,
+        key="btn_download_report",
+    )
+    st.caption("Buka file HTML di browser untuk mencetak sebagai PDF.")
+
+    # Saved scenarios (save & compare)
+    st.divider()
+    render_saved_scenarios(params, cost)
+
     # Group Planning Section
     if st.session_state.is_group_view and st.session_state.sim_group:
         # Show share section for existing group
@@ -2944,7 +3515,7 @@ Dengan **Umrah Bareng**, kamu bisa:
         # Show create group form for new groups
         render_create_group_form(params, cost)
 
-    # Saved simulations
+    # Saved simulations (legacy)
     render_saved_simulations()
 
     # Footer

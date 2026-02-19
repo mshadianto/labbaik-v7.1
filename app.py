@@ -531,6 +531,8 @@ def init_session_state():
         "xp_log": [],  # List of {"amount": int, "reason": str, "timestamp": str}
         "daily_streak": 0,
         "last_active_date": None,
+        "unlocked_badges": set(),       # Set of badge IDs from ACHIEVEMENT_BADGES
+        "completed_challenges": set(),  # Set of weekly challenge IDs
 
         # User Preferences (Settings)
         "pref_notif_email": True,
@@ -604,6 +606,119 @@ def track_visitor():
 
 
 # =============================================================================
+# ACHIEVEMENT BADGES
+# =============================================================================
+
+ACHIEVEMENT_BADGES = [
+    {
+        "id": "penjelajah_pertama",
+        "name": "Penjelajah Pertama",
+        "icon": "\U0001F9ED",  # compass
+        "description": "Kunjungi 5 halaman berbeda",
+        "xp_reward": 25,
+        "condition_key": "pages_visited_count",
+    },
+    {
+        "id": "perencana_handal",
+        "name": "Perencana Handal",
+        "icon": "\U0001F3AF",  # bullseye
+        "description": "Selesaikan readiness checker",
+        "xp_reward": 30,
+        "condition_key": "readiness_completed",
+    },
+    {
+        "id": "ahli_budget",
+        "name": "Ahli Budget",
+        "icon": "\U0001F4B0",  # money bag
+        "description": "Atur budget di cost tracker",
+        "xp_reward": 20,
+        "condition_key": "budget_set",
+    },
+    {
+        "id": "penghafal_doa",
+        "name": "Penghafal Doa",
+        "icon": "\U0001F4D6",  # open book
+        "description": "Lihat 10 frase Arab",
+        "xp_reward": 15,
+        "condition_key": "arabic_phrases_viewed",
+    },
+    {
+        "id": "pembanding_cerdas",
+        "name": "Pembanding Cerdas",
+        "icon": "\U0001F50D",  # magnifying glass
+        "description": "Bandingkan 3+ hotel",
+        "xp_reward": 20,
+        "condition_key": "hotels_compared",
+    },
+    {
+        "id": "jamaah_sosial",
+        "name": "Jamaah Sosial",
+        "icon": "\U0001F4E2",  # loudspeaker
+        "description": "Bagikan via WhatsApp",
+        "xp_reward": 15,
+        "condition_key": "whatsapp_shared",
+    },
+    {
+        "id": "streak_master",
+        "name": "Streak Master",
+        "icon": "\U0001F525",  # fire
+        "description": "3 hari berturut-turut aktif",
+        "xp_reward": 50,
+        "condition_key": "streak_3_days",
+    },
+    {
+        "id": "guru_manasik",
+        "name": "Guru Manasik",
+        "icon": "\U0001F393",  # graduation cap
+        "description": "Selesaikan panduan manasik",
+        "xp_reward": 30,
+        "condition_key": "manasik_completed",
+    },
+]
+
+# =============================================================================
+# WEEKLY CHALLENGES
+# =============================================================================
+
+WEEKLY_CHALLENGES = [
+    {
+        "id": "challenge_readiness",
+        "title": "Cek kesiapan umrah Anda",
+        "description": "Gunakan AI Readiness Score untuk mengevaluasi kesiapan umrah Anda.",
+        "target_page": "readiness",
+        "xp_reward": 30,
+    },
+    {
+        "id": "challenge_hotel_compare",
+        "title": "Bandingkan 3 hotel",
+        "description": "Bandingkan minimal 3 hotel di Makkah atau Madinah.",
+        "target_page": "hotel_compare",
+        "xp_reward": 25,
+    },
+    {
+        "id": "challenge_simulator",
+        "title": "Hitung budget umrah",
+        "description": "Gunakan simulasi biaya untuk menghitung estimasi budget umrah Anda.",
+        "target_page": "simulator",
+        "xp_reward": 20,
+    },
+    {
+        "id": "challenge_arabic",
+        "title": "Pelajari 5 frase Arab",
+        "description": "Pelajari minimal 5 frase Arab melalui AI Chat atau Doa Player.",
+        "target_page": "chat",
+        "xp_reward": 20,
+    },
+    {
+        "id": "challenge_itinerary",
+        "title": "Buat itinerary umrah",
+        "description": "Buat jadwal perjalanan umrah Anda dengan AI Itinerary Builder.",
+        "target_page": "itinerary",
+        "xp_reward": 25,
+    },
+]
+
+# =============================================================================
 # GAMIFICATION SYSTEM
 # =============================================================================
 
@@ -664,6 +779,174 @@ def add_xp(amount: int, reason: str = ""):
 
     if reason:
         st.toast(f"🎯 +{amount} poin! {reason}", icon="✨")
+
+    # Check achievements after every XP award
+    check_achievements()
+
+
+def check_achievements():
+    """Check and unlock achievement badges based on session state conditions.
+
+    Inspects various session state keys to determine whether the user has met
+    the criteria for each badge defined in ``ACHIEVEMENT_BADGES``.  When a new
+    badge is unlocked it is added to ``st.session_state.unlocked_badges``, a
+    toast notification is shown, and the XP reward is granted (without
+    re-triggering ``check_achievements`` to avoid infinite recursion).
+    """
+    # Ensure the unlocked_badges set exists
+    if "unlocked_badges" not in st.session_state:
+        st.session_state.unlocked_badges = set()
+
+    unlocked: set = st.session_state.unlocked_badges
+
+    for badge in ACHIEVEMENT_BADGES:
+        badge_id = badge["id"]
+        if badge_id in unlocked:
+            continue  # Already unlocked
+
+        condition_key = badge["condition_key"]
+        met = False
+
+        # --- Evaluate each condition ---
+        if condition_key == "pages_visited_count":
+            # Count pages visited (session state keys like "visited_<page>")
+            visited = sum(
+                1 for k in st.session_state
+                if isinstance(k, str) and k.startswith("visited_") and st.session_state[k]
+            )
+            met = visited >= 5
+
+        elif condition_key == "readiness_completed":
+            met = bool(st.session_state.get("readiness_completed"))
+
+        elif condition_key == "budget_set":
+            met = bool(st.session_state.get("budget_set"))
+
+        elif condition_key == "arabic_phrases_viewed":
+            count = st.session_state.get("arabic_phrases_viewed", 0)
+            met = isinstance(count, int) and count >= 10
+
+        elif condition_key == "hotels_compared":
+            count = st.session_state.get("hotels_compared", 0)
+            met = isinstance(count, int) and count >= 3
+
+        elif condition_key == "whatsapp_shared":
+            met = bool(st.session_state.get("whatsapp_shared"))
+
+        elif condition_key == "streak_3_days":
+            streak = st.session_state.get("daily_streak", 0)
+            met = isinstance(streak, int) and streak >= 3
+
+        elif condition_key == "manasik_completed":
+            met = bool(st.session_state.get("manasik_completed"))
+
+        if met:
+            unlocked.add(badge_id)
+            st.session_state.unlocked_badges = unlocked
+
+            # Award XP directly (avoid recursion by not calling add_xp)
+            reward = badge["xp_reward"]
+            st.session_state.xp = st.session_state.get("xp", 0) + reward
+
+            # Log the badge XP
+            if "xp_log" not in st.session_state:
+                st.session_state.xp_log = []
+            st.session_state.xp_log.append({
+                "amount": reward,
+                "reason": f"Badge: {badge['name']}",
+                "timestamp": datetime.now().isoformat(),
+            })
+            if len(st.session_state.xp_log) > 20:
+                st.session_state.xp_log = st.session_state.xp_log[-20:]
+
+            st.toast(
+                f"{badge['icon']} Badge Unlocked: {badge['name']}! +{reward} XP",
+                icon="\U0001F3C5",  # sports medal
+            )
+
+
+def get_current_weekly_challenge() -> dict:
+    """Return the weekly challenge for the current week.
+
+    Uses ISO week number to rotate through ``WEEKLY_CHALLENGES`` so each week
+    presents a different challenge.
+    """
+    week_number = datetime.now().isocalendar()[1]  # ISO week 1-53
+    index = week_number % len(WEEKLY_CHALLENGES)
+    return WEEKLY_CHALLENGES[index]
+
+
+def render_weekly_challenge():
+    """Render the weekly challenge card in the sidebar.
+
+    Shows one challenge per week (based on ISO week number), a progress
+    indicator, a 'Mulai Tantangan' button to navigate, and a completed
+    state with a checkmark.
+    """
+    challenge = get_current_weekly_challenge()
+    challenge_id = challenge["id"]
+
+    # Track completed challenges in session state
+    if "completed_challenges" not in st.session_state:
+        st.session_state.completed_challenges = set()
+
+    is_completed = challenge_id in st.session_state.completed_challenges
+
+    # Determine if user is currently on the target page (progress indicator)
+    current_page = st.session_state.get("current_page", "home")
+    is_on_target = current_page == challenge["target_page"]
+
+    # Build status indicator
+    if is_completed:
+        status_icon = "&#x2705;"  # green check
+        status_text = "Selesai!"
+        status_color = "#22c55e"
+        bar_width = 100
+    elif is_on_target:
+        status_icon = "&#x1F3C3;"  # runner
+        status_text = "Sedang dikerjakan..."
+        status_color = "#f59e0b"
+        bar_width = 50
+    else:
+        status_icon = "&#x1F4CB;"  # clipboard
+        status_text = "Belum dimulai"
+        status_color = "#8e9fb3"
+        bar_width = 0
+
+    st.markdown(f"""
+    <div style="background: linear-gradient(145deg, #1e293b 0%, #0f172a 100%);
+                border: 1px solid rgba(212, 175, 55, 0.2);
+                border-radius: 10px; padding: 0.6rem; margin-top: 0.5rem;">
+        <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.3rem;">
+            <span style="color: #d4af37; font-size: 0.75rem; font-weight: bold;">
+                <span aria-hidden="true">&#x1F3AF;</span> Tantangan Mingguan
+            </span>
+            <span style="color: {status_color}; font-size: 0.6rem;">{status_text}</span>
+        </div>
+        <div style="color: #e2e8f0; font-size: 0.8rem; font-weight: 600; margin-bottom: 0.2rem;">
+            {challenge['title']}
+        </div>
+        <div style="color: #8e9fb3; font-size: 0.65rem; margin-bottom: 0.4rem;">
+            {challenge['description']}
+        </div>
+        <div style="display: flex; align-items: center; gap: 0.4rem; margin-bottom: 0.3rem;">
+            <div style="flex: 1; height: 4px; background: #1e293b; border-radius: 2px; overflow: hidden;">
+                <div style="width: {bar_width}%; height: 100%; background: linear-gradient(90deg, #d4af37, #f5d77a);
+                            border-radius: 2px; transition: width 0.4s ease;"></div>
+            </div>
+            <span style="color: #d4af37; font-size: 0.6rem; font-weight: bold;">+{challenge['xp_reward']} XP</span>
+        </div>
+    </div>
+    """, unsafe_allow_html=True)
+
+    if not is_completed:
+        if st.button(
+            "Mulai Tantangan" if not is_on_target else "Lanjutkan",
+            key="weekly_challenge_btn",
+            use_container_width=True,
+        ):
+            st.session_state.current_page = challenge["target_page"]
+            st.rerun()
 
 
 # =============================================================================
@@ -964,11 +1247,29 @@ def render_gamification_sidebar():
     if streak > 0:
         streak_html = f'<span class="streak-badge"><span aria-hidden="true">&#x1F525;</span> {streak} hari</span>'
 
-    # Achievements
+    # Achievement badges (new system)
+    unlocked_badges = st.session_state.get("unlocked_badges", set())
+    total_badges = len(ACHIEVEMENT_BADGES)
+    unlocked_count = len(unlocked_badges)
+
+    # Build unlocked badge icons HTML
+    badge_icons_html = ""
+    if unlocked_count > 0:
+        icons = []
+        for b in ACHIEVEMENT_BADGES:
+            if b["id"] in unlocked_badges:
+                icons.append(f'<span title="{b["name"]}">{b["icon"]}</span>')
+        badge_icons_html = (
+            '<div style="font-size:0.85rem;margin-top:0.25rem;display:flex;gap:0.3rem;flex-wrap:wrap;">'
+            + "".join(icons)
+            + "</div>"
+        )
+
+    # Legacy achievements (keep backward compat)
     achievements = st.session_state.get("achievements", [])
-    badges_html = ""
+    legacy_badges_html = ""
     if achievements:
-        badges_html = f'<div style="font-size:0.75rem;margin-top:0.25rem;">{" ".join(achievements[:5])}</div>'
+        legacy_badges_html = f'<div style="font-size:0.75rem;margin-top:0.25rem;">{" ".join(achievements[:5])}</div>'
 
     st.markdown(f"""
     <div class="gamification-sidebar">
@@ -984,13 +1285,21 @@ def render_gamification_sidebar():
             <div class="xp-fill" style="width:{progress_width}%"></div>
         </div>
         <div class="xp-stats-row" style="margin-top:0.35rem;">
+            <span class="xp-label"><span aria-hidden="true">&#x1F3C5;</span> Badge</span>
+            <span class="xp-value">{unlocked_count}/{total_badges}</span>
+        </div>
+        {badge_icons_html}
+        <div class="xp-stats-row" style="margin-top:0.35rem;">
             <span class="xp-label">Aktivitas Terkini</span>
             {streak_html}
         </div>
         {activities_html}
-        {badges_html}
+        {legacy_badges_html}
     </div>
     """, unsafe_allow_html=True)
+
+    # Weekly Challenge widget
+    render_weekly_challenge()
 
 
 # =============================================================================

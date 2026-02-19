@@ -28,6 +28,12 @@ try:
 except ImportError:
     HAS_KURS_SERVICE = False
 
+try:
+    import plotly.graph_objects as go
+    HAS_PLOTLY = True
+except ImportError:
+    HAS_PLOTLY = False
+
 # =============================================================================
 # CONSTANTS & CATEGORIES
 # =============================================================================
@@ -396,6 +402,206 @@ TRACKER_CSS = """
     border: 1px solid #ef4444;
     border-left: 4px solid #ef4444;
     color: #f87171;
+}
+
+/* --- Expense Chart Section --- */
+.expense-chart-section {
+    background: linear-gradient(145deg, #1a1a2e 0%, #1e293b 100%);
+    border: 1px solid #334155;
+    border-radius: 16px;
+    padding: 1.5rem;
+    margin: 1rem 0;
+}
+
+.expense-chart-section h4 {
+    color: #e2e8f0;
+    margin-top: 0;
+    margin-bottom: 1rem;
+    font-size: 1rem;
+}
+
+.donut-chart {
+    width: 200px;
+    height: 200px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto 1rem auto;
+    position: relative;
+}
+
+.donut-chart::after {
+    content: '';
+    width: 120px;
+    height: 120px;
+    border-radius: 50%;
+    background: #1a1a2e;
+    position: absolute;
+}
+
+.donut-center-label {
+    position: absolute;
+    z-index: 2;
+    text-align: center;
+    color: #e2e8f0;
+    font-size: 0.85rem;
+    font-weight: 600;
+    line-height: 1.3;
+}
+
+.chart-legend {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem 1rem;
+    justify-content: center;
+    margin-top: 0.75rem;
+}
+
+.chart-legend-item {
+    display: flex;
+    align-items: center;
+    gap: 0.35rem;
+    font-size: 0.8rem;
+    color: #b0b0b0;
+}
+
+.chart-legend-dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    flex-shrink: 0;
+}
+
+.daily-bar {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    margin-bottom: 0.5rem;
+}
+
+.daily-bar-label {
+    color: #b0b0b0;
+    font-size: 0.78rem;
+    min-width: 70px;
+    text-align: right;
+    flex-shrink: 0;
+}
+
+.daily-bar-track {
+    flex: 1;
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 6px;
+    height: 22px;
+    position: relative;
+    overflow: hidden;
+}
+
+.daily-bar-fill {
+    height: 100%;
+    border-radius: 6px;
+    background: linear-gradient(90deg, #d4af37 0%, #f5d76e 100%);
+    transition: width 0.3s ease;
+    min-width: 2px;
+}
+
+.daily-bar-amount {
+    color: #e2e8f0;
+    font-size: 0.78rem;
+    min-width: 80px;
+    font-weight: 500;
+}
+
+.budget-vs-actual-row {
+    margin-bottom: 0.75rem;
+}
+
+.budget-vs-actual-label {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 0.3rem;
+}
+
+.budget-vs-actual-label span {
+    font-size: 0.82rem;
+    color: #b0b0b0;
+}
+
+.budget-vs-actual-bars {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+}
+
+.bva-bar-track {
+    height: 14px;
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 4px;
+    overflow: hidden;
+    position: relative;
+}
+
+.bva-bar-fill {
+    height: 100%;
+    border-radius: 4px;
+    transition: width 0.3s ease;
+    min-width: 2px;
+}
+
+.bva-bar-fill.budget-bar {
+    background: #d4af37;
+}
+
+.bva-bar-fill.actual-under {
+    background: #4ade80;
+}
+
+.bva-bar-fill.actual-over {
+    background: #f87171;
+}
+
+.bva-legend {
+    display: flex;
+    gap: 1rem;
+    justify-content: center;
+    margin-top: 0.75rem;
+    font-size: 0.78rem;
+    color: #b0b0b0;
+}
+
+.bva-legend span {
+    display: flex;
+    align-items: center;
+    gap: 0.3rem;
+}
+
+.bva-legend-swatch {
+    width: 12px;
+    height: 8px;
+    border-radius: 2px;
+    display: inline-block;
+}
+
+@media (max-width: 480px) {
+    .donut-chart {
+        width: 160px;
+        height: 160px;
+    }
+    .donut-chart::after {
+        width: 96px;
+        height: 96px;
+    }
+    .daily-bar-label {
+        min-width: 55px;
+        font-size: 0.72rem;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .daily-bar-fill, .bva-bar-fill {
+        transition: none;
+    }
 }
 """
 
@@ -1127,6 +1333,346 @@ def _hex_to_rgb_str(hex_color: str) -> str:
 
 
 # =============================================================================
+# UI: EXPENSE CHARTS
+# =============================================================================
+
+def _build_daily_breakdown(expenses: List[Dict]) -> List[Dict]:
+    """Group expenses by date and return sorted daily totals.
+
+    Returns:
+        Sorted list of dicts: [{date, total, categories: {cat: amount}}]
+    """
+    from collections import defaultdict
+
+    daily: Dict[str, Dict] = {}
+    for exp in expenses:
+        d = exp["date"]
+        if d not in daily:
+            daily[d] = {"date": d, "total": 0, "categories": defaultdict(int)}
+        daily[d]["total"] += exp["amount"]
+        daily[d]["categories"][exp["category"]] += exp["amount"]
+
+    result = sorted(daily.values(), key=lambda x: x["date"])
+    # Convert defaultdicts to plain dicts for safety
+    for item in result:
+        item["categories"] = dict(item["categories"])
+    return result
+
+
+def _build_category_donut_html(category_data: Dict[str, int]) -> str:
+    """Build a pure CSS conic-gradient donut chart as HTML fallback.
+
+    Args:
+        category_data: {category_id: amount} mapping
+    """
+    total = sum(category_data.values())
+    if total <= 0:
+        return ""
+
+    # Build conic-gradient stops
+    gradient_stops = []
+    legend_items = []
+    cumulative_pct = 0.0
+
+    for cat_id, cat_info in EXPENSE_CATEGORIES.items():
+        amount = category_data.get(cat_id, 0)
+        if amount <= 0:
+            continue
+        pct = (amount / total) * 100
+        start = cumulative_pct
+        end = cumulative_pct + pct
+        color = cat_info["color"]
+        gradient_stops.append(f"{color} {start:.1f}% {end:.1f}%")
+        legend_items.append(
+            f'<div class="chart-legend-item">'
+            f'<span class="chart-legend-dot" style="background:{color};"></span>'
+            f'{cat_info["label"]} ({pct:.0f}%)'
+            f'</div>'
+        )
+        cumulative_pct = end
+
+    gradient = ", ".join(gradient_stops)
+
+    html = (
+        f'<div class="donut-chart" style="background:conic-gradient({gradient});">'
+        f'<div class="donut-center-label">{len(category_data)} kategori</div>'
+        f'</div>'
+        f'<div class="chart-legend">{"".join(legend_items)}</div>'
+    )
+    return html
+
+
+def render_expense_charts():
+    """Render expense visualization charts: pie, daily bars, budget vs actual.
+
+    Uses Plotly if available, falls back to pure HTML/CSS charts.
+    Awards +10 XP on first view.
+    """
+    expenses = st.session_state.tracker_expenses
+    budget = st.session_state.tracker_budget
+
+    # Edge case: no expenses means no charts
+    if not expenses:
+        return
+
+    # XP for first-time chart view
+    if not st.session_state.get("xp_charts_viewed"):
+        add_xp(10, "Melihat grafik pengeluaran")
+        st.session_state.xp_charts_viewed = True
+
+    st.markdown("### <span aria-hidden='true'>\U0001f4ca</span> Visualisasi Pengeluaran", unsafe_allow_html=True)
+
+    # --- Gather category data ---
+    category_data = {}
+    for cat_id in EXPENSE_CATEGORIES:
+        spent = get_spent_by_category(cat_id)
+        if spent > 0:
+            category_data[cat_id] = spent
+
+    # --- Gather daily data ---
+    daily_data = _build_daily_breakdown(expenses)
+
+    # =====================================================================
+    # Chart 1: Category Pie / Donut Chart
+    # =====================================================================
+    col_pie, col_daily = st.columns(2)
+
+    with col_pie:
+        st.markdown(
+            '<div class="expense-chart-section">'
+            '<h4><span aria-hidden="true">\U0001f4c0</span> Pengeluaran per Kategori</h4>',
+            unsafe_allow_html=True,
+        )
+
+        if HAS_PLOTLY and category_data:
+            labels = []
+            values = []
+            colors = []
+            for cat_id, amount in category_data.items():
+                cat_info = EXPENSE_CATEGORIES[cat_id]
+                labels.append(cat_info["label"])
+                values.append(amount)
+                colors.append(cat_info["color"])
+
+            fig = go.Figure(data=[go.Pie(
+                labels=labels,
+                values=values,
+                hole=0.55,
+                marker=dict(colors=colors),
+                textinfo="percent",
+                textfont=dict(size=12, color="#e2e8f0"),
+                hovertemplate="%{label}<br>Rp %{value:,.0f}<br>%{percent}<extra></extra>",
+            )])
+            fig.update_layout(
+                paper_bgcolor="rgba(0,0,0,0)",
+                plot_bgcolor="rgba(0,0,0,0)",
+                font=dict(color="#e2e8f0"),
+                legend=dict(
+                    font=dict(color="#b0b0b0", size=11),
+                    bgcolor="rgba(0,0,0,0)",
+                ),
+                margin=dict(t=10, b=10, l=10, r=10),
+                height=320,
+            )
+            st.plotly_chart(fig, use_container_width=True, key="chart_category_pie")
+        elif category_data:
+            # HTML/CSS donut fallback
+            st.markdown(
+                _build_category_donut_html(category_data),
+                unsafe_allow_html=True,
+            )
+        else:
+            st.caption("Belum ada data pengeluaran per kategori.")
+
+        st.markdown('</div>', unsafe_allow_html=True)
+
+    # =====================================================================
+    # Chart 2: Daily Spending Bar Chart
+    # =====================================================================
+    with col_daily:
+        st.markdown(
+            '<div class="expense-chart-section">'
+            '<h4><span aria-hidden="true">\U0001f4c5</span> Pengeluaran Harian</h4>',
+            unsafe_allow_html=True,
+        )
+
+        if HAS_PLOTLY and daily_data:
+            dates = [d["date"] for d in daily_data]
+            totals = [d["total"] for d in daily_data]
+
+            fig = go.Figure(data=[go.Bar(
+                x=dates,
+                y=totals,
+                marker_color="#d4af37",
+                hovertemplate="<b>%{x}</b><br>Rp %{y:,.0f}<extra></extra>",
+            )])
+            fig.update_layout(
+                paper_bgcolor="rgba(0,0,0,0)",
+                plot_bgcolor="rgba(0,0,0,0)",
+                font=dict(color="#e2e8f0"),
+                xaxis=dict(
+                    showgrid=False,
+                    color="#64748b",
+                    tickfont=dict(size=10),
+                ),
+                yaxis=dict(
+                    showgrid=True,
+                    gridcolor="rgba(255,255,255,0.05)",
+                    color="#64748b",
+                    tickfont=dict(size=10),
+                ),
+                margin=dict(t=10, b=40, l=60, r=10),
+                height=320,
+            )
+            st.plotly_chart(fig, use_container_width=True, key="chart_daily_bar")
+        elif daily_data:
+            # HTML fallback bars
+            max_total = max(d["total"] for d in daily_data) if daily_data else 1
+            for day in daily_data:
+                pct = (day["total"] / max_total * 100) if max_total > 0 else 0
+                st.markdown(
+                    f'<div class="daily-bar">'
+                    f'<div class="daily-bar-label">{day["date"][-5:]}</div>'
+                    f'<div class="daily-bar-track">'
+                    f'<div class="daily-bar-fill" style="width:{pct:.1f}%;"></div>'
+                    f'</div>'
+                    f'<div class="daily-bar-amount">{format_idr(day["total"])}</div>'
+                    f'</div>',
+                    unsafe_allow_html=True,
+                )
+        else:
+            st.caption("Belum ada data pengeluaran harian.")
+
+        st.markdown('</div>', unsafe_allow_html=True)
+
+    # =====================================================================
+    # Chart 3: Budget vs Actual Comparison
+    # =====================================================================
+    st.markdown(
+        '<div class="expense-chart-section">'
+        '<h4><span aria-hidden="true">\U0001f4ca</span> Budget vs Aktual per Kategori</h4>',
+        unsafe_allow_html=True,
+    )
+
+    if HAS_PLOTLY:
+        labels = []
+        budget_vals = []
+        actual_vals = []
+        actual_colors = []
+
+        for cat_id, cat_info in EXPENSE_CATEGORIES.items():
+            cat_budget = budget.get(cat_id, 0)
+            cat_spent = get_spent_by_category(cat_id)
+            if cat_budget <= 0 and cat_spent <= 0:
+                continue
+            labels.append(cat_info["label"])
+            budget_vals.append(cat_budget)
+            actual_vals.append(cat_spent)
+            actual_colors.append("#f87171" if cat_spent > cat_budget else "#4ade80")
+
+        if labels:
+            fig = go.Figure()
+            fig.add_trace(go.Bar(
+                y=labels,
+                x=budget_vals,
+                name="Budget",
+                orientation="h",
+                marker_color="#d4af37",
+                hovertemplate="%{y}<br>Budget: Rp %{x:,.0f}<extra></extra>",
+            ))
+            fig.add_trace(go.Bar(
+                y=labels,
+                x=actual_vals,
+                name="Aktual",
+                orientation="h",
+                marker_color=actual_colors,
+                hovertemplate="%{y}<br>Aktual: Rp %{x:,.0f}<extra></extra>",
+            ))
+            fig.update_layout(
+                barmode="group",
+                paper_bgcolor="rgba(0,0,0,0)",
+                plot_bgcolor="rgba(0,0,0,0)",
+                font=dict(color="#e2e8f0"),
+                legend=dict(
+                    font=dict(color="#b0b0b0", size=11),
+                    bgcolor="rgba(0,0,0,0)",
+                    orientation="h",
+                    yanchor="bottom",
+                    y=1.02,
+                    xanchor="right",
+                    x=1,
+                ),
+                xaxis=dict(
+                    showgrid=True,
+                    gridcolor="rgba(255,255,255,0.05)",
+                    color="#64748b",
+                    tickfont=dict(size=10),
+                ),
+                yaxis=dict(
+                    showgrid=False,
+                    color="#e2e8f0",
+                    tickfont=dict(size=11),
+                    autorange="reversed",
+                ),
+                margin=dict(t=30, b=20, l=120, r=20),
+                height=max(200, len(labels) * 60 + 60),
+            )
+            st.plotly_chart(fig, use_container_width=True, key="chart_budget_vs_actual")
+        else:
+            st.caption("Belum ada data budget atau pengeluaran.")
+    else:
+        # HTML fallback: horizontal grouped bars
+        max_val = 1
+        for cat_id in EXPENSE_CATEGORIES:
+            cat_budget = budget.get(cat_id, 0)
+            cat_spent = get_spent_by_category(cat_id)
+            max_val = max(max_val, cat_budget, cat_spent)
+
+        has_data = False
+        for cat_id, cat_info in EXPENSE_CATEGORIES.items():
+            cat_budget = budget.get(cat_id, 0)
+            cat_spent = get_spent_by_category(cat_id)
+            if cat_budget <= 0 and cat_spent <= 0:
+                continue
+            has_data = True
+            budget_pct = (cat_budget / max_val * 100) if max_val > 0 else 0
+            actual_pct = (cat_spent / max_val * 100) if max_val > 0 else 0
+            actual_class = "actual-over" if cat_spent > cat_budget else "actual-under"
+
+            st.markdown(
+                f'<div class="budget-vs-actual-row">'
+                f'<div class="budget-vs-actual-label">'
+                f'<span>{cat_info["icon"]} {cat_info["label"]}</span>'
+                f'<span>{format_idr(cat_spent)} / {format_idr(cat_budget)}</span>'
+                f'</div>'
+                f'<div class="budget-vs-actual-bars">'
+                f'<div class="bva-bar-track">'
+                f'<div class="bva-bar-fill budget-bar" style="width:{budget_pct:.1f}%;"></div>'
+                f'</div>'
+                f'<div class="bva-bar-track">'
+                f'<div class="bva-bar-fill {actual_class}" style="width:{actual_pct:.1f}%;"></div>'
+                f'</div>'
+                f'</div>'
+                f'</div>',
+                unsafe_allow_html=True,
+            )
+
+        if has_data:
+            st.markdown(
+                '<div class="bva-legend">'
+                '<span><span class="bva-legend-swatch" style="background:#d4af37;"></span> Budget</span>'
+                '<span><span class="bva-legend-swatch" style="background:#4ade80;"></span> Aktual (di bawah)</span>'
+                '<span><span class="bva-legend-swatch" style="background:#f87171;"></span> Aktual (melebihi)</span>'
+                '</div>',
+                unsafe_allow_html=True,
+            )
+        else:
+            st.caption("Belum ada data budget atau pengeluaran.")
+
+    st.markdown('</div>', unsafe_allow_html=True)
+
+
+# =============================================================================
 # UI: AI SAVINGS INSIGHTS
 # =============================================================================
 
@@ -1579,6 +2125,11 @@ def render_cost_tracker_page():
 
     # Dashboard metrics and category breakdown
     render_dashboard()
+
+    st.divider()
+
+    # Expense visualization charts (pie, daily bar, budget vs actual)
+    render_expense_charts()
 
     st.divider()
 

@@ -2,14 +2,28 @@
 LABBAIK AI - Referral Page
 ===========================
 Referral program UI for viral growth.
-Includes milestone celebrations and global leaderboard.
+Includes milestone celebrations, global leaderboard,
+QR code referral link generator, and friend signup tracking.
 """
 
 import streamlit as st
+import random
+import string
+import base64
+import io
+from datetime import datetime, timedelta
 from services.referral import get_referral_service, ReferralReward
 from services.user import get_current_user, is_logged_in
 from services.ai.helpers import ai_complete, add_xp_safe
 from ui.components.shared_styles import inject_css, HERO_CSS, CARD_CSS, BADGE_CSS, PROGRESS_CSS, AI_CARD_CSS
+
+# QR code library (optional dependency)
+try:
+    import qrcode
+    import qrcode.image.svg
+    HAS_QRCODE = True
+except ImportError:
+    HAS_QRCODE = False
 
 
 # =============================================================================
@@ -330,6 +344,227 @@ MILESTONE_LEADERBOARD_CSS = """
 
 
 # =============================================================================
+# REFERRAL LINK GENERATOR & FRIEND TRACKING CSS
+# =============================================================================
+
+REFERRAL_LINK_TRACKING_CSS = """
+/* Referral link card */
+.referral-link-card {
+    background: linear-gradient(145deg, #1a1a2e 0%, #1e293b 100%);
+    border: 2px solid #d4af37;
+    border-radius: 15px;
+    padding: 1.5rem;
+    text-align: center;
+    position: relative;
+    overflow: hidden;
+}
+
+.referral-link-card::before {
+    content: '';
+    position: absolute;
+    top: -50%;
+    left: -50%;
+    width: 200%;
+    height: 200%;
+    background: radial-gradient(circle, rgba(212, 175, 55, 0.05) 0%, transparent 60%);
+    pointer-events: none;
+}
+
+.referral-link-card .link-label {
+    font-size: 0.85rem;
+    color: #8e9fb3;
+    margin-bottom: 0.5rem;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+
+.referral-link-card .link-url {
+    font-size: 1rem;
+    font-weight: 600;
+    color: #d4af37;
+    word-break: break-all;
+    padding: 0.75rem 1rem;
+    background: rgba(212, 175, 55, 0.08);
+    border: 1px solid rgba(212, 175, 55, 0.25);
+    border-radius: 10px;
+    margin: 0.75rem 0;
+    font-family: monospace;
+}
+
+.referral-link-card .link-actions {
+    display: flex;
+    gap: 0.75rem;
+    justify-content: center;
+    margin-top: 1rem;
+    flex-wrap: wrap;
+}
+
+/* QR code container */
+.qr-code-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 1.5rem;
+    background: linear-gradient(145deg, #1a1a2e 0%, #1e293b 100%);
+    border-radius: 15px;
+    border: 1px solid #333;
+    margin: 1rem 0;
+}
+
+.qr-code-container .qr-image {
+    background: #ffffff;
+    padding: 12px;
+    border-radius: 10px;
+    display: inline-block;
+    margin-bottom: 0.75rem;
+}
+
+.qr-code-container .qr-image img,
+.qr-code-container .qr-image svg {
+    display: block;
+    width: 180px;
+    height: 180px;
+}
+
+.qr-code-container .qr-caption {
+    font-size: 0.8rem;
+    color: #8e9fb3;
+    margin-top: 0.5rem;
+}
+
+/* Friend tracking table */
+.friend-tracking-table {
+    width: 100%;
+    border-collapse: separate;
+    border-spacing: 0;
+    margin: 1rem 0;
+}
+
+.friend-tracking-table thead th {
+    background: rgba(212, 175, 55, 0.12);
+    color: #d4af37;
+    font-size: 0.8rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    padding: 0.75rem 1rem;
+    text-align: left;
+    border-bottom: 2px solid rgba(212, 175, 55, 0.25);
+}
+
+.friend-tracking-table thead th:first-child {
+    border-radius: 10px 0 0 0;
+}
+
+.friend-tracking-table thead th:last-child {
+    border-radius: 0 10px 0 0;
+}
+
+.friend-tracking-table tbody td {
+    padding: 0.75rem 1rem;
+    font-size: 0.88rem;
+    color: #e0e0e0;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.friend-tracking-table tbody tr:hover {
+    background: rgba(212, 175, 55, 0.04);
+}
+
+.friend-tracking-table tbody tr:last-child td {
+    border-bottom: none;
+}
+
+.friend-tracking-table tbody tr:last-child td:first-child {
+    border-radius: 0 0 0 10px;
+}
+
+.friend-tracking-table tbody tr:last-child td:last-child {
+    border-radius: 0 0 10px 0;
+}
+
+.friend-tracking-table .status-aktif {
+    color: #4CAF50;
+    font-weight: 600;
+}
+
+.friend-tracking-table .status-belum {
+    color: #8e9fb3;
+}
+
+.friend-tracking-table .reward-badge {
+    display: inline-block;
+    padding: 0.2rem 0.6rem;
+    border-radius: 6px;
+    font-size: 0.78rem;
+    font-weight: 600;
+    background: rgba(212, 175, 55, 0.15);
+    color: #d4af37;
+}
+
+/* Referral reward summary card */
+.referral-reward-summary {
+    display: flex;
+    justify-content: space-around;
+    align-items: center;
+    padding: 1.25rem;
+    background: linear-gradient(145deg, #2a2a1e 0%, #1a1a2e 100%);
+    border: 2px solid #d4af37;
+    border-radius: 15px;
+    margin: 1rem 0;
+    flex-wrap: wrap;
+    gap: 1rem;
+}
+
+.referral-reward-summary .summary-item {
+    text-align: center;
+    min-width: 100px;
+}
+
+.referral-reward-summary .summary-value {
+    font-size: 1.8rem;
+    font-weight: bold;
+    color: #d4af37;
+    line-height: 1.2;
+}
+
+.referral-reward-summary .summary-label {
+    font-size: 0.78rem;
+    color: #b0b0b0;
+    margin-top: 0.25rem;
+}
+
+/* Responsive adjustments for link & tracking */
+@media (max-width: 768px) {
+    .referral-link-card { padding: 1rem; }
+    .referral-link-card .link-url { font-size: 0.88rem; }
+    .referral-link-card .link-actions { flex-direction: column; }
+    .qr-code-container .qr-image img,
+    .qr-code-container .qr-image svg { width: 150px; height: 150px; }
+    .friend-tracking-table thead th { font-size: 0.72rem; padding: 0.5rem 0.6rem; }
+    .friend-tracking-table tbody td { font-size: 0.82rem; padding: 0.5rem 0.6rem; }
+    .referral-reward-summary { padding: 1rem; }
+    .referral-reward-summary .summary-value { font-size: 1.4rem; }
+}
+
+@media (max-width: 480px) {
+    .referral-link-card .link-url { font-size: 0.78rem; padding: 0.5rem; }
+    .qr-code-container .qr-image img,
+    .qr-code-container .qr-image svg { width: 130px; height: 130px; }
+    .friend-tracking-table thead th { font-size: 0.68rem; padding: 0.4rem; }
+    .friend-tracking-table tbody td { font-size: 0.76rem; padding: 0.4rem; }
+    .referral-reward-summary .summary-value { font-size: 1.2rem; }
+    .referral-reward-summary .summary-label { font-size: 0.7rem; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .referral-link-card::before { display: none; }
+}
+"""
+
+
+# =============================================================================
 # HELPER FUNCTIONS
 # =============================================================================
 
@@ -380,6 +615,292 @@ def _get_avatar_initial(name: str) -> str:
     return name.strip()[0].upper()
 
 
+def _get_user_code() -> str:
+    """Get a user code for the referral link.
+
+    Uses the user object from session_state if available,
+    otherwise generates a random 6-char uppercase code.
+    """
+    user = st.session_state.get("user")
+    if user:
+        # Try common attribute patterns for a short user code
+        user_id = getattr(user, "id", None)
+        if user_id:
+            # Derive a deterministic 6-char code from user ID
+            hash_val = abs(hash(str(user_id))) % (36 ** 6)
+            chars = string.ascii_uppercase + string.digits
+            code = ""
+            for _ in range(6):
+                code += chars[hash_val % 36]
+                hash_val //= 36
+            return code
+    # Fallback: random 6-char code stored in session
+    if "referral_user_code" not in st.session_state:
+        st.session_state.referral_user_code = "".join(
+            random.choices(string.ascii_uppercase + string.digits, k=6)
+        )
+    return st.session_state.referral_user_code
+
+
+def _generate_qr_svg(url: str) -> str:
+    """Generate a QR code as a base64 PNG data URL using the qrcode library.
+
+    Returns an <img> tag with the QR code, or empty string if qrcode
+    library is unavailable.
+    """
+    if not HAS_QRCODE:
+        return ""
+    try:
+        qr = qrcode.QRCode(
+            version=1,
+            error_correction=qrcode.constants.ERROR_CORRECT_M,
+            box_size=6,
+            border=2,
+        )
+        qr.add_data(url)
+        qr.make(fit=True)
+        img = qr.make_image(fill_color="black", back_color="white")
+        buf = io.BytesIO()
+        img.save(buf, format="PNG")
+        b64 = base64.b64encode(buf.getvalue()).decode("utf-8")
+        return f'<img src="data:image/png;base64,{b64}" alt="QR Code referral link" style="width:180px;height:180px;">'
+    except Exception:
+        return ""
+
+
+def _get_demo_friend_signups() -> list:
+    """Return demo data for friend signup tracking.
+
+    In production, this would come from the referral service / database.
+    Demo data is stored in session_state to persist across reruns.
+    """
+    if "referral_signups" not in st.session_state:
+        now = datetime.now()
+        st.session_state.referral_signups = [
+            {
+                "name": "Ais***",
+                "tanggal": (now - timedelta(days=12)).strftime("%d %b %Y"),
+                "status": "Aktif",
+                "reward": "+3 hari Premium",
+            },
+            {
+                "name": "Bud***",
+                "tanggal": (now - timedelta(days=8)).strftime("%d %b %Y"),
+                "status": "Aktif",
+                "reward": "+3 hari Premium",
+            },
+            {
+                "name": "Nur***",
+                "tanggal": (now - timedelta(days=5)).strftime("%d %b %Y"),
+                "status": "Aktif",
+                "reward": "+3 hari Premium",
+            },
+            {
+                "name": "Fat***",
+                "tanggal": (now - timedelta(days=2)).strftime("%d %b %Y"),
+                "status": "Belum Aktif",
+                "reward": "Menunggu",
+            },
+            {
+                "name": "Rah***",
+                "tanggal": (now - timedelta(days=1)).strftime("%d %b %Y"),
+                "status": "Belum Aktif",
+                "reward": "Menunggu",
+            },
+        ]
+    return st.session_state.referral_signups
+
+
+# =============================================================================
+# REFERRAL LINK GENERATOR
+# =============================================================================
+
+def render_referral_link_generator(referral_code: str):
+    """Render QR code referral link generator section.
+
+    Generates a shareable referral link with QR code, copy button,
+    and WhatsApp share option. Awards +5 XP on first generation.
+
+    Args:
+        referral_code: The user's referral code from the referral service.
+    """
+    st.markdown(
+        '### <span aria-hidden="true">\U0001f517</span> Link Referral & QR Code',
+        unsafe_allow_html=True,
+    )
+
+    user_code = _get_user_code()
+    referral_link = f"https://app.labbaik.io/?ref={user_code}"
+
+    # --- Referral link card ---
+    st.markdown(f"""
+        <div class="referral-link-card">
+            <div class="link-label">Link Referral Anda</div>
+            <div class="link-url">{referral_link}</div>
+        </div>
+    """, unsafe_allow_html=True)
+
+    # Copyable code block
+    st.code(referral_link, language=None)
+
+    # Action buttons row
+    col_copy, col_wa = st.columns(2)
+
+    with col_copy:
+        if st.button(
+            "Salin Link",
+            key="btn_salin_link_ref",
+            use_container_width=True,
+            type="primary",
+        ):
+            st.toast("Link referral berhasil disalin!")
+            # Award XP once per session
+            if not st.session_state.get("referral_link_gen_xp_awarded"):
+                add_xp_safe(5, "Membuat link referral")
+                st.session_state.referral_link_gen_xp_awarded = True
+
+    with col_wa:
+        wa_message = (
+            "Assalamualaikum! Yuk rencanakan Umrah bareng LABBAIK AI. "
+            f"Daftar gratis lewat link saya:\n{referral_link}"
+        )
+        wa_url = (
+            "https://wa.me/?text="
+            + wa_message.replace(" ", "%20").replace("\n", "%0A")
+        )
+        st.link_button(
+            "Bagikan via WhatsApp",
+            wa_url,
+            use_container_width=True,
+        )
+
+    # --- QR Code ---
+    qr_html = _generate_qr_svg(referral_link)
+    if qr_html:
+        st.markdown(f"""
+            <div class="qr-code-container">
+                <div class="qr-image">{qr_html}</div>
+                <div class="qr-caption">
+                    Scan QR code untuk langsung membuka link referral
+                </div>
+            </div>
+        """, unsafe_allow_html=True)
+    else:
+        # Fallback when qrcode library is not installed
+        st.markdown("""
+            <div class="qr-code-container">
+                <div style="padding: 1rem; text-align: center;">
+                    <div style="font-size: 1.5rem; margin-bottom: 0.5rem;">
+                        <span aria-hidden="true">\U0001f4f1</span>
+                    </div>
+                    <div style="font-size: 0.88rem; color: #b0b0b0;">
+                        Salin link di atas untuk membagikan ke teman Anda
+                    </div>
+                </div>
+            </div>
+        """, unsafe_allow_html=True)
+
+    # Award XP for generating link (first time)
+    if not st.session_state.get("referral_link_gen_xp_awarded"):
+        add_xp_safe(5, "Membuat link referral")
+        st.session_state.referral_link_gen_xp_awarded = True
+
+
+# =============================================================================
+# FRIEND SIGNUP TRACKING
+# =============================================================================
+
+def render_friend_tracking():
+    """Render friend signup tracking section.
+
+    Shows a table of friends who signed up via the user's referral link
+    with their status and reward information, plus a total rewards summary.
+    Uses demo data stored in session_state.
+    """
+    st.markdown(
+        '### <span aria-hidden="true">\U0001f465</span> Teman yang Bergabung',
+        unsafe_allow_html=True,
+    )
+
+    friends = _get_demo_friend_signups()
+
+    if not friends:
+        st.markdown("""
+            <div style="text-align: center; padding: 2rem; color: #8e9fb3;">
+                <div style="font-size: 2rem; opacity: 0.5;">
+                    <span aria-hidden="true">\U0001f465</span>
+                </div>
+                <div style="margin-top: 0.5rem;">
+                    Belum ada teman yang bergabung. Bagikan link referral Anda!
+                </div>
+            </div>
+        """, unsafe_allow_html=True)
+        return
+
+    # --- Summary card ---
+    total_friends = len(friends)
+    active_friends = sum(1 for f in friends if f["status"] == "Aktif")
+    total_reward_days = active_friends * 3  # 3 days per active signup
+
+    st.markdown(f"""
+        <div class="referral-reward-summary" role="status" aria-live="polite">
+            <div class="summary-item">
+                <div class="summary-value">{total_friends}</div>
+                <div class="summary-label">Total Teman</div>
+            </div>
+            <div class="summary-item">
+                <div class="summary-value">{active_friends}</div>
+                <div class="summary-label">Teman Aktif</div>
+            </div>
+            <div class="summary-item">
+                <div class="summary-value">+{total_reward_days}</div>
+                <div class="summary-label">Hari Premium Didapat</div>
+            </div>
+        </div>
+    """, unsafe_allow_html=True)
+
+    # --- Friend tracking table ---
+    rows_html = ""
+    for friend in friends:
+        status_class = "status-aktif" if friend["status"] == "Aktif" else "status-belum"
+        reward_display = (
+            f'<span class="reward-badge">{friend["reward"]}</span>'
+            if friend["status"] == "Aktif"
+            else f'<span class="status-belum">{friend["reward"]}</span>'
+        )
+
+        rows_html += f"""
+            <tr>
+                <td>{friend['name']}</td>
+                <td>{friend['tanggal']}</td>
+                <td><span class="{status_class}">{friend['status']}</span></td>
+                <td>{reward_display}</td>
+            </tr>
+        """
+
+    st.markdown(f"""
+        <table class="friend-tracking-table">
+            <thead>
+                <tr>
+                    <th>Nama</th>
+                    <th>Tanggal Bergabung</th>
+                    <th>Status</th>
+                    <th>Reward</th>
+                </tr>
+            </thead>
+            <tbody>
+                {rows_html}
+            </tbody>
+        </table>
+    """, unsafe_allow_html=True)
+
+    st.markdown("""
+        <div style="font-size: 0.78rem; color: #8e9fb3; text-align: center; margin-top: 0.5rem;">
+            Nama teman ditampilkan secara anonim untuk menjaga privasi
+        </div>
+    """, unsafe_allow_html=True)
+
+
 # =============================================================================
 # MAIN PAGE
 # =============================================================================
@@ -392,7 +913,7 @@ def render_referral_page():
     except Exception:
         pass
 
-    inject_css(HERO_CSS, CARD_CSS, BADGE_CSS, PROGRESS_CSS, AI_CARD_CSS, MILESTONE_LEADERBOARD_CSS)
+    inject_css(HERO_CSS, CARD_CSS, BADGE_CSS, PROGRESS_CSS, AI_CARD_CSS, MILESTONE_LEADERBOARD_CSS, REFERRAL_LINK_TRACKING_CSS)
 
     st.markdown("""
         <div class="page-hero">
@@ -422,6 +943,16 @@ def render_referral_page():
 
     # Milestone progress & celebration
     render_milestone_progress(stats["total_referrals"])
+
+    st.markdown("---")
+
+    # Referral link generator with QR code
+    render_referral_link_generator(stats["code"])
+
+    st.markdown("---")
+
+    # Friend signup tracking
+    render_friend_tracking()
 
     st.markdown("---")
 

@@ -17,6 +17,11 @@ from ui.components.shared_styles import inject_css, HERO_CSS, CARD_CSS, AI_CARD_
 logger = logging.getLogger(__name__)
 
 # =============================================================================
+# PAGINATION CONSTANTS
+# =============================================================================
+LEADS_PER_PAGE = 10
+
+# =============================================================================
 # PARTNER API INTEGRATION (lazy import with feature flag)
 # =============================================================================
 try:
@@ -237,6 +242,8 @@ def init_session_state():
         st.session_state.crm_lead_ai_xp_awarded = False
     if "crm_partner_import_xp_awarded" not in st.session_state:
         st.session_state.crm_partner_import_xp_awarded = set()
+    if "crm_leads_page" not in st.session_state:
+        st.session_state.crm_leads_page = 1
 
 
 # =============================================================================
@@ -402,11 +409,29 @@ def render_lead_list():
             source=source_filter if source_filter != "Semua" else None,
             priority=priority_filter if priority_filter != "Semua" else None,
             search=search if search else None,
-            limit=50
+            limit=500
         )
 
         if leads:
-            for lead in leads:
+            # --- Pagination logic ---
+            total_leads = len(leads)
+            total_pages = max(1, (total_leads + LEADS_PER_PAGE - 1) // LEADS_PER_PAGE)
+
+            # Reset to page 1 if current page exceeds total pages
+            if st.session_state.crm_leads_page > total_pages:
+                st.session_state.crm_leads_page = 1
+
+            current_page = st.session_state.crm_leads_page
+            start_idx = (current_page - 1) * LEADS_PER_PAGE
+            end_idx = min(start_idx + LEADS_PER_PAGE, total_leads)
+            page_leads = leads[start_idx:end_idx]
+
+            # Show count summary
+            st.caption(
+                f"Menampilkan {start_idx + 1}-{end_idx} dari {total_leads} leads"
+            )
+
+            for lead in page_leads:
                 with st.container():
                     col1, col2, col3, col4, col5 = st.columns([3, 2, 2, 2, 1])
 
@@ -443,6 +468,41 @@ def render_lead_list():
                             st.rerun()
 
                     st.divider()
+
+            # --- Pagination controls ---
+            if total_pages > 1:
+                st.markdown("---")
+                col_prev, col_page_info, col_next = st.columns([1, 2, 1])
+
+                with col_prev:
+                    prev_disabled = current_page <= 1
+                    if st.button(
+                        "\u2190 Sebelumnya",
+                        key="crm_leads_prev_page",
+                        use_container_width=True,
+                        disabled=prev_disabled,
+                    ):
+                        st.session_state.crm_leads_page = current_page - 1
+                        st.rerun()
+
+                with col_page_info:
+                    st.markdown(
+                        f"<div style='text-align:center;padding:0.5rem 0;color:#b0b0b0;'>"
+                        f"Halaman {current_page} dari {total_pages}"
+                        f"</div>",
+                        unsafe_allow_html=True,
+                    )
+
+                with col_next:
+                    next_disabled = current_page >= total_pages
+                    if st.button(
+                        "Selanjutnya \u2192",
+                        key="crm_leads_next_page",
+                        use_container_width=True,
+                        disabled=next_disabled,
+                    ):
+                        st.session_state.crm_leads_page = current_page + 1
+                        st.rerun()
         else:
             st.info("Belum ada lead. Klik 'Tambah Lead' untuk menambahkan lead baru.")
 

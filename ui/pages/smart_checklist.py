@@ -27,6 +27,82 @@ CHECKLIST_CSS = """
     --hero-title: #4ade80;
 }
 
+/* AI Suggestion Card */
+.ai-suggestion-card {
+    background: linear-gradient(145deg, #0d2818 0%, #1a3a2a 100%);
+    border: 1px solid #4ade80;
+    border-left: 4px solid #4ade80;
+    border-radius: 15px;
+    padding: 1.2rem 1.5rem;
+    margin-bottom: 1rem;
+}
+
+.ai-suggestion-card h4 {
+    color: #4ade80;
+    margin: 0 0 0.75rem 0;
+    font-size: 1.1rem;
+}
+
+.ai-suggestion-card ul {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+.ai-suggestion-card ul li {
+    color: #e0e0e0;
+    padding: 0.35rem 0;
+    border-bottom: 1px solid rgba(74, 222, 128, 0.1);
+    font-size: 0.95rem;
+}
+
+.ai-suggestion-card ul li:last-child {
+    border-bottom: none;
+}
+
+.ai-suggestion-card .suggestion-footer {
+    color: #8e9fb3;
+    font-size: 0.8rem;
+    margin-top: 0.75rem;
+    text-align: right;
+}
+
+/* Shopping Link Button */
+.shopping-link-btn {
+    display: inline-block;
+    background: linear-gradient(135deg, #1a3a1a 0%, #2d4a2d 100%);
+    color: #4ade80;
+    font-size: 0.75rem;
+    padding: 0.2rem 0.6rem;
+    border-radius: 8px;
+    border: 1px solid #4ade80;
+    text-decoration: none;
+    transition: background 0.2s, transform 0.1s;
+    white-space: nowrap;
+    min-height: 44px;
+    line-height: 44px;
+}
+
+.shopping-link-btn:hover {
+    background: linear-gradient(135deg, #2d4a2d 0%, #3d5a3d 100%);
+    transform: scale(1.02);
+    color: #6bff9e;
+}
+
+/* Enhanced Checklist Section */
+.checklist-enhanced {
+    background: linear-gradient(145deg, #111 0%, #1a1a1a 100%);
+    border-radius: 15px;
+    padding: 1rem;
+    margin-bottom: 0.5rem;
+}
+
+.checklist-enhanced .item-with-shop {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
 .category-card {
     background: linear-gradient(145deg, #1a1a1a 0%, #2d2d2d 100%);
     border-radius: 15px;
@@ -350,6 +426,58 @@ WEATHER_ITEMS = {
 }
 
 # =============================================================================
+# SHOPPING LINKS
+# =============================================================================
+
+SHOPPING_LINKS = {
+    "kain ihram": "https://www.tokopedia.com/search?q=kain+ihram",
+    "sajadah travel": "https://www.tokopedia.com/search?q=sajadah+travel",
+    "masker n95": "https://www.tokopedia.com/search?q=masker+n95",
+    "koper umrah": "https://www.tokopedia.com/search?q=koper+umrah+set",
+    "sandal haji": "https://www.tokopedia.com/search?q=sandal+haji",
+    "obat-obatan travel": "https://www.tokopedia.com/search?q=travel+medicine+kit",
+    "power bank": "https://www.tokopedia.com/search?q=power+bank+20000mah",
+    "botol zamzam": "https://www.tokopedia.com/search?q=botol+air+zamzam",
+    "mukena": "https://www.tokopedia.com/search?q=mukena+travel",
+    "tasbih": "https://www.tokopedia.com/search?q=tasbih+digital",
+    "hand sanitizer": "https://www.tokopedia.com/search?q=hand+sanitizer+travel",
+    "sunblock": "https://www.tokopedia.com/search?q=sunblock+spf50",
+    "adaptor universal": "https://www.tokopedia.com/search?q=adaptor+universal+travel",
+    "bantal leher": "https://www.tokopedia.com/search?q=bantal+leher+travel",
+    "money belt": "https://www.tokopedia.com/search?q=money+belt+travel",
+    "peci": "https://www.tokopedia.com/search?q=peci+haji",
+    "sabuk ihram": "https://www.tokopedia.com/search?q=sabuk+ihram",
+    "tas sandal": "https://www.tokopedia.com/search?q=tas+sandal+masjid",
+}
+
+# =============================================================================
+# STATIC AI SUGGESTION FALLBACKS (by category)
+# =============================================================================
+
+STATIC_SUGGESTIONS = {
+    "ibadah": [
+        "Bawa Al-Quran digital di HP sebagai backup",
+        "Siapkan doa-doa thawaf dan sa'i dalam kartu kecil yang bisa dikantongi",
+        "Counter thawaf digital lebih praktis daripada manual",
+    ],
+    "pakaian": [
+        "Pakai kain ihram berbahan microfiber — lebih ringan dan cepat kering",
+        "Bawa peniti/klip cadangan untuk ihram agar tidak mudah lepas",
+        "Sediakan satu set pakaian lengkap di tas kabin untuk jaga-jaga jika koper tertunda",
+    ],
+    "kesehatan": [
+        "Bawa oralit sachet — dehidrasi sangat umum di Makkah",
+        "Siapkan plester khusus kaki untuk lecet saat thawaf",
+        "Vitamin C dosis tinggi untuk menjaga imun selama di tanah suci",
+    ],
+    "dokumen": [
+        "Simpan scan semua dokumen di Google Drive / email Anda",
+        "Catat nomor darurat KBRI Riyadh: +966-11-488-1515",
+        "Print dua salinan paspor — simpan terpisah dari yang asli",
+    ],
+}
+
+# =============================================================================
 # SESSION STATE & HELPERS
 # =============================================================================
 
@@ -370,6 +498,10 @@ def init_checklist_state():
         st.session_state.checklist_xp_ai_tips = False
     if "checklist_xp_categories" not in st.session_state:
         st.session_state.checklist_xp_categories = set()
+    if "checklist_ai_suggestions" not in st.session_state:
+        st.session_state.checklist_ai_suggestions = None
+    if "checklist_xp_ai_suggestions" not in st.session_state:
+        st.session_state.checklist_xp_ai_suggestions = False
 
 def get_filtered_checklist(gender: str, season: str) -> Dict:
     """Get checklist filtered by gender and season."""
@@ -577,6 +709,178 @@ def _markdown_to_html_simple(text: str) -> str:
 
 
 # =============================================================================
+# AI SUGGESTIONS & SHOPPING LINKS
+# =============================================================================
+
+AI_SUGGESTION_SYSTEM_PROMPT = (
+    "Kamu adalah asisten packing Umrah berpengalaman. "
+    "Berdasarkan status checklist jamaah, sarankan 3-5 item yang mungkin terlupakan. "
+    "Format: satu item per baris, awali dengan '- '. "
+    "Setiap saran harus singkat (maks 15 kata). "
+    "Jawab dalam Bahasa Indonesia."
+)
+
+
+def _match_shopping_link(item_name: str) -> Optional[str]:
+    """Fuzzy match an item name to the closest SHOPPING_LINKS entry.
+
+    Performs case-insensitive keyword matching. Returns the URL if a match
+    is found, otherwise None.
+    """
+    name_lower = item_name.lower()
+    # Direct substring match first
+    for key, url in SHOPPING_LINKS.items():
+        if key in name_lower:
+            return url
+    # Keyword overlap match
+    name_words = set(name_lower.split())
+    best_url = None
+    best_score = 0
+    for key, url in SHOPPING_LINKS.items():
+        key_words = set(key.split())
+        overlap = len(name_words & key_words)
+        if overlap > best_score:
+            best_score = overlap
+            best_url = url
+    return best_url if best_score > 0 else None
+
+
+def render_shopping_link(item_name: str):
+    """Render a 'Beli di Tokopedia' link for an unchecked item if a match exists."""
+    url = _match_shopping_link(item_name)
+    if url:
+        st.markdown(
+            f'<a href="{url}" target="_blank" rel="noopener noreferrer" '
+            f'class="shopping-link-btn">'
+            f'\U0001f6d2 Beli di Tokopedia</a>',
+            unsafe_allow_html=True,
+        )
+
+
+def _get_static_suggestions(checklist: Dict, checked_items: Dict) -> List[str]:
+    """Return static suggestions based on which categories have unchecked items."""
+    suggestions = []
+    for cat_id, category in checklist.items():
+        unchecked = [i for i in category["items"] if not checked_items.get(i["id"])]
+        if not unchecked:
+            continue
+        # Map category to suggestion key
+        if cat_id in ("ibadah",):
+            key = "ibadah"
+        elif cat_id in ("pakaian_pria", "pakaian_wanita"):
+            key = "pakaian"
+        elif cat_id in ("kesehatan",):
+            key = "kesehatan"
+        elif cat_id in ("dokumen",):
+            key = "dokumen"
+        else:
+            continue
+        for s in STATIC_SUGGESTIONS.get(key, []):
+            if s not in suggestions:
+                suggestions.append(s)
+    return suggestions[:5]
+
+
+def render_ai_suggestions(profile: Dict, checklist: Dict, checked_items: Dict):
+    """Render AI-powered item suggestions based on checklist status.
+
+    Uses ai_complete() to generate suggestions. Falls back to static
+    category-based suggestions when AI is unavailable.
+    Awards +10 XP the first time the user views AI suggestions.
+    """
+    st.markdown("### \U0001f4a1 Saran Item dari AI")
+
+    # Initialize session state for AI suggestions
+    if "checklist_ai_suggestions" not in st.session_state:
+        st.session_state.checklist_ai_suggestions = None
+    if "checklist_xp_ai_suggestions" not in st.session_state:
+        st.session_state.checklist_xp_ai_suggestions = False
+
+    # Build prompt based on checked/unchecked items
+    checked_names = []
+    unchecked_names = []
+    for cat_id, category in checklist.items():
+        for item in category["items"]:
+            if checked_items.get(item["id"]):
+                checked_names.append(item["name"])
+            else:
+                unchecked_names.append(item["name"])
+
+    gender_label = "Pria" if profile["gender"] == "male" else "Wanita"
+    prompt_lines = [
+        f"Jamaah {gender_label}, durasi {profile['duration']} hari.",
+        f"Sudah disiapkan ({len(checked_names)} item): {', '.join(checked_names[:10])}.",
+        f"Belum disiapkan ({len(unchecked_names)} item).",
+        "",
+        "Sarankan 3-5 item TAMBAHAN yang mungkin terlupakan dan tidak ada di checklist standar. "
+        "Fokus pada barang praktis yang sering dilupakan jamaah Indonesia.",
+    ]
+    prompt = "\n".join(prompt_lines)
+
+    if st.button("\U0001f4a1 Dapatkan Saran AI", use_container_width=True, key="btn_ai_suggestions"):
+        with st.spinner("AI sedang menganalisis checklist Anda..."):
+            response = ai_complete(prompt, system_prompt=AI_SUGGESTION_SYSTEM_PROMPT, max_tokens=512)
+        if response:
+            st.session_state.checklist_ai_suggestions = response
+            # Gamification: +10 XP for viewing AI suggestions (first time)
+            if not st.session_state.checklist_xp_ai_suggestions:
+                st.session_state.checklist_xp_ai_suggestions = True
+                add_xp_safe(10, "Melihat saran item AI")
+        else:
+            # Fallback to static suggestions
+            static = _get_static_suggestions(checklist, checked_items)
+            if static:
+                st.session_state.checklist_ai_suggestions = "\n".join(f"- {s}" for s in static)
+            else:
+                st.session_state.checklist_ai_suggestions = None
+            st.info("Layanan AI tidak tersedia. Menampilkan saran bawaan.")
+
+    # Display suggestions
+    cached = st.session_state.get("checklist_ai_suggestions")
+    if cached:
+        # Convert markdown list to HTML
+        suggestion_items = []
+        for line in cached.split("\n"):
+            line = line.strip()
+            if line.startswith("- ") or line.startswith("* "):
+                suggestion_items.append(line[2:])
+            elif line and not line.startswith("#"):
+                suggestion_items.append(line)
+
+        if suggestion_items:
+            items_html = "".join(
+                f"<li>\U0001f4cc {item}</li>" for item in suggestion_items[:7]
+            )
+            st.markdown(
+                '<div class="ai-suggestion-card" role="status" aria-live="polite">'
+                '<h4><span aria-hidden="true">\U0001f4a1</span> Saran AI: Jangan lupa bawa item ini!</h4>'
+                f'<ul>{items_html}</ul>'
+                '<div class="suggestion-footer">Berdasarkan profil &amp; status checklist Anda</div>'
+                '</div>',
+                unsafe_allow_html=True,
+            )
+        else:
+            html_content = _markdown_to_html_simple(cached)
+            st.markdown(
+                '<div class="ai-suggestion-card" role="status" aria-live="polite">'
+                '<h4><span aria-hidden="true">\U0001f4a1</span> Saran AI: Jangan lupa bawa item ini!</h4>'
+                f'<p style="color:#e0e0e0;">{html_content}</p>'
+                '<div class="suggestion-footer">Berdasarkan profil &amp; status checklist Anda</div>'
+                '</div>',
+                unsafe_allow_html=True,
+            )
+    else:
+        st.markdown(
+            '<div class="ai-suggestion-card" role="status" aria-live="polite" style="border-color:#555;opacity:0.7;">'
+            '<p style="color:#b0b0b0;text-align:center;">'
+            'Klik tombol di atas untuk mendapatkan saran item berdasarkan checklist Anda.'
+            '</p>'
+            '</div>',
+            unsafe_allow_html=True,
+        )
+
+
+# =============================================================================
 # UI COMPONENTS
 # =============================================================================
 
@@ -707,7 +1011,7 @@ def render_category_checklist(cat_id: str, category: Dict, checked_items: Dict):
 
         # Items
         for item in items:
-            col1, col2 = st.columns([4, 1])
+            col1, col2, col3 = st.columns([3, 1, 1])
 
             with col1:
                 checked = st.checkbox(
@@ -725,6 +1029,11 @@ def render_category_checklist(cat_id: str, category: Dict, checked_items: Dict):
                     f'<span class="item-priority {priority_cls}">{priority_lbl}</span>',
                     unsafe_allow_html=True,
                 )
+
+            with col3:
+                # Show shopping link for unchecked items
+                if not checked:
+                    render_shopping_link(item["name"])
 
             # Special warnings
             if item["id"] in IHRAM_PROHIBITED and checked:
@@ -900,6 +1209,11 @@ def render_smart_checklist_page():
             st.session_state.checklist_items = {}
             st.session_state.checklist_xp_categories = set()
             st.rerun()
+
+    st.divider()
+
+    # AI Suggestions (above the checklist)
+    render_ai_suggestions(profile, checklist, checked_items)
 
     st.divider()
 

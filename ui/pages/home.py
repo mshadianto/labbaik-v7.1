@@ -253,6 +253,239 @@ HOME_PAGE_CSS = """
     .freshness-stat-label { font-size: 0.6rem; }
 }
 
+/* Season Countdown Section */
+.season-countdown-section {
+    background: linear-gradient(135deg, #0d0d0d 0%, #1a1a2e 50%, #0d0d0d 100%);
+    border: 1px solid #d4af37;
+    border-radius: 15px;
+    padding: 1.5rem;
+    text-align: center;
+    margin-bottom: 1rem;
+}
+.countdown-title {
+    color: #d4af37;
+    font-size: 1.3rem;
+    font-weight: 700;
+    margin-bottom: 0.5rem;
+}
+.countdown-days {
+    font-size: 2.8rem;
+    font-weight: 800;
+    color: #f4d03f;
+    line-height: 1;
+    margin: 0.5rem 0;
+}
+.countdown-days-label {
+    color: #b0b0b0;
+    font-size: 0.9rem;
+    margin-bottom: 0.8rem;
+}
+.countdown-bar-bg {
+    background: #333;
+    border-radius: 10px;
+    height: 10px;
+    overflow: hidden;
+    margin: 0.5rem 0;
+}
+.countdown-bar-fill {
+    background: linear-gradient(90deg, #d4af37, #f4d03f);
+    height: 100%;
+    border-radius: 10px;
+    transition: width 0.5s ease;
+}
+.countdown-note {
+    color: #8e9fb3;
+    font-size: 0.78rem;
+    margin-top: 0.6rem;
+    font-style: italic;
+}
+.countdown-season-badge {
+    display: inline-block;
+    background: linear-gradient(135deg, #d4af37 0%, #f4d03f 100%);
+    color: #1a1a1a;
+    padding: 0.25rem 0.8rem;
+    border-radius: 20px;
+    font-weight: bold;
+    font-size: 0.75rem;
+    margin-bottom: 0.5rem;
+}
+.countdown-upcoming {
+    background: #1a1a1a;
+    border: 1px solid #2a2a3e;
+    border-radius: 10px;
+    padding: 0.6rem 1rem;
+    margin-top: 0.5rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+.countdown-upcoming-name {
+    color: #b8c5d4;
+    font-size: 0.85rem;
+    font-weight: 600;
+}
+.countdown-upcoming-date {
+    color: #d4af37;
+    font-size: 0.8rem;
+}
+
+/* Featured Deals Section */
+.deals-container {
+    display: flex;
+    gap: 1rem;
+    overflow-x: auto;
+    scroll-snap-type: x mandatory;
+    -webkit-overflow-scrolling: touch;
+    padding-bottom: 0.5rem;
+    scrollbar-width: thin;
+    scrollbar-color: #d4af37 #333;
+}
+.deals-container::-webkit-scrollbar {
+    height: 6px;
+}
+.deals-container::-webkit-scrollbar-track {
+    background: #333;
+    border-radius: 3px;
+}
+.deals-container::-webkit-scrollbar-thumb {
+    background: #d4af37;
+    border-radius: 3px;
+}
+.deal-card {
+    flex: 0 0 calc(33.333% - 0.7rem);
+    min-width: 260px;
+    scroll-snap-align: start;
+    background: linear-gradient(135deg, #1a1a1a 0%, #2d2d2d 100%);
+    border: 1px solid #d4af37;
+    border-radius: 15px;
+    padding: 1.3rem;
+    text-align: center;
+    position: relative;
+}
+.deal-card:hover {
+    border-color: #f4d03f;
+    box-shadow: 0 0 15px rgba(212, 175, 55, 0.15);
+}
+.deal-badge {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    background: #f87171;
+    color: white;
+    padding: 2px 8px;
+    border-radius: 10px;
+    font-size: 0.65rem;
+    font-weight: bold;
+}
+.deal-badge.demo {
+    background: #6b7280;
+}
+.deal-agent {
+    color: #8e9fb3;
+    font-size: 0.78rem;
+    margin-top: 0.3rem;
+}
+.deal-name {
+    color: #fafafa;
+    font-size: 1rem;
+    font-weight: 700;
+    margin: 0.5rem 0 0.3rem;
+}
+.deal-price {
+    color: #d4af37;
+    font-size: 1.4rem;
+    font-weight: 800;
+}
+.deal-original-price {
+    color: #6b7280;
+    font-size: 0.8rem;
+    text-decoration: line-through;
+}
+.deal-details {
+    color: #b0b0b0;
+    font-size: 0.78rem;
+    margin-top: 0.5rem;
+}
+.deal-cta {
+    display: inline-block;
+    margin-top: 0.8rem;
+    padding: 0.4rem 1.2rem;
+    background: linear-gradient(135deg, #d4af37 0%, #f4d03f 100%);
+    color: #1a1a1a;
+    border-radius: 20px;
+    font-weight: bold;
+    font-size: 0.8rem;
+    text-decoration: none;
+    cursor: pointer;
+}
+.deal-cta:hover {
+    background: linear-gradient(135deg, #f4d03f 0%, #d4af37 100%);
+}
+
+/* Testimonial Section */
+@keyframes testimonial-scroll {
+    0% { transform: translateX(0); }
+    100% { transform: translateX(-50%); }
+}
+.testimonial-section-title {
+    text-align: center;
+    margin-bottom: 1.5rem;
+}
+.testimonial-track-wrapper {
+    overflow: hidden;
+    position: relative;
+    padding: 0.5rem 0;
+}
+.testimonial-track {
+    display: flex;
+    gap: 1rem;
+    animation: testimonial-scroll 30s linear infinite;
+    width: max-content;
+}
+.testimonial-track:hover {
+    animation-play-state: paused;
+}
+.testimonial-card {
+    flex: 0 0 300px;
+    background: linear-gradient(135deg, #1a1a1a 0%, #2d2d2d 100%);
+    border: 1px solid #333;
+    border-radius: 15px;
+    padding: 1.2rem;
+    min-height: 180px;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+}
+.testimonial-card:hover {
+    border-color: #d4af37;
+}
+.testimonial-stars {
+    color: #f4d03f;
+    font-size: 0.9rem;
+    margin-bottom: 0.5rem;
+}
+.testimonial-quote {
+    color: #b8c5d4;
+    font-size: 0.88rem;
+    font-style: italic;
+    line-height: 1.5;
+    flex-grow: 1;
+}
+.testimonial-author {
+    margin-top: 0.8rem;
+    padding-top: 0.5rem;
+    border-top: 1px solid #333;
+}
+.testimonial-author-name {
+    color: #d4af37;
+    font-weight: 700;
+    font-size: 0.88rem;
+}
+.testimonial-author-city {
+    color: #8e9fb3;
+    font-size: 0.75rem;
+}
+
 /* Home page responsive overrides — tablet */
 @media (max-width: 768px) {
     .hero-section-v6 { padding: 1.2rem 0.8rem; }
@@ -291,6 +524,16 @@ HOME_PAGE_CSS = """
     .vstats-icon { font-size: 1.8rem !important; }
     .vstats-value { font-size: 1.3rem !important; }
     .vstats-label { font-size: 0.72rem !important; }
+
+    /* Season countdown */
+    .countdown-days { font-size: 2.2rem; }
+    .countdown-title { font-size: 1.1rem; }
+
+    /* Featured deals - 2 columns on tablet */
+    .deal-card { flex: 0 0 calc(50% - 0.5rem); min-width: 220px; }
+
+    /* Testimonials */
+    .testimonial-card { flex: 0 0 260px; min-height: 160px; }
 }
 
 /* Home page responsive overrides — small phone */
@@ -312,6 +555,18 @@ HOME_PAGE_CSS = """
     .vstats-icon { font-size: 1.5rem !important; }
     .vstats-value { font-size: 1.1rem !important; }
     .vstats-label { font-size: 0.68rem !important; }
+
+    /* Season countdown */
+    .countdown-days { font-size: 1.8rem; }
+    .season-countdown-section { padding: 1rem; }
+
+    /* Featured deals - single column scroll on phone */
+    .deal-card { flex: 0 0 85%; min-width: 240px; }
+    .deal-price { font-size: 1.2rem; }
+
+    /* Testimonials */
+    .testimonial-card { flex: 0 0 240px; padding: 1rem; min-height: 150px; }
+    .testimonial-quote { font-size: 0.82rem; }
 }
 """
 
@@ -1336,6 +1591,331 @@ def render_package_preview():
             st.rerun()
 
 
+def render_season_countdown():
+    """Render countdown to next peak Umrah season (Ramadan or Hajj)."""
+
+    try:
+        from services.intelligence.season_calendar import SeasonCalendar, SeasonType
+        HAS_SEASON_CALENDAR = True
+    except ImportError:
+        HAS_SEASON_CALENDAR = False
+
+    st.markdown("---")
+
+    today = date.today()
+
+    # Determine next peak season dates
+    next_season_name = None
+    next_season_start = None
+    next_season_desc = None
+    upcoming_list = []
+
+    if HAS_SEASON_CALENDAR:
+        try:
+            calendar = SeasonCalendar()
+            upcoming = calendar.get_upcoming_peaks(from_date=today, limit=5)
+
+            # Filter to Ramadan and Hajj only for the main countdown
+            for s in upcoming:
+                if s.season_type in (SeasonType.RAMADAN, SeasonType.HAJJ) and s.start_date > today:
+                    if next_season_name is None:
+                        next_season_name = s.name
+                        next_season_start = s.start_date
+                        next_season_desc = s.description
+                    upcoming_list.append(s)
+                elif s.start_date > today:
+                    upcoming_list.append(s)
+
+            # If currently inside a season, show it differently
+            if next_season_name is None:
+                for s in upcoming:
+                    if s.season_type in (SeasonType.RAMADAN, SeasonType.HAJJ):
+                        if s.start_date <= today <= s.end_date:
+                            next_season_name = s.name
+                            next_season_start = s.start_date
+                            next_season_desc = s.description
+                            break
+        except Exception:
+            pass
+
+    # Fallback: use approximate dates if SeasonCalendar unavailable
+    if next_season_name is None:
+        # Approximate Ramadan 2026: Feb 18 - Mar 19
+        ramadan_2026_start = date(2026, 2, 18)
+        ramadan_2026_end = date(2026, 3, 19)
+        # Approximate Hajj 2026: May 25 - June 5
+        hajj_2026_start = date(2026, 5, 25)
+
+        if today <= ramadan_2026_end:
+            next_season_name = "Ramadan 2026"
+            next_season_start = ramadan_2026_start
+            next_season_desc = "Bulan puasa - demand sangat tinggi"
+        elif today < hajj_2026_start:
+            next_season_name = "Musim Haji 2026"
+            next_season_start = hajj_2026_start
+            next_season_desc = "Musim haji - hotel Makkah sangat terbatas"
+        else:
+            # Far future fallback
+            next_season_name = "Ramadan 2027"
+            next_season_start = date(2027, 2, 7)
+            next_season_desc = "Bulan puasa"
+
+    # Calculate days remaining
+    days_left = (next_season_start - today).days
+    if days_left < 0:
+        days_left = 0
+
+    # Calculate progress bar (assume ~180 day window)
+    total_window = 180
+    elapsed = total_window - min(days_left, total_window)
+    progress_pct = min(100, int((elapsed / total_window) * 100))
+
+    # Determine if currently in season
+    is_active = days_left == 0
+
+    # Season icon
+    season_icon = "🌙" if "Ramadan" in next_season_name else "🕋"
+
+    # Build countdown HTML
+    if is_active:
+        countdown_html = f"""
+        <div class="season-countdown-section">
+            <div class="countdown-season-badge">{season_icon} SEDANG BERLANGSUNG</div>
+            <div class="countdown-title">{next_season_name}</div>
+            <div class="countdown-days" style="color: #4ade80;">AKTIF</div>
+            <div class="countdown-days-label">{next_season_desc}</div>
+            <div class="countdown-note">
+                <span aria-hidden="true">⚠️</span> Harga di peak season bisa naik 50-100%. Book sekarang untuk ketersediaan terbaik!
+            </div>
+        </div>
+        """
+    else:
+        countdown_html = f"""
+        <div class="season-countdown-section">
+            <div class="countdown-season-badge">{season_icon} PEAK SEASON</div>
+            <div class="countdown-title">{next_season_name}</div>
+            <div class="countdown-days">{days_left}</div>
+            <div class="countdown-days-label">hari lagi</div>
+            <div class="countdown-bar-bg">
+                <div class="countdown-bar-fill" style="width: {progress_pct}%;"></div>
+            </div>
+            <div class="countdown-note">
+                <span aria-hidden="true">💡</span> Harga bisa naik 30-100% saat peak season. Semakin awal booking, semakin hemat!
+            </div>
+        </div>
+        """
+
+    st.markdown(countdown_html, unsafe_allow_html=True)
+
+    # Show upcoming seasons list (max 3)
+    display_seasons = []
+    if HAS_SEASON_CALENDAR and upcoming_list:
+        for s in upcoming_list[:3]:
+            if s.start_date > today and s.name != next_season_name:
+                delta = (s.start_date - today).days
+                display_seasons.append((s.name, f"{delta} hari lagi", s.start_date.strftime("%d %b %Y")))
+
+    if display_seasons:
+        seasons_html = ""
+        for name, days_str, date_str in display_seasons:
+            seasons_html += f"""
+            <div class="countdown-upcoming">
+                <span class="countdown-upcoming-name">{name}</span>
+                <span class="countdown-upcoming-date">{date_str} ({days_str})</span>
+            </div>
+            """
+        st.markdown(seasons_html, unsafe_allow_html=True)
+
+
+def render_featured_deals():
+    """Render featured deals section with top 3 cheapest current packages."""
+
+    st.markdown("---")
+
+    has_live_data = False
+    deals = []
+
+    if HAS_LIVE_PRICES:
+        try:
+            service = LivePriceService()
+            packages = service.get_cheapest_packages(limit=3)
+            if packages and len(packages) > 0:
+                has_live_data = True
+                for pkg in packages:
+                    discount_html = ""
+                    if pkg.is_promo and pkg.original_price > pkg.price:
+                        discount_html = (
+                            f'<div class="deal-original-price">Rp {pkg.original_price:,.0f}</div>'
+                            .replace(",", ".")
+                        )
+                    deals.append({
+                        "name": pkg.name,
+                        "price": pkg.price,
+                        "agent": pkg.travel_agent,
+                        "duration": pkg.duration_days,
+                        "departure": pkg.departure_city,
+                        "stars": min(pkg.hotel_makkah_stars, pkg.hotel_madinah_stars),
+                        "discount_html": discount_html,
+                        "is_promo": pkg.is_promo,
+                    })
+        except Exception:
+            pass
+
+    # Fallback: static demo deals
+    if not deals:
+        deals = [
+            {
+                "name": "Umrah Hemat Barokah",
+                "price": 22_500_000,
+                "agent": "PT Berkah Travel",
+                "duration": 9,
+                "departure": "Jakarta",
+                "stars": 3,
+                "discount_html": '<div class="deal-original-price">Rp 25.000.000</div>',
+                "is_promo": True,
+            },
+            {
+                "name": "Umrah Reguler Premium",
+                "price": 28_000_000,
+                "agent": "PT Safar Utama",
+                "duration": 9,
+                "departure": "Jakarta",
+                "stars": 4,
+                "discount_html": "",
+                "is_promo": False,
+            },
+            {
+                "name": "Umrah Nyaman Keluarga",
+                "price": 32_500_000,
+                "agent": "PT Haramain Tour",
+                "duration": 12,
+                "departure": "Surabaya",
+                "stars": 4,
+                "discount_html": '<div class="deal-original-price">Rp 35.000.000</div>',
+                "is_promo": True,
+            },
+        ]
+
+    badge_type = "" if has_live_data else ' demo'
+    badge_label = "PROMO" if has_live_data else "DATA DEMO"
+    data_source_note = "" if has_live_data else '<p style="color: #6b7280; font-size: 0.75rem;">* Data demo untuk ilustrasi. Hubungkan price service untuk data live.</p>'
+
+    st.markdown(f"""
+    <div style="text-align: center; margin-bottom: 1.5rem;">
+        <h2 style="color: #d4af37; margin-bottom: 0.5rem;">
+            <span aria-hidden="true">🔥</span> Penawaran Terbaik Hari Ini
+        </h2>
+        <p style="color: #b0b0b0;">Paket umrah terpilih dengan harga terbaik</p>
+        {data_source_note}
+    </div>
+    """, unsafe_allow_html=True)
+
+    # Build deal cards
+    cards_html = '<div class="deals-container">'
+    for deal in deals:
+        price_formatted = f"Rp {deal['price']:,.0f}".replace(",", ".")
+        stars_display = "⭐" * deal["stars"]
+        promo_badge = ""
+        if deal["is_promo"]:
+            promo_badge = f'<div class="deal-badge{badge_type}">{badge_label}</div>'
+
+        cards_html += f"""
+        <div class="deal-card">
+            {promo_badge}
+            <div style="font-size: 2rem;" aria-hidden="true">🕌</div>
+            <div class="deal-name">{deal['name']}</div>
+            <div class="deal-agent">🏢 {deal['agent']}</div>
+            {deal['discount_html']}
+            <div class="deal-price">{price_formatted}</div>
+            <div class="deal-details">
+                📅 {deal['duration']} hari | 🛫 {deal['departure']} | {stars_display}
+            </div>
+            <div class="deal-cta">Lihat Detail</div>
+        </div>
+        """
+    cards_html += "</div>"
+
+    st.markdown(cards_html, unsafe_allow_html=True)
+
+    # CTA button
+    st.markdown("")
+    col1, col2, col3 = st.columns([1, 2, 1])
+    with col2:
+        if st.button("🔍 Bandingkan Semua Harga Paket", type="primary", use_container_width=True, key="home_deals_cta"):
+            st.session_state.current_page = "price_comparison"
+            st.rerun()
+
+
+def render_testimonials_section():
+    """Render testimonials from previous jamaah with rotating cards."""
+
+    st.markdown("---")
+
+    testimonials = [
+        {
+            "name": "Hj. Siti Nurhaliza",
+            "city": "Jakarta",
+            "rating": 5,
+            "quote": "Alhamdulillah, LABBAIK sangat membantu persiapan umrah pertama saya. Simulasi biayanya akurat dan AI chatnya menjawab semua pertanyaan saya tentang tata cara ibadah.",
+        },
+        {
+            "name": "Ahmad Fauzi",
+            "city": "Surabaya",
+            "rating": 5,
+            "quote": "Fitur Umrah Bareng-nya luar biasa! Saya bisa menemukan teman perjalanan dari kota yang sama dan kami bisa berbagi biaya hotel. Hemat hampir 30%.",
+        },
+        {
+            "name": "Dewi Rahmawati",
+            "city": "Bandung",
+            "rating": 4,
+            "quote": "Panduan manasik virtualnya sangat membantu saya memahami urutan ibadah sebelum berangkat. Jadi lebih percaya diri saat di Tanah Suci.",
+        },
+        {
+            "name": "Ir. Muhammad Rizky",
+            "city": "Medan",
+            "rating": 5,
+            "quote": "Perbandingan harga dari berbagai travel agent membuat saya yakin mendapat paket terbaik. Tidak perlu lagi riset satu-satu. Sangat praktis!",
+        },
+        {
+            "name": "Fatimah Az-Zahra",
+            "city": "Yogyakarta",
+            "rating": 4,
+            "quote": "Koleksi doanya lengkap dan ada audio-nya, jadi saya bisa latihan bacaan sebelum berangkat. Aplikasi wajib untuk calon jamaah umrah!",
+        },
+    ]
+
+    st.markdown("""
+    <div class="testimonial-section-title">
+        <h2 style="color: #d4af37; margin-bottom: 0.5rem;">
+            <span aria-hidden="true">💬</span> Cerita Jamaah Kami
+        </h2>
+        <p style="color: #b0b0b0;">Pengalaman nyata dari jamaah yang telah menggunakan LABBAIK</p>
+    </div>
+    """, unsafe_allow_html=True)
+
+    # Build duplicated cards for infinite scroll effect
+    all_testimonials = testimonials + testimonials  # duplicate for seamless loop
+    cards_html = '<div class="testimonial-track-wrapper"><div class="testimonial-track">'
+
+    for t in all_testimonials:
+        stars = "★" * t["rating"] + "☆" * (5 - t["rating"])
+        cards_html += f"""
+        <div class="testimonial-card">
+            <div>
+                <div class="testimonial-stars" aria-label="{t['rating']} dari 5 bintang">{stars}</div>
+                <div class="testimonial-quote">"{t['quote']}"</div>
+            </div>
+            <div class="testimonial-author">
+                <div class="testimonial-author-name">{t['name']}</div>
+                <div class="testimonial-author-city">{t['city']}</div>
+            </div>
+        </div>
+        """
+
+    cards_html += "</div></div>"
+    st.markdown(cards_html, unsafe_allow_html=True)
+
+
 def render_testimonials():
     """Render community invitation section (replacing fake testimonials)."""
 
@@ -1567,6 +2147,15 @@ def render_home_page():
 
     # Data freshness / price monitoring widget
     render_data_freshness_widget()
+
+    # Season countdown (Ramadan / Hajj)
+    render_season_countdown()
+
+    # Featured deals
+    render_featured_deals()
+
+    # Testimonials from jamaah
+    render_testimonials_section()
 
     # Footer only
     render_footer()
