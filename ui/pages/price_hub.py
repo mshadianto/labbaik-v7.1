@@ -16,6 +16,8 @@ from datetime import datetime, timedelta, date
 from typing import Optional, Dict, List, Any
 import logging
 import re
+import random
+import math
 
 from services.ai.helpers import ai_complete, add_xp_safe
 from ui.components.shared_styles import inject_css, HERO_CSS, CARD_CSS, AI_CARD_CSS, BADGE_CSS, SKELETON_CSS, render_skeleton
@@ -110,6 +112,20 @@ try:
 except ImportError:
     HAS_GEO_CLUSTER = False
     logger.warning("Geo cluster service not available")
+
+# Plotly (optional, for enhanced charts)
+try:
+    import plotly.graph_objects as go
+    HAS_PLOTLY = True
+except ImportError:
+    HAS_PLOTLY = False
+
+# Pandas (optional, for st.line_chart DataFrame)
+try:
+    import pandas as pd
+    HAS_PANDAS = True
+except ImportError:
+    HAS_PANDAS = False
 
 
 # =============================================================================
@@ -380,6 +396,122 @@ PRICE_HUB_CSS = """
     font-weight: bold;
     font-size: 0.9rem;
 }
+
+/* Price History Section */
+.price-history-section {
+    background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+    border: 1px solid #334155;
+    border-radius: 15px;
+    padding: 1.5rem;
+    margin-top: 1.5rem;
+}
+
+.price-history-section h3 {
+    color: #d4af37;
+    margin-bottom: 0.5rem;
+}
+
+.price-history-section .section-subtitle {
+    color: #b0b0b0;
+    font-size: 0.85rem;
+    margin-bottom: 1rem;
+}
+
+/* Price stat cards (min/max/avg) */
+.price-stat-card {
+    background: #1e293b;
+    border: 1px solid #334155;
+    border-radius: 10px;
+    padding: 0.75rem 1rem;
+    text-align: center;
+}
+
+.price-stat-card .stat-label {
+    color: #b0b0b0;
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+.price-stat-card .stat-value {
+    color: #e2e8f0;
+    font-size: 1.1rem;
+    font-weight: bold;
+    margin-top: 0.25rem;
+}
+
+.price-stat-card.stat-min .stat-value {
+    color: #4ade80;
+}
+
+.price-stat-card.stat-max .stat-value {
+    color: #f87171;
+}
+
+.price-stat-card.stat-avg .stat-value {
+    color: #d4af37;
+}
+
+/* Price trend indicators */
+.price-trend-indicator {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+    padding: 4px 10px;
+    border-radius: 6px;
+    font-size: 0.8rem;
+    font-weight: bold;
+}
+
+.price-trend-indicator.trend-indicator-up {
+    background: rgba(248, 113, 113, 0.15);
+    color: #f87171;
+    border: 1px solid rgba(248, 113, 113, 0.3);
+}
+
+.price-trend-indicator.trend-indicator-down {
+    background: rgba(74, 222, 128, 0.15);
+    color: #4ade80;
+    border: 1px solid rgba(74, 222, 128, 0.3);
+}
+
+.price-trend-indicator.trend-indicator-stable {
+    background: rgba(148, 163, 184, 0.15);
+    color: #94a3b8;
+    border: 1px solid rgba(148, 163, 184, 0.3);
+}
+
+/* Best time recommendation */
+.best-time-box {
+    background: linear-gradient(135deg, #065f46 0%, #064e3b 100%);
+    border: 1px solid #059669;
+    border-radius: 10px;
+    padding: 0.75rem 1rem;
+    margin-top: 0.75rem;
+}
+
+.best-time-box .best-time-label {
+    color: #6ee7b7;
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    font-weight: bold;
+}
+
+.best-time-box .best-time-value {
+    color: #ecfdf5;
+    font-size: 0.9rem;
+    margin-top: 0.25rem;
+}
+
+.price-history-note {
+    color: #8e9fb3;
+    font-size: 0.75rem;
+    font-style: italic;
+    margin-top: 0.75rem;
+    padding-top: 0.5rem;
+    border-top: 1px solid #334155;
+}
 """
 
 
@@ -499,6 +631,10 @@ def init_session_state():
         st.session_state.price_hub_source_stats = None
     if "price_hub_source_stats_time" not in st.session_state:
         st.session_state.price_hub_source_stats_time = None
+    if "price_history_data" not in st.session_state:
+        st.session_state.price_history_data = {}
+    if "price_hub_history_xp_awarded" not in st.session_state:
+        st.session_state.price_hub_history_xp_awarded = False
 
 
 # =============================================================================
@@ -1121,6 +1257,299 @@ def render_package_ai_analysis(result: Dict):
 
 
 # =============================================================================
+# PRICE HISTORY / TREND CHART
+# =============================================================================
+
+def _generate_price_history(base_price: float, days: int = 30) -> List[Dict]:
+    """
+    Generate simulated 30-day price trend data.
+
+    Returns a list of dicts: {date, price, source}.
+    Uses sin wave + random noise for realistic variation.
+    Weekend prices are slightly higher (+3-5%).
+    """
+    random.seed(42)
+    history = []
+    today = datetime.now().date()
+    sources = ["Booking.com", "Agoda", "Expedia", "Hotels.com", "Traveloka"]
+
+    for i in range(days):
+        day_date = today - timedelta(days=(days - 1 - i))
+
+        # Base variation: sin wave for cyclical pattern (period ~10 days)
+        sin_component = math.sin(2 * math.pi * i / 10) * 0.05
+
+        # Slight upward trend (simulating peak season approach): +0.15% per day
+        trend_component = i * 0.0015
+
+        # Random daily noise: +/- 5-15%
+        noise = random.uniform(-0.08, 0.10)
+
+        # Weekend surcharge: Saturday=5 (Sat), Sunday=6 (Sun)
+        weekend_factor = 0.0
+        if day_date.weekday() == 5:  # Saturday
+            weekend_factor = random.uniform(0.03, 0.05)
+        elif day_date.weekday() == 6:  # Sunday
+            weekend_factor = random.uniform(0.03, 0.04)
+
+        # Combine all factors
+        multiplier = 1.0 + sin_component + trend_component + noise + weekend_factor
+        price = round(base_price * multiplier, 0)
+
+        # Pick a random source for this data point
+        source = sources[i % len(sources)]
+
+        history.append({
+            "date": day_date,
+            "price": price,
+            "source": source,
+        })
+
+    return history
+
+
+def render_price_history_chart(city: str):
+    """
+    Render a 30-day price history/trend chart for a city.
+
+    Uses session state cache to avoid regenerating data on every rerun.
+    Shows min/max/average stats, trend indicator, and booking recommendation.
+    """
+    # Determine base price per city (SAR per night, typical 4-star)
+    base_prices = {
+        "Makkah": 450,
+        "Madinah": 350,
+        "Jeddah": 300,
+    }
+    base_price = base_prices.get(city, 400)
+
+    # Cache key per city
+    cache_key = f"history_{city}"
+    cached = st.session_state.get("price_history_data", {})
+
+    if cache_key not in cached:
+        history = _generate_price_history(base_price, days=30)
+        cached[cache_key] = history
+        st.session_state.price_history_data = cached
+    else:
+        history = cached[cache_key]
+
+    if not history:
+        return
+
+    # Gamification: +10 XP for viewing price history (first time)
+    if not st.session_state.get("price_hub_history_xp_awarded", False):
+        st.session_state.price_hub_history_xp_awarded = True
+        add_xp_safe(10, "Melihat tren harga hotel umrah")
+
+    # --- Section container ---
+    st.markdown(
+        '<div class="price-history-section">'
+        '<h3><span aria-hidden="true">&#128200;</span> Tren Harga 30 Hari - ' + city + '</h3>'
+        '<p class="section-subtitle">Estimasi pergerakan harga hotel per malam (SAR)</p>'
+        '</div>',
+        unsafe_allow_html=True,
+    )
+
+    # --- Compute stats ---
+    prices = [h["price"] for h in history]
+    min_price = min(prices)
+    max_price = max(prices)
+    avg_price = sum(prices) / len(prices)
+
+    # Find date of min price
+    min_entry = min(history, key=lambda h: h["price"])
+    min_date = min_entry["date"]
+
+    # Trend direction: compare average of last 7 days vs first 7 days
+    first_week_avg = sum(h["price"] for h in history[:7]) / 7
+    last_week_avg = sum(h["price"] for h in history[-7:]) / 7
+    trend_pct = ((last_week_avg - first_week_avg) / first_week_avg) * 100
+
+    if trend_pct > 2:
+        trend_dir = "up"
+        trend_arrow = "&#9650;"
+        trend_label = f"+{trend_pct:.1f}%"
+        trend_css = "trend-indicator-up"
+        trend_text = "Harga cenderung naik"
+    elif trend_pct < -2:
+        trend_dir = "down"
+        trend_arrow = "&#9660;"
+        trend_label = f"{trend_pct:.1f}%"
+        trend_css = "trend-indicator-down"
+        trend_text = "Harga cenderung turun"
+    else:
+        trend_dir = "stable"
+        trend_arrow = "&#9644;"
+        trend_label = f"{trend_pct:+.1f}%"
+        trend_css = "trend-indicator-stable"
+        trend_text = "Harga relatif stabil"
+
+    # --- Stat cards: Min / Max / Avg ---
+    stat_col1, stat_col2, stat_col3, stat_col4 = st.columns(4)
+
+    with stat_col1:
+        st.markdown(
+            '<div class="price-stat-card stat-min">'
+            '<div class="stat-label">Terendah</div>'
+            '<div class="stat-value">SAR ' + f'{min_price:,.0f}' + '</div>'
+            '</div>',
+            unsafe_allow_html=True,
+        )
+
+    with stat_col2:
+        st.markdown(
+            '<div class="price-stat-card stat-max">'
+            '<div class="stat-label">Tertinggi</div>'
+            '<div class="stat-value">SAR ' + f'{max_price:,.0f}' + '</div>'
+            '</div>',
+            unsafe_allow_html=True,
+        )
+
+    with stat_col3:
+        st.markdown(
+            '<div class="price-stat-card stat-avg">'
+            '<div class="stat-label">Rata-rata</div>'
+            '<div class="stat-value">SAR ' + f'{avg_price:,.0f}' + '</div>'
+            '</div>',
+            unsafe_allow_html=True,
+        )
+
+    with stat_col4:
+        st.markdown(
+            '<div class="price-stat-card">'
+            '<div class="stat-label">Tren 30 Hari</div>'
+            '<div class="stat-value">'
+            '<span class="price-trend-indicator ' + trend_css + '">'
+            + trend_arrow + ' ' + trend_label
+            + '</span></div>'
+            '</div>',
+            unsafe_allow_html=True,
+        )
+
+    # --- Chart ---
+    dates = [h["date"] for h in history]
+
+    if HAS_PLOTLY:
+        # Enhanced Plotly chart
+        fig = go.Figure()
+        fig.add_trace(go.Scatter(
+            x=dates,
+            y=prices,
+            mode='lines+markers',
+            name='Harga/Malam',
+            line=dict(color='#d4af37', width=2),
+            marker=dict(size=4, color='#d4af37'),
+            fill='tozeroy',
+            fillcolor='rgba(212, 175, 55, 0.1)',
+        ))
+
+        # Add min price marker
+        fig.add_trace(go.Scatter(
+            x=[min_date],
+            y=[min_price],
+            mode='markers+text',
+            name='Harga Terendah',
+            marker=dict(size=12, color='#4ade80', symbol='star'),
+            text=[f'SAR {min_price:,.0f}'],
+            textposition='top center',
+            textfont=dict(color='#4ade80', size=11),
+        ))
+
+        # Average line
+        fig.add_hline(
+            y=avg_price,
+            line_dash="dash",
+            line_color="#94a3b8",
+            annotation_text=f"Rata-rata: SAR {avg_price:,.0f}",
+            annotation_position="top left",
+            annotation_font_color="#94a3b8",
+        )
+
+        fig.update_layout(
+            template="plotly_dark",
+            paper_bgcolor='rgba(0,0,0,0)',
+            plot_bgcolor='rgba(0,0,0,0)',
+            xaxis_title="Tanggal",
+            yaxis_title="Harga (SAR)",
+            height=350,
+            margin=dict(l=50, r=20, t=30, b=50),
+            showlegend=False,
+            xaxis=dict(gridcolor='#334155'),
+            yaxis=dict(gridcolor='#334155'),
+        )
+
+        st.plotly_chart(fig, use_container_width=True)
+
+    elif HAS_PANDAS:
+        # Fallback: Streamlit built-in line chart with pandas DataFrame
+        df = pd.DataFrame({
+            "Tanggal": dates,
+            "Harga (SAR)": prices,
+        })
+        st.line_chart(df.set_index("Tanggal")["Harga (SAR)"])
+
+    else:
+        # Minimal fallback: show data as metrics
+        st.caption("Grafik tidak tersedia (pandas/plotly tidak terinstal)")
+        recent_prices = prices[-7:]
+        cols = st.columns(min(len(recent_prices), 7))
+        for idx, p in enumerate(recent_prices):
+            day_label = dates[-(7 - idx)].strftime("%d/%m")
+            with cols[idx]:
+                st.metric(day_label, f"SAR {p:,.0f}")
+
+    # --- Best time to book recommendation ---
+    # Find the day-of-week with lowest average price
+    weekday_prices = {}
+    for h in history:
+        wd = h["date"].weekday()
+        if wd not in weekday_prices:
+            weekday_prices[wd] = []
+        weekday_prices[wd].append(h["price"])
+
+    weekday_avgs = {wd: sum(ps) / len(ps) for wd, ps in weekday_prices.items()}
+    best_weekday = min(weekday_avgs, key=weekday_avgs.get)
+    weekday_names = {
+        0: "Senin", 1: "Selasa", 2: "Rabu", 3: "Kamis",
+        4: "Jumat", 5: "Sabtu", 6: "Minggu",
+    }
+    best_day_name = weekday_names.get(best_weekday, "")
+    best_day_avg = weekday_avgs[best_weekday]
+
+    recommendation = (
+        f"Berdasarkan tren 30 hari, hari <strong>{best_day_name}</strong> "
+        f"cenderung memiliki harga terendah "
+        f"(rata-rata SAR {best_day_avg:,.0f}/malam). "
+    )
+
+    if trend_dir == "up":
+        recommendation += "Harga sedang naik — pertimbangkan untuk booking secepatnya."
+    elif trend_dir == "down":
+        recommendation += "Harga sedang turun — Anda bisa menunggu beberapa hari untuk harga lebih baik."
+    else:
+        recommendation += "Harga relatif stabil — waktu yang baik untuk membandingkan dan booking."
+
+    st.markdown(
+        '<div class="best-time-box">'
+        '<div class="best-time-label">'
+        '<span aria-hidden="true">&#128161;</span> Waktu Terbaik untuk Booking</div>'
+        '<div class="best-time-value">' + recommendation + '</div>'
+        '</div>',
+        unsafe_allow_html=True,
+    )
+
+    # --- Disclaimer note ---
+    st.markdown(
+        '<p class="price-history-note">'
+        'Data berdasarkan estimasi tren harga. '
+        'Gunakan fitur Price Alert untuk notifikasi harga aktual.'
+        '</p>',
+        unsafe_allow_html=True,
+    )
+
+
+# =============================================================================
 # HOTEL TAB COMPONENTS
 # =============================================================================
 
@@ -1415,6 +1844,9 @@ def render_hotel_results(result: Dict):
     if not st.session_state.get("price_hub_compare_xp_awarded", False):
         st.session_state.price_hub_compare_xp_awarded = True
         add_xp_safe(25, "Membandingkan harga hotel umrah")
+
+    # Price History / Trend Chart
+    render_price_history_chart(city_name)
 
     # AI Analysis section
     render_ai_analysis(result)

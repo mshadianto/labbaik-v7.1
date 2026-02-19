@@ -13,7 +13,15 @@ from typing import Dict, List
 import json
 
 from services.ai.helpers import ai_complete, add_xp_safe
-from ui.components.shared_styles import inject_css, HERO_CSS, CARD_CSS, AI_CARD_CSS, BADGE_CSS
+from ui.components.shared_styles import inject_css, HERO_CSS, CARD_CSS, AI_CARD_CSS, BADGE_CSS, SKELETON_CSS, render_skeleton
+
+# Try to import doc checker document list for cross-page integration
+try:
+    from ui.pages.doc_checker import REQUIRED_DOCUMENTS as _DOC_CHECKER_DOCUMENTS
+    _DOC_CHECKER_TOTAL = len(_DOC_CHECKER_DOCUMENTS)
+except Exception:
+    _DOC_CHECKER_DOCUMENTS = None
+    _DOC_CHECKER_TOTAL = 11  # fallback count
 
 # =============================================================================
 # STYLING
@@ -201,6 +209,63 @@ READINESS_CSS = """
 
 .stats-card .number {
     color: #4ade80;
+}
+
+/* Doc completion supplementary card */
+.doc-completion-card {
+    background: linear-gradient(145deg, #1a1a2e 0%, #1e293b 100%);
+    border-radius: 14px;
+    padding: 1.25rem;
+    margin: 1rem 0;
+    border: 1px solid #334155;
+    border-left: 4px solid #60a5fa;
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    flex-wrap: wrap;
+}
+
+.doc-completion-card .doc-icon {
+    font-size: 1.5rem;
+}
+
+.doc-completion-card .doc-info {
+    flex: 1;
+    min-width: 180px;
+}
+
+.doc-completion-card .doc-title {
+    color: #e2e8f0;
+    font-weight: 600;
+    font-size: 0.95rem;
+}
+
+.doc-completion-card .doc-progress {
+    color: #60a5fa;
+    font-size: 0.85rem;
+    margin-top: 0.2rem;
+}
+
+.doc-completion-card .doc-warning {
+    color: #f59e0b;
+    font-size: 0.82rem;
+    margin-top: 0.3rem;
+}
+
+.doc-completion-bar {
+    width: 100%;
+    height: 6px;
+    background: #1e293b;
+    border-radius: 3px;
+    overflow: hidden;
+    margin-top: 0.5rem;
+}
+
+.doc-completion-bar-fill {
+    height: 100%;
+    border-radius: 3px;
+    background: linear-gradient(90deg, #60a5fa, #3b82f6);
+    transition: width 0.4s ease;
 }
 """
 
@@ -1183,6 +1248,56 @@ def render_score_display(score: Dict):
         )
 
 
+def render_doc_completion_card():
+    """Render a supplementary card showing doc checker completion status.
+
+    Reads doc_checklist from session state (populated by doc_checker page).
+    Shows X/11 documents completed with a progress bar, and a warning
+    if completion is below 50%.
+    """
+    doc_checklist = st.session_state.get("doc_checklist", {})
+    total = _DOC_CHECKER_TOTAL
+
+    if doc_checklist:
+        completed = sum(1 for s in doc_checklist.values() if s == "selesai")
+    else:
+        completed = 0
+
+    pct = round(completed / total * 100) if total > 0 else 0
+
+    warning_html = ""
+    if pct < 50:
+        warning_html = (
+            '<div class="doc-warning">'
+            '<span aria-hidden="true">\u26a0\ufe0f</span> '
+            'Lengkapi dokumen untuk meningkatkan skor kesiapan'
+            '</div>'
+        )
+
+    st.markdown(
+        f'<div class="doc-completion-card">'
+        f'<div class="doc-icon" aria-hidden="true">\U0001f4c4</div>'
+        f'<div class="doc-info">'
+        f'<div class="doc-title">Dokumen Anda: {completed}/{total} selesai</div>'
+        f'<div class="doc-progress">{pct}% kelengkapan dokumen</div>'
+        f'{warning_html}'
+        f'<div class="doc-completion-bar">'
+        f'<div class="doc-completion-bar-fill" style="width: {pct}%;"></div>'
+        f'</div>'
+        f'</div>'
+        f'</div>',
+        unsafe_allow_html=True,
+    )
+
+    if st.button(
+        "\U0001f4c4 Buka Cek Dokumen",
+        key="btn_nav_doc_checker_from_readiness",
+        use_container_width=False,
+    ):
+        st.session_state.nav = "doc_checker"
+        st.rerun()
+
+
 def render_recommendations(recs: str):
     """Render AI-generated recommendations."""
     st.markdown("### Rekomendasi AI untuk Anda")
@@ -1499,12 +1614,19 @@ def _render_coaching_ai_tip(
         "untuk membantu jamaah ini memulai persiapan."
     )
 
+    skeleton_placeholder = st.empty()
+    with skeleton_placeholder:
+        st.markdown(SKELETON_CSS, unsafe_allow_html=True)
+        render_skeleton(skeleton_type="text")
+
     with st.spinner("AI menyiapkan tip coaching personal..."):
         ai_tip = ai_complete(
             prompt,
             system_prompt=COACHING_AI_SYSTEM_PROMPT,
             max_tokens=512,
         )
+
+    skeleton_placeholder.empty()
 
     if ai_tip:
         st.markdown(
@@ -1710,6 +1832,9 @@ def render_readiness_checker_page():
         # Score display
         render_score_display(score)
 
+        # Doc checker completion supplementary card
+        render_doc_completion_card()
+
         # Contextual cross-page navigation based on dimension scores
         _render_contextual_nav(score)
 
@@ -1776,10 +1901,18 @@ def render_readiness_checker_page():
         st.session_state.readiness_score = score
         st.session_state.readiness_timestamp = datetime.now().strftime("%d %B %Y, %H:%M WIB")
 
-        # Generate AI recommendations
+        # Generate AI recommendations — show skeleton while loading
+        skeleton_placeholder = st.empty()
+        with skeleton_placeholder:
+            st.markdown(SKELETON_CSS, unsafe_allow_html=True)
+            render_skeleton(skeleton_type="text")
+            render_skeleton(skeleton_type="cards", count=2)
+
         with st.spinner("AI sedang menganalisis dan menyiapkan rekomendasi personal..."):
             recs = generate_ai_recommendations(score, answers)
             st.session_state.readiness_recommendations = recs
+
+        skeleton_placeholder.empty()
 
         # Gamification: award XP
         add_xp_safe(50, "Menyelesaikan Readiness Check")

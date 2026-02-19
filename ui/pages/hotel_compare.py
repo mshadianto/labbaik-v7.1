@@ -85,6 +85,147 @@ AMENITY_FILTER_CSS = """
 </style>
 """
 
+# =============================================================================
+# FAVORITES CSS
+# =============================================================================
+
+FAVORITES_CSS = """
+<style>
+/* Favorite star toggle button */
+.favorite-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    border: 1px solid #d4af37;
+    background: transparent;
+    cursor: pointer;
+    transition: all 0.25s ease;
+    font-size: 1.1rem;
+    line-height: 1;
+}
+.favorite-btn:hover {
+    background: rgba(212, 175, 55, 0.15);
+    transform: scale(1.15);
+}
+.favorite-btn.active {
+    background: rgba(212, 175, 55, 0.2);
+    border-color: #d4af37;
+    animation: fav-pop 0.35s ease;
+}
+
+@keyframes fav-pop {
+    0%   { transform: scale(1); }
+    50%  { transform: scale(1.3); }
+    100% { transform: scale(1); }
+}
+
+/* Favorites section card */
+.favorites-section {
+    background: linear-gradient(135deg, #0d1b2a 0%, #1a2a4a 100%);
+    border: 1px solid #d4af37;
+    border-radius: 12px;
+    padding: 1.2rem;
+    margin: 1rem 0;
+}
+.favorites-section h3 {
+    color: #d4af37;
+    margin: 0 0 0.8rem 0;
+    font-size: 1.1rem;
+}
+
+/* Compact favorite card */
+.favorites-section .fav-card {
+    background: #1a1a2e;
+    border: 1px solid #2a2a4a;
+    border-radius: 8px;
+    padding: 0.6rem 0.8rem;
+    margin-bottom: 0.5rem;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.5rem;
+}
+.favorites-section .fav-card .fav-info {
+    flex: 1;
+    min-width: 0;
+}
+.favorites-section .fav-card .fav-name {
+    color: #e0e0e0;
+    font-weight: 600;
+    font-size: 0.9rem;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+.favorites-section .fav-card .fav-meta {
+    color: #8e9fb3;
+    font-size: 0.75rem;
+    margin-top: 2px;
+}
+.favorites-section .fav-card .fav-price {
+    color: #d4af37;
+    font-weight: bold;
+    font-size: 0.9rem;
+    white-space: nowrap;
+}
+.favorites-section .fav-empty {
+    color: #8e9fb3;
+    font-size: 0.85rem;
+    text-align: center;
+    padding: 1.5rem 0.5rem;
+}
+
+/* Favorites comparison table */
+.favorites-compare-table {
+    width: 100%;
+    border-collapse: separate;
+    border-spacing: 0;
+    border-radius: 10px;
+    overflow: hidden;
+    margin: 1rem 0;
+    font-size: 0.85rem;
+}
+.favorites-compare-table thead th {
+    background: #1a2a4a;
+    color: #d4af37;
+    padding: 0.6rem 0.8rem;
+    text-align: left;
+    font-weight: 600;
+    border-bottom: 2px solid #d4af37;
+}
+.favorites-compare-table tbody td {
+    background: #0d1b2a;
+    color: #e0e0e0;
+    padding: 0.5rem 0.8rem;
+    border-bottom: 1px solid #1a2a4a;
+}
+.favorites-compare-table tbody tr:last-child td {
+    border-bottom: none;
+}
+.favorites-compare-table .best-price {
+    color: #66bb6a;
+    font-weight: bold;
+}
+
+/* Small gold star badge */
+.favorite-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 3px;
+    background: rgba(212, 175, 55, 0.15);
+    color: #d4af37;
+    font-size: 0.7rem;
+    font-weight: 600;
+    padding: 2px 8px;
+    border-radius: 12px;
+    border: 1px solid rgba(212, 175, 55, 0.3);
+}
+</style>
+"""
+
 # Demo hotel data for when API is unavailable
 DEMO_HOTELS = [
     {"name": "Hilton Suites Makkah", "stars": 5, "distance": "350m dari Haram", "prices": {"Booking.com": "SAR 890", "Agoda": "SAR 920", "Expedia": "SAR 950"}, "amenities": "Free WiFi, free shuttle to Haram, breakfast included, air conditioning, elevator, family room, restaurant, room service, laundry, prayer room"},
@@ -217,6 +358,289 @@ def _compute_amenity_match(hotel: Dict, active_filters: List[str]) -> tuple:
             matched.append(fkey)
 
     return (len(matched), len(active_filters), matched, signals)
+
+
+# =============================================================================
+# FAVORITES HELPERS
+# =============================================================================
+
+MAX_FAVORITES = 10
+
+
+def _init_favorites():
+    """Ensure hotel_favorites list exists in session state."""
+    if 'hotel_favorites' not in st.session_state:
+        st.session_state.hotel_favorites = []
+
+
+def _get_hotel_key(hotel: Dict) -> str:
+    """Return a stable key for a hotel dict (name + city/address)."""
+    name = hotel.get('hotel_name') or hotel.get('name', '')
+    city = hotel.get('city') or hotel.get('address', '')
+    return f"{name}||{city}"
+
+
+def _is_favorited(hotel: Dict) -> bool:
+    """Check whether a hotel is in the favorites list."""
+    _init_favorites()
+    key = _get_hotel_key(hotel)
+    return any(_get_hotel_key(f) == key for f in st.session_state.hotel_favorites)
+
+
+def _add_favorite(hotel: Dict):
+    """Add a hotel to favorites (max MAX_FAVORITES)."""
+    _init_favorites()
+    if len(st.session_state.hotel_favorites) >= MAX_FAVORITES:
+        return  # Silently cap at max
+    if _is_favorited(hotel):
+        return
+    st.session_state.hotel_favorites.append(dict(hotel))
+
+    # Award XP for the first favorite ever added
+    if not st.session_state.get('hotel_fav_xp_awarded'):
+        add_xp_safe(5, "Menyimpan hotel favorit pertama")
+        st.session_state.hotel_fav_xp_awarded = True
+
+
+def _remove_favorite(hotel: Dict):
+    """Remove a hotel from favorites."""
+    _init_favorites()
+    key = _get_hotel_key(hotel)
+    st.session_state.hotel_favorites = [
+        f for f in st.session_state.hotel_favorites
+        if _get_hotel_key(f) != key
+    ]
+
+
+def _extract_price_number(price_value) -> float:
+    """Extract numeric price from various formats (str, int, float)."""
+    if isinstance(price_value, (int, float)):
+        return float(price_value)
+    if isinstance(price_value, str):
+        # Remove currency codes, commas, spaces
+        cleaned = price_value.replace(',', '').replace(' ', '')
+        for prefix in ('SAR', 'USD', 'IDR', 'Rp'):
+            cleaned = cleaned.replace(prefix, '')
+        try:
+            return float(cleaned.strip())
+        except (ValueError, TypeError):
+            return 0.0
+    return 0.0
+
+
+# =============================================================================
+# FAVORITES UI COMPONENTS
+# =============================================================================
+
+def render_favorite_toggle(hotel: Dict, key_suffix: str = ""):
+    """Render a star toggle button for adding/removing a hotel from favorites.
+
+    Args:
+        hotel: Hotel dict (API result or demo hotel)
+        key_suffix: Unique suffix to avoid duplicate widget keys
+    """
+    _init_favorites()
+    is_fav = _is_favorited(hotel)
+    hotel_name = hotel.get('hotel_name') or hotel.get('name', 'Hotel')
+
+    label = "Hapus dari Favorit" if is_fav else "Tambah ke Favorit"
+    icon = "⭐" if is_fav else "☆"
+
+    at_max = len(st.session_state.hotel_favorites) >= MAX_FAVORITES and not is_fav
+    disabled = at_max
+
+    btn_key = f"fav_toggle_{_get_hotel_key(hotel)}_{key_suffix}"
+
+    if st.button(
+        f"{icon} {label}",
+        key=btn_key,
+        disabled=disabled,
+        help=f"Maksimal {MAX_FAVORITES} favorit" if at_max else None,
+    ):
+        if is_fav:
+            _remove_favorite(hotel)
+        else:
+            _add_favorite(hotel)
+        st.rerun()
+
+    if is_fav:
+        st.markdown(
+            '<span class="favorite-badge">⭐ Favorit</span>',
+            unsafe_allow_html=True,
+        )
+
+
+def render_favorites_comparison(favorites: List[Dict]):
+    """Render a side-by-side comparison table of favorited hotels (max 4)."""
+    if not favorites:
+        return
+
+    display = favorites[:4]
+
+    # Collect prices for best-price highlighting
+    prices = []
+    for h in display:
+        p = h.get('price_per_night', 0)
+        if not p:
+            # Try demo format
+            price_dict = h.get('prices', {})
+            if price_dict:
+                vals = [_extract_price_number(v) for v in price_dict.values()]
+                p = min(vals) if vals else 0
+        prices.append(float(p) if p else 0)
+
+    best_price = min(prices) if prices and any(p > 0 for p in prices) else None
+
+    # Build table rows
+    # Row 1: Name
+    # Row 2: Stars
+    # Row 3: Price/night
+    # Row 4: Amenities (truncated)
+    # Row 5: Source/vendor
+    header_cells = "".join(
+        f'<th>{(h.get("hotel_name") or h.get("name", "Hotel"))}</th>'
+        for h in display
+    )
+
+    # Stars row
+    star_cells = "".join(
+        f'<td>{"⭐" * (h.get("stars", 3))}</td>' for h in display
+    )
+
+    # Price row
+    price_cells = []
+    for i, h in enumerate(display):
+        p = prices[i]
+        currency = h.get('currency', 'SAR')
+        css_class = ' class="best-price"' if (best_price and p > 0 and p == best_price) else ''
+        if p > 0:
+            price_cells.append(f'<td{css_class}>{currency} {p:,.0f}</td>')
+        else:
+            price_cells.append('<td>-</td>')
+    price_row = "".join(price_cells)
+
+    # Amenities row
+    amenity_cells = []
+    for h in display:
+        text = _get_amenities_text(h)
+        if text and len(text) > 60:
+            text = text[:57] + "..."
+        amenity_cells.append(f'<td>{text or "-"}</td>')
+    amenity_row = "".join(amenity_cells)
+
+    # Source row
+    source_cells = []
+    for h in display:
+        vendor = h.get('vendor_name', '')
+        if not vendor:
+            price_dict = h.get('prices', {})
+            vendor = ", ".join(price_dict.keys()) if price_dict else "-"
+        source_cells.append(f'<td>{vendor}</td>')
+    source_row = "".join(source_cells)
+
+    table_html = f"""
+    <table class="favorites-compare-table" role="table"
+           aria-label="Perbandingan hotel favorit">
+        <thead>
+            <tr><th>Properti</th>{header_cells}</tr>
+        </thead>
+        <tbody>
+            <tr><td><strong>Bintang</strong></td>{star_cells}</tr>
+            <tr><td><strong>Harga/malam</strong></td>{price_row}</tr>
+            <tr><td><strong>Fasilitas</strong></td>{amenity_row}</tr>
+            <tr><td><strong>Sumber</strong></td>{source_row}</tr>
+        </tbody>
+    </table>
+    """
+
+    st.markdown(table_html, unsafe_allow_html=True)
+
+    if best_price and best_price > 0:
+        st.markdown(
+            f'<div style="color:#66bb6a;font-size:0.8rem;margin-top:0.3rem;">'
+            f'<span aria-hidden="true">✅ </span>Harga terbaik ditandai hijau</div>',
+            unsafe_allow_html=True,
+        )
+
+
+def render_favorites_section():
+    """Render the favorites sidebar/section showing saved hotels."""
+    _init_favorites()
+    favorites = st.session_state.hotel_favorites
+
+    st.markdown("""
+        <div class="favorites-section">
+            <h3><span aria-hidden="true">⭐ </span>Hotel Favorit</h3>
+        </div>
+    """, unsafe_allow_html=True)
+
+    if not favorites:
+        st.markdown("""
+            <div class="favorites-section">
+                <div class="fav-empty">
+                    Belum ada hotel favorit. Klik ☆ pada hotel untuk menyimpan.
+                </div>
+            </div>
+        """, unsafe_allow_html=True)
+        return
+
+    st.caption(f"{len(favorites)}/{MAX_FAVORITES} hotel tersimpan")
+
+    for i, fav in enumerate(favorites):
+        name = fav.get('hotel_name') or fav.get('name', 'Hotel')
+        stars = fav.get('stars', 3)
+        price = fav.get('price_per_night', 0)
+        currency = fav.get('currency', 'SAR')
+        city = fav.get('city', '')
+
+        # For demo hotels, extract lowest price
+        if not price and fav.get('prices'):
+            vals = [_extract_price_number(v) for v in fav['prices'].values()]
+            price = min(vals) if vals else 0
+
+        price_str = f"{currency} {price:,.0f}" if price else "-"
+        star_str = "⭐" * stars
+
+        st.markdown(f"""
+            <div class="favorites-section">
+                <div class="fav-card">
+                    <div class="fav-info">
+                        <div class="fav-name">{name}</div>
+                        <div class="fav-meta">{star_str} {(" &bull; " + city) if city else ""}</div>
+                    </div>
+                    <div class="fav-price">{price_str}</div>
+                </div>
+            </div>
+        """, unsafe_allow_html=True)
+
+        if st.button("🗑️ Hapus dari Favorit", key=f"fav_remove_{i}_{name}"):
+            _remove_favorite(fav)
+            st.rerun()
+
+    st.markdown("---")
+
+    # Compare button (need at least 2 favorites)
+    if len(favorites) >= 2:
+        if st.button(
+            "📊 Bandingkan Favorit",
+            key="compare_favorites_btn",
+            type="primary",
+            use_container_width=True,
+        ):
+            st.session_state['show_favorites_comparison'] = True
+            st.rerun()
+
+        if st.session_state.get('show_favorites_comparison'):
+            st.markdown("#### Perbandingan Hotel Favorit")
+            if len(favorites) > 4:
+                st.caption("Menampilkan 4 hotel pertama")
+            render_favorites_comparison(favorites)
+
+            if st.button("Tutup Perbandingan", key="close_fav_compare"):
+                st.session_state['show_favorites_comparison'] = False
+                st.rerun()
+    else:
+        st.caption("Tambahkan minimal 2 hotel favorit untuk membandingkan")
 
 
 # =============================================================================
@@ -539,6 +963,10 @@ def render_hotel_card(hotel: Dict, nights: int = 1, active_filters: List[str] = 
         if hotel.get('vendor_name'):
             st.success(f"✅ Harga terbaik dari **{hotel.get('vendor_name')}**")
 
+        # Favorite toggle
+        hotel_name = hotel.get('hotel_name', 'Unknown Hotel')
+        render_favorite_toggle(hotel, key_suffix=f"card_{hotel_name}")
+
 
 def render_hotel_list(result: Dict, active_filters: List[str] = None):
     """Render list of hotels with optional amenity filtering/reordering."""
@@ -713,8 +1141,12 @@ def render_hotel_compare_page():
 
     inject_css(HERO_CSS, CARD_CSS, AI_CARD_CSS, SKELETON_CSS)
 
-    # Inject amenity filter CSS
+    # Inject amenity filter CSS and favorites CSS
     st.markdown(AMENITY_FILTER_CSS, unsafe_allow_html=True)
+    st.markdown(FAVORITES_CSS, unsafe_allow_html=True)
+
+    # Initialize favorites in session state
+    _init_favorites()
 
     # Page header
     st.markdown("""
@@ -738,6 +1170,10 @@ def render_hotel_compare_page():
         # Amenity filter section (below search form)
         st.markdown("---")
         active_filters = render_amenity_filters()
+
+        # Favorites section (below amenity filters)
+        st.markdown("---")
+        render_favorites_section()
 
     with col2:
         # Show results or placeholder
@@ -858,6 +1294,9 @@ def render_hotel_compare_page():
                         # Amenity match badge for demo hotels
                         if active_filters:
                             render_amenity_match_badge(h, active_filters)
+
+                        # Favorite toggle for demo hotels
+                        render_favorite_toggle(h, key_suffix=f"demo_{h['name']}")
             else:
                 render_skeleton("cards", count=3)
                 st.caption("Pilih kota dan tanggal untuk melihat harga hotel")
@@ -893,4 +1332,4 @@ def render_hotel_compare_page():
 # EXPORT
 # =============================================================================
 
-__all__ = ['render_hotel_compare_page']
+__all__ = ['render_hotel_compare_page', 'render_favorites_section', 'render_favorites_comparison']

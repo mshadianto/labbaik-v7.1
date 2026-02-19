@@ -483,6 +483,16 @@ except ImportError:
     HAS_TRACKING_SERVICE = False
     def track_page(page_name): pass
 
+# User Settings Page
+try:
+    from ui.pages.settings_page import render_settings_page
+    HAS_SETTINGS = True
+except ImportError:
+    HAS_SETTINGS = False
+    def render_settings_page():
+        st.markdown("# ⚙️ Pengaturan")
+        st.info("Fitur pengaturan sedang dalam pengembangan.")
+
 
 # =============================================================================
 # SESSION STATE INITIALIZATION
@@ -518,6 +528,15 @@ def init_session_state():
         "level": 1,
         "achievements": [],
         "daily_challenges_completed": [],
+        "xp_log": [],  # List of {"amount": int, "reason": str, "timestamp": str}
+        "daily_streak": 0,
+        "last_active_date": None,
+
+        # User Preferences (Settings)
+        "pref_notif_email": True,
+        "pref_notif_whatsapp": False,
+        "pref_notif_inapp": True,
+        "pref_display_compact": False,
         
         # Theme
         "theme": "dark",
@@ -598,8 +617,38 @@ def get_level_title(level: int) -> str:
 
 
 def add_xp(amount: int, reason: str = ""):
-    """Add XP and check for level up."""
+    """Add XP and check for level up. Logs activity to xp_log."""
     st.session_state.xp = st.session_state.get("xp", 0) + amount
+
+    # Log the XP activity
+    if "xp_log" not in st.session_state:
+        st.session_state.xp_log = []
+    st.session_state.xp_log.append({
+        "amount": amount,
+        "reason": reason or "Aktivitas",
+        "timestamp": datetime.now().isoformat(),
+    })
+    # Keep only last 20 entries to avoid unbounded growth
+    if len(st.session_state.xp_log) > 20:
+        st.session_state.xp_log = st.session_state.xp_log[-20:]
+
+    # Track daily streak
+    today_str = datetime.now().strftime("%Y-%m-%d")
+    last_active = st.session_state.get("last_active_date")
+    if last_active != today_str:
+        if last_active:
+            try:
+                last_dt = datetime.strptime(last_active, "%Y-%m-%d")
+                diff = (datetime.now() - last_dt).days
+                if diff == 1:
+                    st.session_state.daily_streak = st.session_state.get("daily_streak", 0) + 1
+                elif diff > 1:
+                    st.session_state.daily_streak = 1
+            except (ValueError, TypeError):
+                st.session_state.daily_streak = 1
+        else:
+            st.session_state.daily_streak = 1
+        st.session_state.last_active_date = today_str
 
     # Check level up (loop to handle multiple level-ups at once)
     current_level = st.session_state.get("level", 1)
@@ -749,6 +798,199 @@ def render_page_feedback():
         st.rerun()
 
     st.markdown("</div>", unsafe_allow_html=True)
+
+
+# =============================================================================
+# GAMIFICATION SIDEBAR
+# =============================================================================
+
+GAMIFICATION_SIDEBAR_CSS = """
+<style>
+.gamification-sidebar {
+    background: linear-gradient(145deg, #1a1a2e 0%, #16213e 100%);
+    border: 1px solid rgba(212, 175, 55, 0.3);
+    border-radius: 12px;
+    padding: 0.75rem;
+    margin-bottom: 0.5rem;
+}
+.gamification-sidebar .gs-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 0.5rem;
+}
+.gamification-sidebar .gs-header .gs-title {
+    color: #d4af37;
+    font-size: 0.8rem;
+    font-weight: bold;
+}
+.level-badge {
+    display: inline-block;
+    padding: 0.1rem 0.5rem;
+    border-radius: 10px;
+    font-size: 0.65rem;
+    font-weight: bold;
+    color: #000;
+}
+.level-badge.tier-0 { background: #9ca3af; }
+.level-badge.tier-1 { background: #60a5fa; }
+.level-badge.tier-2 { background: #34d399; }
+.level-badge.tier-3 { background: #f59e0b; }
+.level-badge.tier-4 { background: #f472b6; }
+.level-badge.tier-5 { background: linear-gradient(135deg, #d4af37, #f5d77a); }
+.xp-progress-bar {
+    width: 100%;
+    height: 6px;
+    background: #1e293b;
+    border-radius: 3px;
+    overflow: hidden;
+    margin: 0.35rem 0;
+}
+.xp-progress-bar .xp-fill {
+    height: 100%;
+    background: linear-gradient(90deg, #d4af37, #f5d77a);
+    border-radius: 3px;
+    transition: width 0.4s ease;
+}
+.xp-stats-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 0.25rem;
+}
+.xp-stats-row .xp-label {
+    color: #b0b0b0;
+    font-size: 0.7rem;
+}
+.xp-stats-row .xp-value {
+    color: #d4af37;
+    font-size: 0.7rem;
+    font-weight: bold;
+}
+.xp-activity-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.2rem 0;
+    border-bottom: 1px solid rgba(255,255,255,0.05);
+}
+.xp-activity-item:last-child {
+    border-bottom: none;
+}
+.xp-activity-item .act-reason {
+    color: #b0b0b0;
+    font-size: 0.65rem;
+    max-width: 70%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+.xp-activity-item .act-amount {
+    color: #4ade80;
+    font-size: 0.65rem;
+    font-weight: bold;
+}
+.streak-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+    background: rgba(249, 115, 22, 0.15);
+    border: 1px solid rgba(249, 115, 22, 0.3);
+    border-radius: 8px;
+    padding: 0.15rem 0.4rem;
+    font-size: 0.65rem;
+    color: #fb923c;
+    font-weight: bold;
+}
+</style>
+"""
+
+
+def _get_sidebar_level_title(level: int) -> str:
+    """Get gamification level title for sidebar display."""
+    titles = {
+        0: "Pemula",
+        1: "Penjelajah",
+        2: "Perencana",
+        3: "Ahli",
+        4: "Master",
+    }
+    if level >= 5:
+        return "Legend"
+    return titles.get(level, "Pemula")
+
+
+def render_gamification_sidebar():
+    """Render compact gamification summary in the sidebar."""
+    # Inject CSS once per session
+    if not st.session_state.get("_gamification_css_injected"):
+        st.markdown(GAMIFICATION_SIDEBAR_CSS, unsafe_allow_html=True)
+        st.session_state._gamification_css_injected = True
+
+    xp = st.session_state.get("xp", 0)
+    # Sidebar level uses XP // 100 scheme (different from main level system)
+    sidebar_level = xp // 100 if xp >= 0 else 0
+    # Use the main level for progress display
+    level = st.session_state.get("level", 1)
+    xp_for_next = level * 100
+    progress_pct = min((xp % 100) / 100.0, 1.0) if xp_for_next > 0 else 0
+    progress_width = int(progress_pct * 100)
+
+    title = _get_sidebar_level_title(sidebar_level)
+    tier_class = f"tier-{min(sidebar_level, 5)}"
+
+    streak = st.session_state.get("daily_streak", 0)
+
+    # Build recent activities HTML (last 3)
+    xp_log = st.session_state.get("xp_log", [])
+    recent = xp_log[-3:] if xp_log else []
+    recent.reverse()  # Most recent first
+
+    activities_html = ""
+    if recent:
+        for entry in recent:
+            reason = entry.get("reason", "Aktivitas")
+            amount = entry.get("amount", 0)
+            activities_html += f"""
+            <div class="xp-activity-item">
+                <span class="act-reason">{reason}</span>
+                <span class="act-amount">+{amount}</span>
+            </div>"""
+    else:
+        activities_html = '<div style="color:#8e9fb3;font-size:0.65rem;text-align:center;padding:0.2rem 0;">Belum ada aktivitas</div>'
+
+    # Streak HTML
+    streak_html = ""
+    if streak > 0:
+        streak_html = f'<span class="streak-badge"><span aria-hidden="true">&#x1F525;</span> {streak} hari</span>'
+
+    # Achievements
+    achievements = st.session_state.get("achievements", [])
+    badges_html = ""
+    if achievements:
+        badges_html = f'<div style="font-size:0.75rem;margin-top:0.25rem;">{" ".join(achievements[:5])}</div>'
+
+    st.markdown(f"""
+    <div class="gamification-sidebar">
+        <div class="gs-header">
+            <span class="gs-title"><span aria-hidden="true">&#x1F3C6;</span> Progress Anda</span>
+            <span class="level-badge {tier_class}">{title}</span>
+        </div>
+        <div class="xp-stats-row">
+            <span class="xp-label">Level {level}</span>
+            <span class="xp-value">{xp}/{xp_for_next} XP</span>
+        </div>
+        <div class="xp-progress-bar">
+            <div class="xp-fill" style="width:{progress_width}%"></div>
+        </div>
+        <div class="xp-stats-row" style="margin-top:0.35rem;">
+            <span class="xp-label">Aktivitas Terkini</span>
+            {streak_html}
+        </div>
+        {activities_html}
+        {badges_html}
+    </div>
+    """, unsafe_allow_html=True)
 
 
 # =============================================================================
@@ -1011,21 +1253,15 @@ def render_sidebar():
 
         st.markdown("---")
 
-        # Gamification Stats
-        st.markdown("### 🏆 Progress Anda")
+        # Gamification Dashboard (compact sidebar card)
+        render_gamification_sidebar()
 
-        level = st.session_state.get("level", 1)
-        xp = st.session_state.get("xp", 0)
-        xp_for_next = level * 100
-
-        st.markdown(f"**Level {level}** - {get_level_title(level)}")
-        st.progress(min(xp / xp_for_next, 1.0))
-        st.caption(f"{xp}/{xp_for_next} XP")
-
-        achievements = st.session_state.get("achievements", [])
-        if achievements:
-            badges = " ".join(achievements[:5])
-            st.caption(f"🎖️ {badges}")
+        # Settings quick access
+        is_settings = st.session_state.get("current_page") == "settings"
+        if st.button("⚙️ Pengaturan", key="nav_settings", use_container_width=True,
+                     type="primary" if is_settings else "secondary"):
+            st.session_state.current_page = "settings"
+            st.rerun()
 
         st.markdown("---")
 
@@ -1117,6 +1353,9 @@ def render_page():
 
         # v7.6 Unified Price Hub
         "price_hub": render_price_hub_page,
+
+        # User Settings
+        "settings": render_settings_page,
 
         # Hasan.VC Demo Features
         "readiness": render_readiness_checker_page,

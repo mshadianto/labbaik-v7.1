@@ -13,7 +13,7 @@ from datetime import datetime, date, timedelta
 from typing import Dict, List
 
 from services.ai.helpers import ai_complete, add_xp_safe
-from ui.components.shared_styles import inject_css, HERO_CSS, CARD_CSS, AI_CARD_CSS, PROGRESS_CSS
+from ui.components.shared_styles import inject_css, HERO_CSS, CARD_CSS, AI_CARD_CSS, PROGRESS_CSS, SKELETON_CSS, render_skeleton
 
 # =============================================================================
 # CONSTANTS & DOCUMENT DATABASE
@@ -1302,8 +1302,15 @@ def render_document_checklist():
 
         # AI Tips display (expanded on demand)
         if st.session_state.get(f"show_tips_{doc_id}", False):
+            skeleton_placeholder = st.empty()
+            with skeleton_placeholder:
+                st.markdown(SKELETON_CSS, unsafe_allow_html=True)
+                render_skeleton(skeleton_type="text")
+
             with st.spinner(f"Memuat tips untuk {doc['name']}..."):
                 tips = get_ai_tips(doc["name"])
+
+            skeleton_placeholder.empty()
 
             if tips:
                 st.markdown(f"""

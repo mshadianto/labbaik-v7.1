@@ -15,7 +15,7 @@ import streamlit as st
 from datetime import datetime, timedelta
 from typing import Dict, List, Optional
 from services.ai.helpers import add_xp_safe
-from ui.components.shared_styles import inject_css, HERO_CSS, CARD_CSS, AI_CARD_CSS, BADGE_CSS
+from ui.components.shared_styles import inject_css, HERO_CSS, CARD_CSS, AI_CARD_CSS, BADGE_CSS, EMPTY_STATE_CSS
 
 
 # =============================================================================
@@ -469,13 +469,24 @@ def render_group_chat():
 
     if not joined_groups:
         st.markdown(
-            '<div class="chat-empty-state">'
-            '<div class="empty-icon" aria-hidden="true">💬</div>'
-            '<div class="empty-text">Anda belum bergabung dengan grup manapun.<br>'
-            'Bergabunglah dengan grup di tab Cari Grup untuk mulai chat!</div>'
+            '<div class="empty-state-card" style="background:linear-gradient(145deg,#1a1a2e 0%,#1e293b 100%);'
+            'border-radius:16px;padding:2.5rem 1.5rem;text-align:center;border:1px solid #334155;margin:1rem 0;">'
+            '<div class="empty-state-icon" style="font-size:3rem;margin-bottom:0.75rem;opacity:0.7;" '
+            'aria-hidden="true">\U0001f465</div>'
+            '<h3 style="color:#e2e8f0;margin:0 0 0.5rem 0;font-size:1.1rem;">'
+            'Belum bergabung dengan grup</h3>'
+            '<p style="color:#8e9fb3;font-size:0.9rem;margin:0;">'
+            'Cari grup umrah yang cocok!</p>'
             '</div>',
             unsafe_allow_html=True,
         )
+        if st.button(
+            "\U0001f50d Cari Grup Sekarang",
+            key="btn_empty_find_group",
+            use_container_width=True,
+            type="primary",
+        ):
+            st.info("Gunakan tab 'Cari Grup' untuk menemukan grup umrah yang sesuai.")
         return
 
     # Group selector if user is in multiple groups
@@ -741,7 +752,7 @@ def render_group_matching_page():
     _init_group_matching_state()
 
     # Inject shared + page-specific CSS
-    inject_css(HERO_CSS, CARD_CSS, AI_CARD_CSS, BADGE_CSS, GROUP_CHAT_CSS)
+    inject_css(HERO_CSS, CARD_CSS, AI_CARD_CSS, BADGE_CSS, EMPTY_STATE_CSS, GROUP_CHAT_CSS)
 
     # Hero banner
     hero_html = (

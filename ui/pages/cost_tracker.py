@@ -321,6 +321,82 @@ TRACKER_CSS = """
     font-size: 1.6rem;
     font-weight: 800;
 }
+
+/* --- Budget Alert Banners --- */
+.budget-alert {
+    position: relative;
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 1rem 2.5rem 1rem 1.25rem;
+    border-radius: 12px;
+    margin-bottom: 0.75rem;
+    font-size: 0.9rem;
+    font-weight: 500;
+    line-height: 1.4;
+    animation: slideInAlert 0.3s ease-out;
+}
+
+@keyframes slideInAlert {
+    from { opacity: 0; transform: translateY(-8px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .budget-alert { animation: none; }
+}
+
+.budget-alert .alert-icon {
+    font-size: 1.3rem;
+    flex-shrink: 0;
+}
+
+.budget-alert .alert-text {
+    flex: 1;
+}
+
+.budget-alert .alert-close {
+    position: absolute;
+    top: 0.5rem;
+    right: 0.75rem;
+    background: none;
+    border: none;
+    color: inherit;
+    opacity: 0.6;
+    cursor: pointer;
+    font-size: 1.1rem;
+    padding: 0.25rem;
+    line-height: 1;
+    min-height: 44px;
+    min-width: 44px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.budget-alert .alert-close:hover {
+    opacity: 1;
+}
+
+.budget-alert .alert-close:focus-visible {
+    outline: 2px solid #d4af37;
+    outline-offset: 2px;
+    border-radius: 4px;
+}
+
+.budget-alert.alert-warning {
+    background: linear-gradient(135deg, #2d1f0a 0%, #3d2b0f 100%);
+    border: 1px solid #f59e0b;
+    border-left: 4px solid #f59e0b;
+    color: #fbbf24;
+}
+
+.budget-alert.alert-danger {
+    background: linear-gradient(135deg, #2d0a0a 0%, #4d1a1a 100%);
+    border: 1px solid #ef4444;
+    border-left: 4px solid #ef4444;
+    color: #f87171;
+}
 """
 
 # =============================================================================
@@ -334,6 +410,7 @@ def init_cost_tracker_state():
         "tracker_expenses": [],
         "tracker_budget_set": False,
         "tracker_currency": "IDR",
+        "dismissed_budget_alerts": set(),
     }
     for key, value in defaults.items():
         if key not in st.session_state:
@@ -550,6 +627,77 @@ def render_budget_setup():
     with col2:
         if st.button("\U0001f504 Reset Default", use_container_width=True):
             st.session_state.tracker_budget = dict(DEFAULT_BUDGETS)
+            st.rerun()
+
+
+# =============================================================================
+# UI: BUDGET ALERTS
+# =============================================================================
+
+def render_budget_alerts():
+    """Render budget alert banners for categories approaching or exceeding budget.
+
+    - > 80% spent  => orange warning
+    - > 100% spent => red danger alert
+    Alerts are dismissible via session state tracking.
+    """
+    budget = st.session_state.tracker_budget
+    if not budget:
+        return
+
+    dismissed = st.session_state.get("dismissed_budget_alerts", set())
+    alerts = []
+
+    for cat_id, cat_info in EXPENSE_CATEGORIES.items():
+        cat_budget = budget.get(cat_id, 0)
+        if cat_budget <= 0:
+            continue
+
+        cat_spent = get_spent_by_category(cat_id)
+        pct = cat_spent / cat_budget * 100
+
+        if pct > 100:
+            alert_key = f"danger_{cat_id}"
+            if alert_key not in dismissed:
+                alerts.append({
+                    "key": alert_key,
+                    "type": "danger",
+                    "icon": "\U0001f6a8",
+                    "message": (
+                        f"Pengeluaran {cat_info['label']} sudah {pct:.0f}% dari budget! "
+                        f"Melebihi budget sebesar {format_idr(cat_spent - cat_budget)}."
+                    ),
+                })
+        elif pct > 80:
+            alert_key = f"warning_{cat_id}"
+            if alert_key not in dismissed:
+                alerts.append({
+                    "key": alert_key,
+                    "type": "warning",
+                    "icon": "\u26a0\ufe0f",
+                    "message": (
+                        f"Pengeluaran {cat_info['label']} sudah {pct:.0f}% dari budget!"
+                    ),
+                })
+
+    if not alerts:
+        return
+
+    for alert in alerts:
+        st.markdown(
+            f'<div class="budget-alert alert-{alert["type"]}">'
+            f'<span class="alert-icon" aria-hidden="true">{alert["icon"]}</span>'
+            f'<span class="alert-text">{alert["message"]}</span>'
+            f'</div>',
+            unsafe_allow_html=True,
+        )
+        if st.button(
+            "\u2715 Dismiss",
+            key=f"dismiss_{alert['key']}",
+            help="Tutup peringatan ini",
+        ):
+            dismissed.add(alert["key"])
+            st.session_state.dismissed_budget_alerts = dismissed
             st.rerun()
 
 
@@ -887,12 +1035,19 @@ def render_expense_list():
 
     if not expenses:
         st.markdown("""
-        <div class="empty-state">
-            <div class="icon">\U0001f4dd</div>
-            <div>Belum ada pengeluaran yang dicatat.</div>
-            <div style="margin-top:0.5rem;">Gunakan form di atas untuk menambah pengeluaran pertama Anda.</div>
+        <div class="empty-state-card" style="background:linear-gradient(145deg,#1a1a2e 0%,#1e293b 100%);border-radius:16px;padding:2.5rem 1.5rem;text-align:center;border:1px solid #334155;margin:1rem 0;">
+            <div class="empty-state-icon" style="font-size:3rem;margin-bottom:0.75rem;opacity:0.7;" aria-hidden="true">\U0001f4dd</div>
+            <h3 style="color:#e2e8f0;margin:0 0 0.5rem 0;font-size:1.1rem;">Belum ada pengeluaran</h3>
+            <p style="color:#8e9fb3;font-size:0.9rem;margin:0;">Tambahkan pengeluaran pertama Anda!</p>
         </div>
         """, unsafe_allow_html=True)
+        if st.button(
+            "\u2795 Tambah Pengeluaran Sekarang",
+            key="btn_empty_add_expense",
+            use_container_width=True,
+            type="primary",
+        ):
+            st.info("Gunakan tab 'Tambah Pengeluaran' untuk mencatat pengeluaran.")
         return
 
     # Sort by date descending
@@ -1418,6 +1573,9 @@ def render_cost_tracker_page():
         return
 
     # --- BUDGET SET: Show full dashboard ---
+
+    # Budget alerts (warning/danger banners)
+    render_budget_alerts()
 
     # Dashboard metrics and category breakdown
     render_dashboard()

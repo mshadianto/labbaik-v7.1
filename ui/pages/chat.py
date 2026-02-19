@@ -11,6 +11,8 @@ from datetime import datetime
 from typing import Dict, List, Any, Optional
 import random
 import os
+import json
+import re
 
 # Shared styles
 from ui.components.shared_styles import inject_css, HERO_CSS, CARD_CSS, SKELETON_CSS, render_skeleton
@@ -37,6 +39,17 @@ try:
     HAS_LIVE_PRICES = True
 except ImportError:
     HAS_LIVE_PRICES = False
+
+# Arabic phrases knowledge base for flashcard widget
+try:
+    from data.knowledge.arabic_phrases import (
+        get_all_phrases,
+        get_phrases_by_category,
+        get_phrase_categories,
+    )
+    HAS_ARABIC = True
+except ImportError:
+    HAS_ARABIC = False
 
 # Available AI providers
 AI_PROVIDERS = {
@@ -365,6 +378,289 @@ CHAT_PAGE_CSS = """
     }
 }
 """
+
+ARABIC_PHRASE_CSS = """
+/* Arabic Phrase Flashcard Widget */
+.arabic-phrase-card {
+    background: linear-gradient(135deg, #0d1b2a 0%, #1b2a4a 100%);
+    border: 1px solid #d4af37;
+    border-radius: 14px;
+    padding: 1.3rem 1.2rem;
+    margin-bottom: 0.8rem;
+    text-align: center;
+}
+
+.arabic-phrase-card .phrase-category-badge {
+    display: inline-block;
+    background: rgba(212, 175, 55, 0.15);
+    color: #d4af37;
+    font-size: 0.7rem;
+    font-weight: 600;
+    padding: 2px 10px;
+    border-radius: 10px;
+    margin-bottom: 0.6rem;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.arabic-text {
+    direction: rtl;
+    font-family: 'Amiri', serif;
+    font-size: 1.55rem;
+    font-weight: 700;
+    color: #f0e6d2;
+    line-height: 2;
+    margin: 0.6rem 0;
+}
+
+.transliteration {
+    font-style: italic;
+    color: #b8c5d4;
+    font-size: 0.92rem;
+    margin-bottom: 0.3rem;
+}
+
+.translation {
+    color: #e0e0e0;
+    font-size: 0.88rem;
+    line-height: 1.45;
+}
+
+.phrase-context {
+    color: #8e9fb3;
+    font-size: 0.78rem;
+    margin-top: 0.5rem;
+    border-top: 1px solid rgba(212, 175, 55, 0.2);
+    padding-top: 0.5rem;
+}
+
+.phrase-counter {
+    color: #8e9fb3;
+    font-size: 0.72rem;
+    margin-top: 0.4rem;
+}
+
+.flashcard-reveal {
+    display: inline-block;
+    background: transparent;
+    border: 1px solid #d4af37;
+    border-radius: 8px;
+    color: #d4af37;
+    font-size: 0.82rem;
+    font-weight: 600;
+    padding: 0.4rem 1.2rem;
+    cursor: pointer;
+    margin-top: 0.5rem;
+    transition: background 0.2s, color 0.2s;
+}
+
+.flashcard-reveal:hover {
+    background: #d4af37;
+    color: #000;
+}
+
+@media (max-width: 768px) {
+    .arabic-text {
+        font-size: 1.35rem;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .flashcard-reveal {
+        transition: none;
+    }
+}
+"""
+
+CHAT_TOOLS_CSS = """
+/* Chat tools sidebar section */
+.chat-tools-section {
+    background: linear-gradient(135deg, #0d1b2a 0%, #1b2a4a 100%);
+    border: 1px solid #2a2a4a;
+    border-radius: 10px;
+    padding: 0.8rem;
+    margin-bottom: 0.6rem;
+}
+
+.chat-tools-section h4 {
+    color: #d4af37;
+    font-size: 0.9rem;
+    margin-bottom: 0.5rem;
+}
+
+/* Chat search result with highlighted match */
+.chat-search-result {
+    background: #0e1525;
+    border: 1px solid #2a2a4a;
+    border-radius: 8px;
+    padding: 0.6rem 0.8rem;
+    margin-bottom: 0.4rem;
+    font-size: 0.82rem;
+    line-height: 1.4;
+}
+
+.chat-search-result .search-role {
+    font-weight: 700;
+    color: #d4af37;
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    margin-bottom: 0.2rem;
+}
+
+.chat-search-result .search-time {
+    color: #8e9fb3;
+    font-size: 0.7rem;
+    margin-bottom: 0.3rem;
+}
+
+.chat-search-result .search-content {
+    color: #e0e0e0;
+}
+
+.chat-search-result mark {
+    background: rgba(212, 175, 55, 0.35);
+    color: #fff;
+    padding: 0 2px;
+    border-radius: 2px;
+}
+
+/* Compact stat display card */
+.chat-stats-card {
+    background: #0e1525;
+    border: 1px solid #2a2a4a;
+    border-radius: 8px;
+    padding: 0.5rem 0.7rem;
+    text-align: center;
+}
+
+.chat-stats-card .stat-value {
+    color: #d4af37;
+    font-size: 1.1rem;
+    font-weight: 700;
+    line-height: 1.2;
+}
+
+.chat-stats-card .stat-label {
+    color: #b0b0b0;
+    font-size: 0.7rem;
+    margin-top: 0.1rem;
+}
+"""
+
+
+# =============================================================================
+# CHAT EXPORT & SEARCH HELPERS
+# =============================================================================
+
+def _export_chat_txt(messages: List[Dict[str, Any]]) -> str:
+    """Export chat messages as formatted plain text.
+
+    Args:
+        messages: List of chat message dicts with role, content, timestamp.
+
+    Returns:
+        Formatted TXT string with header, messages, and footer.
+    """
+    lines = []
+    lines.append("=" * 50)
+    lines.append("Riwayat Chat LABBAIK Smart Planner")
+    lines.append("=" * 50)
+    lines.append("")
+
+    for msg in messages:
+        timestamp = msg.get("timestamp", "")
+        if timestamp:
+            try:
+                dt = datetime.fromisoformat(timestamp)
+                timestamp_str = dt.strftime("%Y-%m-%d %H:%M:%S")
+            except (ValueError, TypeError):
+                timestamp_str = str(timestamp)
+        else:
+            timestamp_str = "-"
+
+        role_label = "User" if msg["role"] == "user" else "LABBAIK AI"
+        content = msg.get("content", "")
+        lines.append(f"[{timestamp_str}] {role_label}: {content}")
+        lines.append("")
+
+    lines.append("-" * 50)
+    export_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    lines.append(f"Diekspor pada: {export_time}")
+    lines.append("LABBAIK Smart Planner - https://app.labbaik.io")
+
+    return "\n".join(lines)
+
+
+def _export_chat_json(messages: List[Dict[str, Any]]) -> str:
+    """Export chat messages as structured JSON.
+
+    Args:
+        messages: List of chat message dicts with role, content, timestamp.
+
+    Returns:
+        JSON string with metadata and messages array.
+    """
+    export_data = {
+        "export_date": datetime.now().isoformat(),
+        "platform": "LABBAIK Smart Planner",
+        "url": "https://app.labbaik.io",
+        "total_messages": len(messages),
+        "messages": [
+            {
+                "role": msg.get("role", "unknown"),
+                "content": msg.get("content", ""),
+                "timestamp": msg.get("timestamp", ""),
+            }
+            for msg in messages
+        ],
+    }
+    return json.dumps(export_data, ensure_ascii=False, indent=2)
+
+
+def _search_chat_messages(messages: List[Dict[str, Any]], query: str) -> List[Dict[str, Any]]:
+    """Search chat messages by keyword (case-insensitive).
+
+    Args:
+        messages: List of chat message dicts.
+        query: Search keyword.
+
+    Returns:
+        List of matching message dicts with an added 'highlighted' key
+        containing the content with matched text wrapped in <mark> tags.
+    """
+    if not query or not query.strip():
+        return []
+
+    query_lower = query.strip().lower()
+    results = []
+
+    for msg in messages:
+        content = msg.get("content", "")
+        if query_lower in content.lower():
+            # Build highlighted version -- escape HTML first, then add <mark>
+            escaped_content = content.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
+            # Case-insensitive highlight using regex
+            pattern = re.compile(re.escape(query.strip()), re.IGNORECASE)
+            highlighted = pattern.sub(
+                lambda m: f"<mark>{m.group(0)}</mark>",
+                escaped_content,
+            )
+            # Truncate for display (show context around first match)
+            match_pos = content.lower().find(query_lower)
+            start = max(0, match_pos - 60)
+            end = min(len(highlighted), match_pos + len(query) + 120)
+            snippet = highlighted[start:end]
+            if start > 0:
+                snippet = "..." + snippet
+            if end < len(highlighted):
+                snippet = snippet + "..."
+
+            results.append({
+                **msg,
+                "highlighted": snippet,
+            })
+
+    return results
 
 
 # =============================================================================
@@ -703,6 +999,311 @@ def render_package_recommendations():
 # RENDER COMPONENTS
 # =============================================================================
 
+# =============================================================================
+# ARABIC PHRASE FLASHCARD WIDGET
+# =============================================================================
+
+# Category display labels (Indonesian)
+_CATEGORY_LABELS = {
+    "greeting": "Salam & Umum",
+    "ihram": "Ihram",
+    "tawaf": "Tawaf",
+    "sai": "Sa'i",
+    "tahallul": "Tahallul",
+    "mosque": "Masjid",
+    "practical": "Praktis",
+    "numbers": "Angka",
+}
+
+
+def _init_arabic_phrase_state():
+    """Initialise session-state keys for the Arabic phrase widget."""
+    if "arabic_phrase_index" not in st.session_state:
+        st.session_state.arabic_phrase_index = 0
+    if "arabic_phrases_viewed" not in st.session_state:
+        st.session_state.arabic_phrases_viewed = set()
+    if "arabic_phrase_xp_count" not in st.session_state:
+        st.session_state.arabic_phrase_xp_count = 0
+    if "arabic_phrase_category" not in st.session_state:
+        st.session_state.arabic_phrase_category = "all"
+    if "arabic_flashcard_revealed" not in st.session_state:
+        st.session_state.arabic_flashcard_revealed = False
+    if "arabic_flashcard_mode" not in st.session_state:
+        st.session_state.arabic_flashcard_mode = False
+
+
+def render_arabic_phrase_widget():
+    """Render the Arabic phrase / flashcard learning widget.
+
+    Shows a daily random phrase with Arabic text, transliteration,
+    Indonesian translation, category filter, and a flashcard mode.
+    Awards +3 XP per new phrase viewed (max 10 times per session).
+    """
+    if not HAS_ARABIC:
+        return
+
+    _init_arabic_phrase_state()
+
+    # --- Build phrase list based on selected category ---
+    selected_cat = st.session_state.arabic_phrase_category
+    if selected_cat == "all":
+        phrases = get_all_phrases()
+    else:
+        phrases = get_phrases_by_category(selected_cat)
+
+    if not phrases:
+        st.caption("Tidak ada frase untuk kategori ini.")
+        return
+
+    # Clamp index
+    idx = st.session_state.arabic_phrase_index % len(phrases)
+    phrase = phrases[idx]
+
+    # --- Track viewed phrases & award XP ---
+    if phrase.id not in st.session_state.arabic_phrases_viewed:
+        st.session_state.arabic_phrases_viewed.add(phrase.id)
+        if st.session_state.arabic_phrase_xp_count < 10:
+            add_xp_safe(3, "Frase Arab baru dipelajari")
+            st.session_state.arabic_phrase_xp_count += 1
+
+    # --- Category filter ---
+    categories = get_phrase_categories()
+    cat_options = ["all"] + categories
+    cat_labels = {c: _CATEGORY_LABELS.get(c, c.title()) for c in categories}
+    cat_labels["all"] = "Semua Kategori"
+
+    new_cat = st.selectbox(
+        "Kategori:",
+        options=cat_options,
+        index=cat_options.index(selected_cat) if selected_cat in cat_options else 0,
+        format_func=lambda x: cat_labels.get(x, x),
+        key="arabic_cat_select",
+        label_visibility="collapsed",
+    )
+    if new_cat != selected_cat:
+        st.session_state.arabic_phrase_category = new_cat
+        st.session_state.arabic_phrase_index = 0
+        st.session_state.arabic_flashcard_revealed = False
+        st.rerun()
+
+    # --- Flashcard mode toggle ---
+    flashcard_mode = st.toggle(
+        "Mode Flashcard",
+        value=st.session_state.arabic_flashcard_mode,
+        key="arabic_fc_toggle",
+        help="Tampilkan teks Arab dulu, ketuk untuk lihat terjemahan",
+    )
+    if flashcard_mode != st.session_state.arabic_flashcard_mode:
+        st.session_state.arabic_flashcard_mode = flashcard_mode
+        st.session_state.arabic_flashcard_revealed = False
+
+    # --- Build card HTML ---
+    cat_label = _CATEGORY_LABELS.get(phrase.category, phrase.category.title())
+
+    if flashcard_mode and not st.session_state.arabic_flashcard_revealed:
+        # Flashcard: show Arabic only
+        card_html = (
+            f'<div class="arabic-phrase-card">'
+            f'<div class="phrase-category-badge">{cat_label}</div>'
+            f'<div class="arabic-text">{phrase.arabic}</div>'
+            f'<div class="transliteration" style="color:#8e9fb3;">'
+            f'Ketuk tombol di bawah untuk melihat arti</div>'
+            f'</div>'
+        )
+        st.markdown(card_html, unsafe_allow_html=True)
+
+        if st.button("Tampilkan Arti", key="arabic_reveal_btn", use_container_width=True):
+            st.session_state.arabic_flashcard_revealed = True
+            st.rerun()
+    else:
+        # Full card (or revealed flashcard)
+        context_html = ""
+        if phrase.context:
+            context_html = f'<div class="phrase-context">{phrase.context}</div>'
+
+        card_html = (
+            f'<div class="arabic-phrase-card">'
+            f'<div class="phrase-category-badge">{cat_label}</div>'
+            f'<div class="arabic-text">{phrase.arabic}</div>'
+            f'<div class="transliteration">{phrase.transliteration}</div>'
+            f'<div class="translation">{phrase.meaning_id}</div>'
+            f'{context_html}'
+            f'</div>'
+        )
+        st.markdown(card_html, unsafe_allow_html=True)
+
+    # --- Counter ---
+    viewed_count = len(st.session_state.arabic_phrases_viewed)
+    st.markdown(
+        f'<div class="phrase-counter">'
+        f'Frase #{idx + 1}/{len(phrases)} &middot; '
+        f'{viewed_count} dipelajari sesi ini</div>',
+        unsafe_allow_html=True,
+    )
+
+    # --- Next phrase button ---
+    if st.button("Frase Berikutnya", key="arabic_next_btn", use_container_width=True):
+        st.session_state.arabic_phrase_index = (idx + 1) % len(phrases)
+        st.session_state.arabic_flashcard_revealed = False
+        st.rerun()
+
+
+# =============================================================================
+# RENDER COMPONENTS
+# =============================================================================
+
+def render_chat_tools():
+    """Render chat tools section in the sidebar.
+
+    Includes:
+    - Message search (Cari Pesan)
+    - Chat export in TXT and JSON formats
+    - Chat statistics (total messages, questions, session duration)
+    """
+    messages = st.session_state.get("chat_messages", [])
+
+    # --- Cari Pesan (Search) ---
+    st.markdown("## 🔍 Cari Pesan")
+
+    search_query = st.text_input(
+        "Kata kunci",
+        placeholder="Ketik untuk mencari...",
+        key="chat_search_query",
+        label_visibility="collapsed",
+    )
+
+    if search_query and search_query.strip():
+        results = _search_chat_messages(messages, search_query)
+        if results:
+            st.caption(f"{len(results)} hasil ditemukan")
+            for i, result in enumerate(results[:10]):
+                role_label = "User" if result["role"] == "user" else "LABBAIK AI"
+                timestamp = result.get("timestamp", "")
+                time_str = ""
+                if timestamp:
+                    try:
+                        dt = datetime.fromisoformat(timestamp)
+                        time_str = dt.strftime("%H:%M:%S")
+                    except (ValueError, TypeError):
+                        time_str = ""
+                result_html = (
+                    f'<div class="chat-search-result">'
+                    f'<div class="search-role">{role_label}</div>'
+                    f'<div class="search-time">{time_str}</div>'
+                    f'<div class="search-content">{result["highlighted"]}</div>'
+                    f'</div>'
+                )
+                st.markdown(result_html, unsafe_allow_html=True)
+            if len(results) > 10:
+                st.caption(f"... dan {len(results) - 10} hasil lainnya")
+        else:
+            st.caption("Tidak ada hasil ditemukan")
+
+    st.divider()
+
+    # --- Ekspor Riwayat Chat ---
+    st.markdown("## 📤 Ekspor Riwayat Chat")
+
+    if len(messages) > 0:
+        # Track whether export XP has been awarded this session
+        if "chat_export_xp_awarded" not in st.session_state:
+            st.session_state.chat_export_xp_awarded = False
+
+        # TXT download
+        txt_data = _export_chat_txt(messages)
+        txt_downloaded = st.download_button(
+            label="📄 Unduh TXT",
+            data=txt_data,
+            file_name=f"labbaik_chat_{datetime.now().strftime('%Y%m%d_%H%M%S')}.txt",
+            mime="text/plain",
+            use_container_width=True,
+            key="export_chat_txt",
+        )
+
+        # JSON download
+        json_data = _export_chat_json(messages)
+        json_downloaded = st.download_button(
+            label="📋 Unduh JSON",
+            data=json_data,
+            file_name=f"labbaik_chat_{datetime.now().strftime('%Y%m%d_%H%M%S')}.json",
+            mime="application/json",
+            use_container_width=True,
+            key="export_chat_json",
+        )
+
+        # Award XP on first export in this session
+        if (txt_downloaded or json_downloaded) and not st.session_state.chat_export_xp_awarded:
+            add_xp_safe(5, "Ekspor riwayat chat")
+            st.session_state.chat_export_xp_awarded = True
+    else:
+        st.caption("Belum ada pesan untuk diekspor")
+
+    st.divider()
+
+    # --- Statistik Chat ---
+    st.markdown("## 📊 Statistik Chat")
+
+    total_messages = len(messages)
+    total_questions = sum(1 for m in messages if m.get("role") == "user")
+    total_answers = sum(1 for m in messages if m.get("role") == "assistant")
+
+    # Calculate session duration from timestamps
+    session_duration_str = "-"
+    if len(messages) >= 2:
+        try:
+            first_ts = datetime.fromisoformat(messages[0].get("timestamp", ""))
+            last_ts = datetime.fromisoformat(messages[-1].get("timestamp", ""))
+            delta = last_ts - first_ts
+            total_seconds = int(delta.total_seconds())
+            if total_seconds < 60:
+                session_duration_str = f"{total_seconds} detik"
+            elif total_seconds < 3600:
+                minutes = total_seconds // 60
+                session_duration_str = f"{minutes} menit"
+            else:
+                hours = total_seconds // 3600
+                minutes = (total_seconds % 3600) // 60
+                session_duration_str = f"{hours} jam {minutes} menit"
+        except (ValueError, TypeError):
+            session_duration_str = "-"
+
+    stat_cols = st.columns(2)
+    with stat_cols[0]:
+        st.markdown(
+            '<div class="chat-stats-card">'
+            f'<div class="stat-value">{total_messages}</div>'
+            '<div class="stat-label">Total Pesan</div>'
+            '</div>',
+            unsafe_allow_html=True,
+        )
+    with stat_cols[1]:
+        st.markdown(
+            '<div class="chat-stats-card">'
+            f'<div class="stat-value">{total_questions}</div>'
+            '<div class="stat-label">Pertanyaan</div>'
+            '</div>',
+            unsafe_allow_html=True,
+        )
+
+    stat_cols2 = st.columns(2)
+    with stat_cols2[0]:
+        st.markdown(
+            '<div class="chat-stats-card">'
+            f'<div class="stat-value">{total_answers}</div>'
+            '<div class="stat-label">Jawaban AI</div>'
+            '</div>',
+            unsafe_allow_html=True,
+        )
+    with stat_cols2[1]:
+        st.markdown(
+            '<div class="chat-stats-card">'
+            f'<div class="stat-value">{session_duration_str}</div>'
+            '<div class="stat-label">Durasi Sesi</div>'
+            '</div>',
+            unsafe_allow_html=True,
+        )
+
+
 def render_sidebar():
     """Render chat sidebar with quick actions."""
 
@@ -759,6 +1360,17 @@ def render_sidebar():
 
         st.divider()
 
+        # Arabic Phrase of the Day widget
+        if HAS_ARABIC:
+            st.markdown("## 🕌 Frase Arab Hari Ini")
+            render_arabic_phrase_widget()
+            st.divider()
+
+        # Chat tools: search, export, stats
+        render_chat_tools()
+
+        st.divider()
+
         # Chat history
         st.markdown("## 📜 Riwayat")
 
@@ -780,9 +1392,6 @@ def render_sidebar():
         if st.button("🗑️ Hapus Chat", use_container_width=True):
             st.session_state.chat_messages = [st.session_state.chat_messages[0]]
             st.rerun()
-
-        if st.button("📤 Export Chat", use_container_width=True):
-            st.info("Fitur export akan segera hadir")
 
 
 def render_quick_questions():
@@ -1073,7 +1682,7 @@ def render_chat_page():
     """Main chat page renderer."""
 
     # Inject shared + page-specific CSS
-    inject_css(HERO_CSS, CARD_CSS, SKELETON_CSS, CHAT_PAGE_CSS, WA_SHARE_CSS)
+    inject_css(HERO_CSS, CARD_CSS, SKELETON_CSS, CHAT_PAGE_CSS, WA_SHARE_CSS, CHAT_TOOLS_CSS, ARABIC_PHRASE_CSS)
 
     # Track page view
     try:

@@ -28,6 +28,12 @@ try:
 except ImportError:
     HAS_SEASON_CALENDAR = False
 
+try:
+    from features.crowd_prediction import CrowdPredictor
+    HAS_CROWD_PREDICTION = True
+except ImportError:
+    HAS_CROWD_PREDICTION = False
+
 
 # =============================================================================
 # STYLING
@@ -212,6 +218,51 @@ ITINERARY_CSS = """
     color: #b0b0b0;
     font-size: 0.8rem;
     margin-top: 0.25rem;
+    font-style: italic;
+}
+
+/* --- Crowd Level Badges --- */
+.crowd-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+    padding: 0.15rem 0.6rem;
+    border-radius: 10px;
+    font-size: 0.7rem;
+    font-weight: 600;
+    margin-left: 0.5rem;
+    vertical-align: middle;
+    white-space: nowrap;
+}
+
+.crowd-badge.crowd-low {
+    background: rgba(34, 197, 94, 0.15);
+    color: #4ade80;
+    border: 1px solid rgba(34, 197, 94, 0.3);
+}
+
+.crowd-badge.crowd-moderate {
+    background: rgba(234, 179, 8, 0.15);
+    color: #fbbf24;
+    border: 1px solid rgba(234, 179, 8, 0.3);
+}
+
+.crowd-badge.crowd-high {
+    background: rgba(249, 115, 22, 0.15);
+    color: #f97316;
+    border: 1px solid rgba(249, 115, 22, 0.3);
+}
+
+.crowd-badge.crowd-extreme {
+    background: rgba(239, 68, 68, 0.15);
+    color: #f87171;
+    border: 1px solid rgba(239, 68, 68, 0.3);
+}
+
+.crowd-alt-time {
+    font-size: 0.75rem;
+    color: #94a3b8;
+    margin-top: 0.2rem;
     font-style: italic;
 }
 """
@@ -1376,6 +1427,167 @@ def get_season_info(start_date, duration):
 
 
 # =============================================================================
+# CROWD WARNING HELPERS
+# =============================================================================
+
+# Activities at these locations are relevant for crowd predictions
+_HARAM_KEYWORDS = {"masjidil haram", "haram", "thawaf", "sa'i", "umrah", "makkah"}
+_NABAWI_KEYWORDS = {"masjid nabawi", "nabawi", "raudhah", "makam rasul", "madinah"}
+
+
+def _is_mosque_activity(activity: dict) -> Optional[str]:
+    """Return 'makkah' or 'madinah' if the activity is at a major mosque, else None."""
+    title_lower = activity.get("title", "").lower()
+    desc_lower = activity.get("desc", "").lower()
+    tag = activity.get("tag", "")
+
+    # Only ibadah activities are relevant
+    if tag != "ibadah":
+        return None
+
+    combined = title_lower + " " + desc_lower
+    if any(kw in combined for kw in _HARAM_KEYWORDS):
+        return "makkah"
+    if any(kw in combined for kw in _NABAWI_KEYWORDS):
+        return "madinah"
+    return None
+
+
+def _get_crowd_badge_html(level: int) -> str:
+    """Return HTML for a crowd level badge given a 0-100 level."""
+    if level < 30:
+        css_class = "crowd-low"
+        emoji = "\U0001f7e2"
+        label = "Sepi"
+    elif level < 50:
+        css_class = "crowd-moderate"
+        emoji = "\U0001f7e1"
+        label = "Sedang"
+    elif level < 70:
+        css_class = "crowd-moderate"
+        emoji = "\U0001f7e1"
+        label = "Cukup Ramai"
+    elif level < 85:
+        css_class = "crowd-high"
+        emoji = "\U0001f7e0"
+        label = "Ramai"
+    else:
+        css_class = "crowd-extreme"
+        emoji = "\U0001f534"
+        label = "Sangat Ramai"
+
+    return (
+        f'<span class="crowd-badge {css_class}">'
+        f'<span aria-hidden="true">{emoji}</span> {label} ({level}%)'
+        f'</span>'
+    )
+
+
+def _suggest_alternative_time(hour: int) -> Optional[str]:
+    """Suggest a less crowded alternative time if the given hour is typically busy."""
+    # Known quiet windows (post-Fajr, mid-morning, early afternoon)
+    quiet_windows = [
+        (2, 4, "02:00-04:00 (dini hari)"),
+        (6, 8, "06:00-08:00 (setelah Subuh)"),
+        (9, 11, "09:00-11:00 (pagi)"),
+        (13, 15, "13:00-15:00 (setelah Dzuhur)"),
+    ]
+    for start, end, label in quiet_windows:
+        if not (start <= hour < end):
+            return label
+    return "02:00-04:00 (dini hari)"
+
+
+def render_crowd_warnings(itinerary: List[dict], start_date: date):
+    """Render crowd level warnings for mosque activities in the itinerary.
+
+    For each day, checks activities at Masjidil Haram / Masjid Nabawi,
+    predicts crowd level, and shows warning badges + alternative time suggestions.
+    """
+    if not HAS_CROWD_PREDICTION:
+        return
+
+    try:
+        predictor = CrowdPredictor()
+    except Exception:
+        return
+
+    warnings_found = False
+
+    for day in itinerary:
+        day_date = start_date + timedelta(days=day["day"] - 1)
+        day_warnings = []
+
+        for activity in day.get("schedule", []):
+            location = _is_mosque_activity(activity)
+            if not location:
+                continue
+
+            # Parse activity time
+            time_str = activity.get("time", "12:00")
+            try:
+                hour, minute = map(int, time_str.split(":"))
+            except (ValueError, AttributeError):
+                hour, minute = 12, 0
+
+            target_time = datetime(day_date.year, day_date.month, day_date.day, hour, minute)
+            prediction = predictor.predict(location=location, target_time=target_time)
+            level = prediction.get("level", 0)
+
+            if level > 50:
+                alt_suggestion = None
+                if level > 70:
+                    alt_suggestion = _suggest_alternative_time(hour)
+
+                day_warnings.append({
+                    "activity": activity.get("title", ""),
+                    "time": time_str,
+                    "level": level,
+                    "location_label": "Masjidil Haram" if location == "makkah" else "Masjid Nabawi",
+                    "alt_time": alt_suggestion,
+                })
+
+        if day_warnings:
+            if not warnings_found:
+                st.markdown(
+                    "#### <span aria-hidden=\"true\">\U0001f4ca</span> Prediksi Keramaian",
+                    unsafe_allow_html=True,
+                )
+                warnings_found = True
+
+            st.markdown(
+                f"**Hari {day['day']} - {day['location']}** "
+                f"({day_date.strftime('%A, %d %b')})"
+            )
+
+            for w in day_warnings:
+                badge_html = _get_crowd_badge_html(w["level"])
+                alt_html = ""
+                if w["alt_time"]:
+                    alt_html = (
+                        f'<div class="crowd-alt-time">'
+                        f'\U0001f4a1 Alternatif waktu lebih sepi: {w["alt_time"]}'
+                        f'</div>'
+                    )
+
+                st.markdown(
+                    f'<div style="margin:0.3rem 0 0.5rem 1rem;">'
+                    f'<span style="color:#e2e8f0;font-size:0.9rem;">'
+                    f'{w["time"]} - {w["activity"]}</span> '
+                    f'{badge_html}'
+                    f'{alt_html}'
+                    f'</div>',
+                    unsafe_allow_html=True,
+                )
+
+    if warnings_found:
+        st.caption(
+            "\u26a0\ufe0f Prediksi keramaian bersifat estimasi berdasarkan pola umum. "
+            "Kondisi aktual dapat berbeda."
+        )
+
+
+# =============================================================================
 # UI COMPONENTS
 # =============================================================================
 
@@ -1392,7 +1604,15 @@ def render_hero():
 
 
 def render_day_schedule(day: dict, day_date: date):
-    """Render a single day's schedule."""
+    """Render a single day's schedule with inline crowd badges for mosque activities."""
+    # Build crowd predictor once for the day if available
+    _crowd_predictor = None
+    if HAS_CROWD_PREDICTION:
+        try:
+            _crowd_predictor = CrowdPredictor()
+        except Exception:
+            pass
+
     st.markdown(
         f'<div class="day-card">'
         f'<div class="day-header">'
@@ -1412,12 +1632,27 @@ def render_day_schedule(day: dict, day_date: date):
             "explore": "Ziarah"
         }.get(item.get('tag'), '')
 
+        # Inline crowd badge for mosque activities
+        crowd_html = ""
+        if _crowd_predictor:
+            location = _is_mosque_activity(item)
+            if location:
+                try:
+                    time_str = item.get("time", "12:00")
+                    h, m = map(int, time_str.split(":"))
+                    target_time = datetime(day_date.year, day_date.month, day_date.day, h, m)
+                    prediction = _crowd_predictor.predict(location=location, target_time=target_time)
+                    level = prediction.get("level", 0)
+                    crowd_html = " " + _get_crowd_badge_html(level)
+                except Exception:
+                    pass
+
         st.markdown(
             f'<div class="activity-item">'
             f'<span class="activity-time">{item["time"]}</span>'
             f'<span class="activity-icon">{item["icon"]}</span>'
             f'<div class="activity-content">'
-            f'<div class="activity-title">{item["title"]}</div>'
+            f'<div class="activity-title">{item["title"]}{crowd_html}</div>'
             f'<div class="activity-desc">{item.get("desc", "")}</div>'
             f'<span class="activity-tag {tag_class}">{tag_label}</span>'
             f'</div>'
@@ -1947,6 +2182,11 @@ def render_itinerary_builder_page():
                 day = itinerary[day_idx]
                 day_date = start_date + timedelta(days=day["day"] - 1)
                 render_day_schedule(day, day_date)
+
+            st.divider()
+
+            # Crowd level warnings per-activity
+            render_crowd_warnings(itinerary, start_date)
 
             st.divider()
             render_tips()

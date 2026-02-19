@@ -15,7 +15,7 @@ import os
 import re
 
 from services.ai.helpers import ai_complete, add_xp_safe
-from ui.components.shared_styles import inject_css, HERO_CSS, CARD_CSS, EMPTY_STATE_CSS
+from ui.components.shared_styles import inject_css, HERO_CSS, CARD_CSS, EMPTY_STATE_CSS, SKELETON_CSS, render_skeleton
 
 # =============================================================================
 # CONSTANTS & DATA
@@ -1242,8 +1242,16 @@ def _process_question(question: str, category: str):
     """Process a submitted question: call AI, store result, award XP."""
     st.session_state.tanya_is_loading = True
 
+    skeleton_placeholder = st.empty()
+    with skeleton_placeholder:
+        st.markdown(SKELETON_CSS, unsafe_allow_html=True)
+        render_skeleton(skeleton_type="text")
+        render_skeleton(skeleton_type="cards", count=2)
+
     with st.spinner("Ustadz AI sedang menyiapkan jawaban..."):
         answer = get_ai_answer(question, category)
+
+    skeleton_placeholder.empty()
 
     # Store in history (main display)
     entry = {
