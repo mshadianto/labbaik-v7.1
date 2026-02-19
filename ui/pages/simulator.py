@@ -23,6 +23,12 @@ import re
 from services.ai.helpers import ai_complete, add_xp_safe
 from ui.components.shared_styles import inject_css, HERO_CSS, CARD_CSS, AI_CARD_CSS, BADGE_CSS
 
+try:
+    from ui.pages.kurs_calculator import get_current_rates, format_idr as kurs_format_idr
+    HAS_KURS_SERVICE = True
+except ImportError:
+    HAS_KURS_SERVICE = False
+
 # =============================================================================
 # SIMULATOR PAGE CSS
 # =============================================================================
@@ -2458,6 +2464,16 @@ def render_simulator_page():
             if params["num_travelers"] > 1:
                 group_total = cost.total * params["num_travelers"]
                 st.info(f"👥 Total {params['num_travelers']} orang: **{format_currency(group_total)}**")
+
+            # Live kurs info
+            if HAS_KURS_SERVICE:
+                rates = get_current_rates()
+                sar_equiv = cost.total / rates["SAR_IDR"]
+                source_label = "Live" if rates.get("source") == "live" else "Estimasi"
+                st.caption(f"≈ SAR {sar_equiv:,.0f} (kurs {source_label}: 1 SAR = Rp {rates['SAR_IDR']:,.0f})")
+                if st.button("🏦 Kalkulator Kurs", key="sim_to_kurs", use_container_width=True):
+                    st.session_state.current_page = "kurs_calculator"
+                    st.rerun()
 
             # Smart Nudge untuk Umrah Bareng
             if cost.total > 25_000_000:

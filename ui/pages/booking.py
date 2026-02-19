@@ -783,6 +783,74 @@ def render_step_package():
                             st.session_state.booking_data["package_type"] = package.type.value
                             st.rerun()
 
+    # AI Recommendation based on budget
+    with st.expander("\U0001f916 Rekomendasi AI berdasarkan budget"):
+        rec_col1, rec_col2 = st.columns(2)
+        with rec_col1:
+            ai_budget = st.number_input(
+                "Budget per orang (Rp)",
+                min_value=10_000_000,
+                max_value=100_000_000,
+                value=25_000_000,
+                step=5_000_000,
+                format="%d",
+                key="ai_rec_budget",
+            )
+        with rec_col2:
+            ai_preference = st.selectbox(
+                "Preferensi",
+                ["Dekat Haram", "Hemat", "VIP", "Keluarga"],
+                key="ai_rec_preference",
+            )
+
+        if st.button("Dapatkan Rekomendasi", key="btn_ai_rec_package"):
+            # Build package summary for the prompt
+            pkg_summary = "\n".join(
+                f"- {p.name}: {format_currency(p.base_price)}/orang, "
+                f"hotel {p.hotel_makkah}, jarak {p.distance_haram}, makan {p.meals}"
+                for p in PACKAGES
+            )
+            rec_prompt = (
+                f"Seorang calon jamaah umrah memiliki budget {format_currency(ai_budget)} per orang "
+                f"dengan preferensi: {ai_preference}.\n\n"
+                f"Berikut paket yang tersedia:\n{pkg_summary}\n\n"
+                "Rekomendasikan paket terbaik beserta alasannya. "
+                "Jika budget tidak cukup untuk preferensi, sarankan alternatif. "
+                "Berikan juga tips untuk memaksimalkan budget."
+            )
+            rec_system = (
+                "Kamu adalah konsultan perjalanan umrah berpengalaman. "
+                "Berikan rekomendasi yang personal dan jujur. "
+                "Gunakan bahasa Indonesia yang sopan. Maksimal 150 kata."
+            )
+            with st.spinner("AI sedang menganalisis..."):
+                rec_response = ai_complete(rec_prompt, system_prompt=rec_system, max_tokens=512)
+
+            if rec_response:
+                escaped_rec = rec_response.replace("<", "&lt;").replace(">", "&gt;")
+                st.markdown(
+                    '<div class="ai-card" role="status" aria-live="polite">'
+                    '<h3>\U0001f916 Rekomendasi AI</h3>'
+                    '<p>' + escaped_rec + '</p>'
+                    '</div>',
+                    unsafe_allow_html=True,
+                )
+            else:
+                # Fallback when AI is unavailable
+                if ai_budget <= 18_000_000:
+                    fallback_pkg = "Mandiri atau Backpacker"
+                elif ai_budget <= 30_000_000:
+                    fallback_pkg = "Reguler"
+                elif ai_budget <= 45_000_000:
+                    fallback_pkg = "Plus"
+                else:
+                    fallback_pkg = "VIP Executive"
+                st.info(
+                    f"Berdasarkan budget {format_currency(ai_budget)}, "
+                    f"kami merekomendasikan paket **{fallback_pkg}**. "
+                    f"Pilih paket di atas untuk melihat detail lengkapnya."
+                )
+
     # Navigation
     st.divider()
     col1, col2 = st.columns([3, 1])
@@ -1236,6 +1304,19 @@ def render_step_payment():
 
     st.markdown("## \U0001f4b3 Pembayaran")
 
+    # Payment simulation disclaimer
+    st.markdown('''
+        <div style="background: linear-gradient(90deg, #1a1a0a, #2a2a1a);
+                    border: 1px solid #fbbf24; border-left: 4px solid #fbbf24;
+                    border-radius: 12px; padding: 1rem; margin: 0.5rem 0 1rem 0;">
+            <strong style="color: #fbbf24;">ℹ️ Simulasi Pembayaran</strong><br/>
+            <span style="color: #b0b0b0; font-size: 0.85rem;">
+                Simulasi pembayaran — langkah ini menunjukkan opsi pembayaran yang
+                umumnya tersedia saat booking melalui travel agent.
+            </span>
+        </div>
+    ''', unsafe_allow_html=True)
+
     data = st.session_state.booking_data
     prices = calculate_total_price(data)
     total = prices["total"]
@@ -1336,20 +1417,20 @@ def render_step_confirmation():
 
     booking_number = generate_booking_number()
 
-    st.markdown("## \u2705 Booking Berhasil!")
+    st.markdown("## \u2705 Rencana Booking Tersimpan!")
 
     with st.container(border=True):
         st.markdown("### \U0001f389 Alhamdulillah!")
 
         st.markdown(
-            "Booking Umrah Anda telah berhasil dibuat.\n\n"
-            "### Nomor Booking\n"
+            "Rencana booking umrah Anda telah berhasil disimpan.\n\n"
+            "### Nomor Referensi\n"
             f"## `{booking_number}`\n\n"
-            "Simpan nomor ini untuk referensi."
+            "Simpan rencana booking ini untuk konsultasi dengan travel agent."
         )
 
-        st.success("\U0001f4e7 Email konfirmasi telah dikirim ke alamat email jamaah utama")
-        st.info("\U0001f4f1 WhatsApp konfirmasi akan dikirim dalam 1x24 jam")
+        st.info("\U0001f4cb Gunakan nomor referensi ini saat menghubungi travel agent untuk mempercepat proses booking nyata.")
+        st.info("\U0001f4f1 Anda juga dapat menyimpan halaman ini sebagai referensi perencanaan.")
 
     # Next steps
     with st.container(border=True):
@@ -1409,11 +1490,24 @@ def render_booking_page():
     st.markdown(
         '<div class="booking-hero">'
         '<div class="bismillah">\u0628\u0633\u0645 \u0627\u0644\u0644\u0647 \u0627\u0644\u0631\u062d\u0645\u0646 \u0627\u0644\u0631\u062d\u064a\u0645</div>'
-        '<h1>\U0001f54b Booking Umrah</h1>'
-        '<p class="subtitle">Pesan perjalanan umrah Anda dengan mudah dan aman</p>'
+        '<h1><span aria-hidden="true">\U0001f54b</span> Perencanaan Booking Umrah</h1>'
+        '<p class="subtitle">Rencanakan perjalanan umrah Anda dengan mudah dan terstruktur</p>'
         '</div>',
         unsafe_allow_html=True,
     )
+
+    # Disclaimer banner
+    st.markdown('''
+        <div style="background: linear-gradient(90deg, #1a1a0a, #2a2a1a);
+                    border: 1px solid #fbbf24; border-left: 4px solid #fbbf24;
+                    border-radius: 12px; padding: 1rem; margin: 1rem 0;">
+            <strong style="color: #fbbf24;">ℹ️ Simulasi Perencanaan</strong><br/>
+            <span style="color: #b0b0b0; font-size: 0.85rem;">
+                Halaman ini adalah alat perencanaan untuk membantu mempersiapkan umrah Anda.
+                Ini bukan booking aktual. Untuk booking nyata, hubungi travel agent terpercaya.
+            </span>
+        </div>
+    ''', unsafe_allow_html=True)
 
     # Progress bar
     render_progress_bar()

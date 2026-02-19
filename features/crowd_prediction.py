@@ -12,6 +12,12 @@ import math
 from services.ai.helpers import ai_complete, add_xp_safe
 from ui.components.shared_styles import inject_css, HERO_CSS, CARD_CSS, AI_CARD_CSS
 
+try:
+    from hijri_converter import Gregorian
+    HAS_HIJRI = True
+except ImportError:
+    HAS_HIJRI = False
+
 # =============================================================================
 # CROWD PREDICTION ENGINE
 # =============================================================================
@@ -65,17 +71,35 @@ class CrowdPredictor:
     def __init__(self):
         self.current_season = self._detect_season()
     
-    def _detect_season(self) -> str:
-        """Detect current season based on date."""
-        today = date.today()
-        month = today.month
-        
-        # Simplified - in production, use Hijri calendar
-        if month in [3, 4]:  # Approximate Ramadan
-            return "ramadan"
-        elif month in [6, 7]:  # Approximate Hajj
-            return "hajj"
-        elif month in [12, 1, 6, 7]:  # School holidays
+    def _detect_season(self, target_date: date = None) -> str:
+        """Detect current season using Hijri calendar (with Gregorian fallback)."""
+        today = target_date or date.today()
+
+        if HAS_HIJRI:
+            hijri = Gregorian(today.year, today.month, today.day).to_hijri()
+            self._hijri_date = str(hijri)
+            h_month = hijri.month
+            h_day = hijri.day
+
+            if h_month == 9:  # Ramadan
+                return "ramadan"
+            if h_month == 12 and h_day <= 13:  # Dhul Hijjah (Hajj period)
+                return "hajj"
+            if h_month in [11, 12]:  # Dhul Qa'dah + rest of Dhul Hijjah
+                return "high"
+            if h_month == 10 and h_day <= 6:  # Shawwal (Eid al-Fitr)
+                return "high"
+        else:
+            self._hijri_date = None
+            # Gregorian fallback (approximate)
+            month = today.month
+            if month in [3, 4]:
+                return "ramadan"
+            elif month in [6, 7]:
+                return "hajj"
+
+        # School holidays (Gregorian)
+        if today.month in [12, 1, 6, 7]:
             return "high"
         return "regular"
     
@@ -118,6 +142,7 @@ class CrowdPredictor:
             "location": location,
             "time": target_time.strftime("%H:%M"),
             "season": self.current_season,
+            "hijri_date": getattr(self, "_hijri_date", None),
         }
     
     def _get_description(self, level: int) -> Tuple[str, str, str]:
@@ -274,10 +299,14 @@ def render_crowd_widget(location: str = "makkah", compact: bool = False):
             }
             season_label, season_color = season_labels.get(current['season'], ("📅 Regular", "#b0b0b0"))
             
+            hijri_line = ""
+            if current.get("hijri_date"):
+                hijri_line = f'<div style="color:#d4af37;font-size:0.75rem;margin-top:0.25rem;">{current["hijri_date"]} H</div>'
             st.markdown(f"""
             <div style="background: #1a1a1a; padding: 1rem; border-radius: 15px; text-align: center; height: 100%;">
-                <div style="color: {season_color}; font-size: 2rem;">📊</div>
+                <div style="color: {season_color}; font-size: 2rem;" aria-hidden="true">📊</div>
                 <div style="color: white; font-size: 0.9rem; margin-top: 0.5rem;">{season_label}</div>
+                {hijri_line}
                 <div style="color: #b0b0b0; font-size: 0.75rem; margin-top: 0.25rem;">Multiplier aktif</div>
             </div>
             """, unsafe_allow_html=True)

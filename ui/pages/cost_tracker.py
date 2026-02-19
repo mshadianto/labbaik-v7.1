@@ -16,9 +16,17 @@ import streamlit as st
 from datetime import datetime, date
 from typing import Dict, List
 import uuid
+import csv
+import io
 
 from services.ai.helpers import ai_complete, add_xp_safe
 from ui.components.shared_styles import inject_css, HERO_CSS, CARD_CSS, AI_CARD_CSS, PROGRESS_CSS, EMPTY_STATE_CSS
+
+try:
+    from ui.pages.kurs_calculator import get_current_rates
+    HAS_KURS_SERVICE = True
+except ImportError:
+    HAS_KURS_SERVICE = False
 
 # =============================================================================
 # CONSTANTS & CATEGORIES
@@ -317,6 +325,38 @@ def export_to_text() -> str:
     return "\n".join(lines)
 
 
+def export_to_csv() -> str:
+    """Export expenses to CSV format."""
+    expenses = st.session_state.tracker_expenses
+    output = io.StringIO()
+    writer = csv.writer(output)
+
+    # Get SAR rate for conversion column
+    sar_rate = 4250
+    if HAS_KURS_SERVICE:
+        try:
+            sar_rate = get_current_rates()["SAR_IDR"]
+        except Exception:
+            pass
+
+    writer.writerow(["Tanggal", "Kategori", "Catatan", "Jumlah (Rp)", "Jumlah (SAR)"])
+    sorted_expenses = sorted(expenses, key=lambda x: x["date"], reverse=True)
+    for exp in sorted_expenses:
+        cat_info = EXPENSE_CATEGORIES.get(exp["category"], {})
+        label = cat_info.get("label", exp["category"])
+        amount_idr = exp["amount"]
+        amount_sar = round(amount_idr / sar_rate, 2)
+        writer.writerow([
+            exp["date"],
+            label,
+            exp.get("notes", ""),
+            amount_idr,
+            amount_sar,
+        ])
+
+    return output.getvalue()
+
+
 # =============================================================================
 # UI: HERO
 # =============================================================================
@@ -508,14 +548,31 @@ def render_add_expense():
         col1, col2 = st.columns(2)
 
         with col1:
-            amount = st.number_input(
-                "Jumlah (Rp)",
-                min_value=0,
-                max_value=500_000_000,
-                value=0,
-                step=10_000,
-                format="%d",
+            currency = st.radio(
+                "Mata uang",
+                ["IDR", "SAR"],
+                horizontal=True,
+                key="expense_currency",
             )
+
+            if currency == "SAR":
+                amount_input = st.number_input(
+                    "Jumlah (SAR)",
+                    min_value=0.0,
+                    max_value=100_000.0,
+                    value=0.0,
+                    step=5.0,
+                    format="%.2f",
+                )
+            else:
+                amount_input = st.number_input(
+                    "Jumlah (Rp)",
+                    min_value=0,
+                    max_value=500_000_000,
+                    value=0,
+                    step=10_000,
+                    format="%d",
+                )
 
             category = st.selectbox(
                 "Kategori",
@@ -545,9 +602,23 @@ def render_add_expense():
         )
 
         if submitted:
-            if amount <= 0:
+            if amount_input <= 0:
                 st.warning("Jumlah harus lebih dari 0.")
             else:
+                # Convert SAR to IDR if needed
+                if currency == "SAR":
+                    sar_rate = 4250
+                    if HAS_KURS_SERVICE:
+                        try:
+                            sar_rate = get_current_rates()["SAR_IDR"]
+                        except Exception:
+                            pass
+                    amount = int(amount_input * sar_rate)
+                    original_sar = amount_input
+                else:
+                    amount = int(amount_input)
+                    original_sar = None
+
                 new_expense = {
                     "id": str(uuid.uuid4()),
                     "date": expense_date.isoformat(),
@@ -555,10 +626,13 @@ def render_add_expense():
                     "amount": amount,
                     "notes": notes if notes else f"{EXPENSE_CATEGORIES[category]['label']}",
                 }
+                if original_sar:
+                    new_expense["original_sar"] = original_sar
                 st.session_state.tracker_expenses.append(new_expense)
                 add_xp(10, "Mencatat pengeluaran")
+                sar_info = f" (SAR {original_sar:.2f})" if original_sar else ""
                 st.success(
-                    f"Pengeluaran {format_idr_full(amount)} berhasil dicatat!"
+                    f"Pengeluaran {format_idr_full(amount)}{sar_info} berhasil dicatat!"
                 )
                 st.rerun()
 
@@ -875,12 +949,12 @@ def render_export_section():
     """Render export options."""
     st.markdown("### \U0001f4e4 Export Data")
 
-    col1, col2 = st.columns(2)
+    col1, col2, col3 = st.columns(3)
 
     with col1:
         text_data = export_to_text()
         st.download_button(
-            "\U0001f4c4 Download Laporan (TXT)",
+            "\U0001f4c4 Download TXT",
             data=text_data,
             file_name=f"cost_tracker_umrah_{date.today().isoformat()}.txt",
             mime="text/plain",
@@ -888,6 +962,16 @@ def render_export_section():
         )
 
     with col2:
+        csv_data = export_to_csv()
+        st.download_button(
+            "\U0001f4ca Download CSV",
+            data=csv_data,
+            file_name=f"cost_tracker_umrah_{date.today().isoformat()}.csv",
+            mime="text/csv",
+            use_container_width=True,
+        )
+
+    with col3:
         if st.button(
             "\U0001f4cb Salin ke Clipboard",
             use_container_width=True,

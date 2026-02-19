@@ -15,6 +15,14 @@ logger = logging.getLogger(__name__)
 from services.ai.helpers import ai_complete, add_xp_safe
 from ui.components.shared_styles import inject_css, HERO_CSS, CARD_CSS, AI_CARD_CSS, SKELETON_CSS, render_skeleton
 
+# Demo hotel data for when API is unavailable
+DEMO_HOTELS = [
+    {"name": "Hilton Suites Makkah", "stars": 5, "distance": "350m dari Haram", "prices": {"Booking.com": "SAR 890", "Agoda": "SAR 920", "Expedia": "SAR 950"}},
+    {"name": "Elaf Ajyad Hotel", "stars": 4, "distance": "500m dari Haram", "prices": {"Booking.com": "SAR 450", "Agoda": "SAR 470", "Traveloka": "SAR 440"}},
+    {"name": "Al Marwa Rayhaan", "stars": 5, "distance": "200m dari Haram", "prices": {"Booking.com": "SAR 1,200", "Hotels.com": "SAR 1,250", "Expedia": "SAR 1,180"}},
+    {"name": "Dar Al Tawhid Intercontinental", "stars": 5, "distance": "100m dari Haram", "prices": {"Booking.com": "SAR 1,800", "Agoda": "SAR 1,850"}},
+]
+
 # =============================================================================
 # IMPORTS
 # =============================================================================
@@ -402,9 +410,24 @@ def render_hotel_compare_page():
         if 'hotel_search_result' in st.session_state:
             render_hotel_list(st.session_state['hotel_search_result'])
         else:
-            # Skeleton placeholder
-            render_skeleton("cards", count=3)
-            st.caption("Pilih kota dan tanggal untuk melihat harga hotel")
+            if not HAS_MAKCORPS:
+                # Demo data fallback
+                st.markdown('''
+                    <div style="background:linear-gradient(90deg,#2d1a0d,#4d3319);
+                                border:2px dashed #fbbf24;border-radius:12px;
+                                padding:0.75rem 1rem;margin-bottom:1rem;text-align:center;">
+                        <strong style="color:#fbbf24;">DATA DEMO</strong>
+                        <span style="color:#b0b0b0;font-size:0.85rem;"> — Hubungkan Makcorps API untuk harga real-time dari 200+ OTA</span>
+                    </div>
+                ''', unsafe_allow_html=True)
+                for h in DEMO_HOTELS:
+                    with st.container(border=True):
+                        st.markdown(f"**{'⭐' * h['stars']} {h['name']}** — {h['distance']}")
+                        price_text = " | ".join(f"{k}: **{v}**" for k, v in h["prices"].items())
+                        st.markdown(price_text)
+            else:
+                render_skeleton("cards", count=3)
+                st.caption("Pilih kota dan tanggal untuk melihat harga hotel")
 
     # Footer info
     st.markdown("---")

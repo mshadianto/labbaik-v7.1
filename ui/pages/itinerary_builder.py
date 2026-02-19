@@ -1429,6 +1429,11 @@ def render_itinerary_builder_page():
                     use_container_width=True,
                 )
 
+            if st.button("\U0001f4cb Salin ke Clipboard", key="copy_itinerary", use_container_width=True):
+                wa_text = export_to_whatsapp(itinerary, start_date)
+                st.code(wa_text, language=None)
+                st.caption("Salin teks di atas dan tempel ke WhatsApp atau media lain.")
+
             st.divider()
             view_mode = st.radio("Tampilan:", ["\U0001f4d1 Semua Hari", "\U0001f50d Per Hari"], horizontal=True)
             if view_mode == "\U0001f4d1 Semua Hari":

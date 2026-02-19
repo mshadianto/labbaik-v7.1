@@ -16,6 +16,13 @@ from dataclasses import dataclass
 from services.ai.helpers import ai_complete, add_xp_safe
 from ui.components.shared_styles import inject_css, HERO_CSS, CARD_CSS, AI_CARD_CSS
 
+# Optional TTS for doa audio playback
+try:
+    from services.audio.tts_service import generate_audio, HAS_EDGE_TTS, HAS_GTTS
+    HAS_TTS = HAS_EDGE_TTS or HAS_GTTS
+except ImportError:
+    HAS_TTS = False
+
 # =============================================================================
 # RITUAL DATA
 # =============================================================================
@@ -488,7 +495,38 @@ def render_ritual_step_card(ritual: RitualInfo, expanded: bool = False):
             <div style="color: #b0b0b0; font-size: 0.9rem; font-style: italic;">{ritual.dua_translation}</div>
         </div>
         """, unsafe_allow_html=True)
-        
+
+        # TTS doa audio playback
+        if HAS_TTS:
+            audio_cache_key = f"manasik_audio_{ritual.id.value}"
+            xp_key = f"manasik_audio_xp_{ritual.id.value}"
+
+            if st.button(
+                f"🔊 Dengarkan Doa",
+                key=f"btn_play_doa_{ritual.id.value}",
+            ):
+                # Check session state cache first
+                if audio_cache_key in st.session_state and st.session_state[audio_cache_key]:
+                    audio_bytes = st.session_state[audio_cache_key]
+                else:
+                    with st.spinner("Menghasilkan audio doa..."):
+                        audio_bytes = generate_audio(ritual.dua, lang="ar")
+                    if audio_bytes:
+                        st.session_state[audio_cache_key] = audio_bytes
+
+                if audio_bytes:
+                    st.audio(audio_bytes, format="audio/mp3")
+                    # Award XP only once per ritual doa
+                    if not st.session_state.get(xp_key):
+                        add_xp_safe(5, f"Mendengarkan doa {ritual.name}")
+                        st.session_state[xp_key] = True
+                else:
+                    st.warning("Gagal menghasilkan audio doa. Silakan coba lagi.")
+
+            # If audio was previously generated and button was clicked, keep showing player
+            elif audio_cache_key in st.session_state and st.session_state[audio_cache_key]:
+                st.audio(st.session_state[audio_cache_key], format="audio/mp3")
+
         # Tips and Mistakes
         col1, col2 = st.columns(2)
         

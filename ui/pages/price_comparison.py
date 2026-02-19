@@ -257,10 +257,30 @@ def render_price_comparison_page():
     st.caption("Bandingkan harga dari berbagai sumber: API, OTA, dan Partner")
 
     if not HAS_PRICE_AGGREGATION:
-        st.error("❌ Module price_aggregation tidak tersedia")
-        st.info("Pastikan semua dependencies terinstall dengan benar.")
-        render_skeleton("stats", count=3)
-        render_skeleton("cards", count=3)
+        st.markdown('''
+            <div style="background:linear-gradient(90deg,#2d1a0d,#4d3319);
+                        border:2px dashed #fbbf24;border-radius:12px;
+                        padding:0.75rem 1rem;margin-bottom:1rem;text-align:center;">
+                <strong style="color:#fbbf24;">DATA DEMO</strong>
+                <span style="color:#b0b0b0;font-size:0.85rem;"> — Hubungkan API untuk data harga real-time</span>
+            </div>
+        ''', unsafe_allow_html=True)
+        _demo_items = [
+            ("Hilton Suites Makkah", "⭐⭐⭐⭐⭐", "SAR 890/malam", "Booking.com"),
+            ("Elaf Ajyad Hotel", "⭐⭐⭐⭐", "SAR 450/malam", "Agoda"),
+            ("Shaza Makkah", "⭐⭐⭐⭐⭐", "SAR 1,100/malam", "Traveloka"),
+            ("Al Marwa Rayhaan", "⭐⭐⭐⭐⭐", "SAR 1,200/malam", "Expedia"),
+        ]
+        for name, stars, price, source in _demo_items:
+            with st.container(border=True):
+                c1, c2, c3 = st.columns([3, 1, 1])
+                with c1:
+                    st.markdown(f"**{name}** {stars}")
+                with c2:
+                    st.markdown(f"**{price}**")
+                with c3:
+                    st.caption(f"via {source}")
+        st.info("Konfigurasikan API keys di Railway untuk mengaktifkan data real-time.")
         return
 
     # Sidebar filters

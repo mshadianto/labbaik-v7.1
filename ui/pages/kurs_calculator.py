@@ -13,9 +13,10 @@ Fitur: Konversi mata uang dan referensi harga di Arab Saudi untuk jamaah umrah
 """
 
 import streamlit as st
-from datetime import datetime
-from typing import Dict, List
+from datetime import datetime, timedelta
+from typing import Dict, List, Optional
 import re
+import requests
 
 from services.ai.helpers import ai_complete, add_xp_safe
 from ui.components.shared_styles import inject_css, HERO_CSS, CARD_CSS, AI_CARD_CSS, BADGE_CSS
@@ -340,6 +341,68 @@ BASE_RATES = {
     "USD_SAR": 3.75,
 }
 
+# Live rate cache TTL (30 minutes)
+_RATE_CACHE_TTL_MINUTES = 30
+
+
+def fetch_live_rates() -> Optional[Dict]:
+    """Fetch live exchange rates from free API. Returns None on failure."""
+    try:
+        resp = requests.get(
+            "https://open.er-api.com/v6/latest/SAR",
+            timeout=8,
+        )
+        resp.raise_for_status()
+        data = resp.json()
+        if data.get("result") != "success":
+            return None
+        rates = data["rates"]
+        idr_rate = rates.get("IDR")
+        usd_rate = rates.get("USD")
+        if not idr_rate or not usd_rate:
+            return None
+        return {
+            "SAR_IDR": round(idr_rate, 2),
+            "USD_IDR": round(idr_rate / usd_rate, 2),
+            "USD_SAR": round(1 / usd_rate, 4),
+            "last_updated": datetime.now().isoformat(),
+            "source": "live",
+        }
+    except Exception:
+        return None
+
+
+def get_current_rates() -> Dict:
+    """Get current exchange rates (live if available, else hardcoded fallback).
+
+    Caches live rates in session state for _RATE_CACHE_TTL_MINUTES.
+    """
+    now = datetime.now()
+
+    # Check session cache
+    cached = st.session_state.get("_kurs_live_rates")
+    fetched_at = st.session_state.get("_kurs_fetched_at")
+
+    if cached and fetched_at:
+        age = now - fetched_at
+        if age < timedelta(minutes=_RATE_CACHE_TTL_MINUTES):
+            return cached
+
+    # Try fetch
+    live = fetch_live_rates()
+    if live:
+        st.session_state["_kurs_live_rates"] = live
+        st.session_state["_kurs_fetched_at"] = now
+        return live
+
+    # Fallback
+    return {
+        **BASE_RATES,
+        "last_updated": None,
+        "source": "estimasi",
+    }
+
+
 QUICK_AMOUNTS_SAR = [100, 500, 1000, 5000]
 
 PRICE_CATEGORIES = {
@@ -587,18 +650,18 @@ def init_kurs_state():
 # =============================================================================
 
 def sar_to_idr(amount: float) -> float:
-    """Convert SAR to IDR."""
-    return amount * BASE_RATES["SAR_IDR"]
+    """Convert SAR to IDR using live or fallback rates."""
+    return amount * get_current_rates()["SAR_IDR"]
 
 
 def idr_to_sar(amount: float) -> float:
-    """Convert IDR to SAR."""
-    return amount / BASE_RATES["SAR_IDR"]
+    """Convert IDR to SAR using live or fallback rates."""
+    return amount / get_current_rates()["SAR_IDR"]
 
 
 def sar_to_usd(amount: float) -> float:
-    """Convert SAR to USD."""
-    return amount / BASE_RATES["USD_SAR"]
+    """Convert SAR to USD using live or fallback rates."""
+    return amount / get_current_rates()["USD_SAR"]
 
 
 def format_idr(amount: float) -> str:
@@ -665,20 +728,29 @@ def render_hero():
     """Render hero section with branding and stats."""
     inject_css(HERO_CSS, CARD_CSS, AI_CARD_CSS, BADGE_CSS, KURS_CSS)
 
+    rates = get_current_rates()
     total_items = len(SAUDI_PRICES)
+    is_live = rates.get("source") == "live"
+    source_badge = (
+        '<span style="background:#166534;color:#4ade80;padding:0.15rem 0.5rem;'
+        'border-radius:8px;font-size:0.7rem;font-weight:bold;">LIVE</span>'
+        if is_live else
+        '<span style="background:#713f12;color:#fbbf24;padding:0.15rem 0.5rem;'
+        'border-radius:8px;font-size:0.7rem;font-weight:bold;">ESTIMASI</span>'
+    )
 
     st.markdown(
         f'<div class="kurs-hero">'
         f'<div class="bismillah">\u0628\u0633\u0645 \u0627\u0644\u0644\u0647 \u0627\u0644\u0631\u062d\u0645\u0646 \u0627\u0644\u0631\u062d\u064a\u0645</div>'
-        f'<h1>\U0001f3e6 Kalkulator Kurs & Harga</h1>'
+        f'<h1><span aria-hidden="true">\U0001f3e6</span> Kalkulator Kurs & Harga</h1>'
         f'<p class="subtitle">Konversi mata uang dan referensi harga di Arab Saudi untuk jamaah umrah</p>'
         f'<div class="kurs-stat-row">'
         f'<div class="kurs-stat-item">'
-        f'<div class="kurs-stat-number">{format_idr(BASE_RATES["SAR_IDR"])}</div>'
-        f'<div class="kurs-stat-label">1 SAR = IDR</div>'
+        f'<div class="kurs-stat-number">{format_idr(rates["SAR_IDR"])}</div>'
+        f'<div class="kurs-stat-label">1 SAR = IDR {source_badge}</div>'
         f'</div>'
         f'<div class="kurs-stat-item">'
-        f'<div class="kurs-stat-number">3.75</div>'
+        f'<div class="kurs-stat-number">{rates["USD_SAR"]}</div>'
         f'<div class="kurs-stat-label">1 USD = SAR</div>'
         f'</div>'
         f'<div class="kurs-stat-item">'
@@ -690,10 +762,24 @@ def render_hero():
         unsafe_allow_html=True,
     )
 
-    st.caption(
-        "\u26a0\ufe0f Kurs yang ditampilkan adalah estimasi rata-rata dan dapat berbeda "
-        "dengan kurs aktual di money changer atau bank. Selalu cek kurs terkini sebelum menukar uang."
-    )
+    # Rate info row: timestamp + refresh
+    col_info, col_refresh = st.columns([4, 1])
+    with col_info:
+        if rates.get("last_updated"):
+            try:
+                ts = datetime.fromisoformat(rates["last_updated"])
+                st.caption(f"Terakhir diperbarui: {ts.strftime('%d %b %Y %H:%M')} WIB | Sumber: exchangerate-api.com")
+            except Exception:
+                st.caption("Kurs live aktif")
+        else:
+            st.caption(
+                "\u26a0\ufe0f Kurs estimasi (offline). Klik Refresh untuk mengambil kurs terkini."
+            )
+    with col_refresh:
+        if st.button("\U0001f504 Refresh", key="kurs_refresh", use_container_width=True):
+            st.session_state.pop("_kurs_live_rates", None)
+            st.session_state.pop("_kurs_fetched_at", None)
+            st.rerun()
 
 
 # =============================================================================
@@ -1156,4 +1242,11 @@ def render_kurs_calculator_page():
 # EXPORT
 # =============================================================================
 
-__all__ = ["render_kurs_calculator_page"]
+__all__ = [
+    "render_kurs_calculator_page",
+    "get_current_rates",
+    "sar_to_idr",
+    "idr_to_sar",
+    "format_idr",
+    "format_sar",
+]

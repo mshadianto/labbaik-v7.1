@@ -40,6 +40,9 @@ httpx
 gtts
 edge-tts
 
+# Islamic Calendar
+hijri-converter>=2.3.0
+
 # Interactive Maps
 folium>=0.14.0
 streamlit-folium>=0.13.0
