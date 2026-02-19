@@ -15,6 +15,12 @@ try:
 except ImportError:
     def add_xp_safe(*a, **kw): pass
 
+try:
+    from services.price.live_prices import render_live_prices_widget, LivePriceService
+    HAS_LIVE_PRICES = True
+except ImportError:
+    HAS_LIVE_PRICES = False
+
 logger = logging.getLogger(__name__)
 
 # =============================================================================
@@ -682,6 +688,90 @@ def render_price_intelligence_section():
 
 
 # =============================================================================
+# LIVE PRICES SECTION
+# =============================================================================
+
+def render_live_prices_section():
+    """Render live Umrah package prices section on home page."""
+    if not HAS_LIVE_PRICES:
+        return
+
+    try:
+        service = LivePriceService()
+        stats = service.get_price_stats()
+
+        if not stats or stats.get("total_packages", 0) == 0:
+            return  # Skip if no data available
+
+        st.markdown("---")
+
+        # Section header with LIVE badge
+        st.markdown("""
+        <div style="text-align: center; margin-bottom: 1.5rem;">
+            <h2 style="color: #d4af37; margin-bottom: 0.5rem;">
+                <span aria-hidden="true">💰</span> Paket Umrah Terkini
+                <span style="display: inline-flex; align-items: center; gap: 5px; background: #1a1a2e;
+                            padding: 4px 10px; border-radius: 20px; border: 1px solid #28a745;
+                            vertical-align: middle; margin-left: 8px;">
+                    <span style="width: 8px; height: 8px; background: #28a745; border-radius: 50%;
+                                 animation: pulse 1.5s infinite;"></span>
+                    <span style="color: #28a745; font-size: 0.75rem; font-weight: bold;">LIVE</span>
+                </span>
+            </h2>
+            <p style="color: #b0b0b0;">Harga terbaru dari berbagai travel agent terpercaya</p>
+        </div>
+        """, unsafe_allow_html=True)
+
+        # Price stats cards
+        from services.price.live_prices import format_price
+
+        col1, col2, col3 = st.columns(3)
+
+        with col1:
+            st.markdown(f"""
+            <div class="gold-card" role="status" aria-live="polite">
+                <div class="muted-text" style="font-size: 0.8rem;">Mulai dari</div>
+                <div class="gold-text" style="font-size: 1.3rem; font-weight: bold;">{format_price(stats['min_price'])}</div>
+                <div class="muted-text" style="font-size: 0.75rem;">paket termurah</div>
+            </div>
+            """, unsafe_allow_html=True)
+
+        with col2:
+            st.markdown(f"""
+            <div class="gold-card" role="status" aria-live="polite">
+                <div class="muted-text" style="font-size: 0.8rem;">Rata-rata</div>
+                <div class="gold-text" style="font-size: 1.3rem; font-weight: bold;">{format_price(stats['avg_price'])}</div>
+                <div class="muted-text" style="font-size: 0.75rem;">dari {stats['total_packages']} paket</div>
+            </div>
+            """, unsafe_allow_html=True)
+
+        with col3:
+            st.markdown(f"""
+            <div class="gold-card" role="status" aria-live="polite">
+                <div class="muted-text" style="font-size: 0.8rem;">Promo Aktif</div>
+                <div class="gold-text" style="font-size: 1.3rem; font-weight: bold;">{stats.get('promo_count', 0)} Paket</div>
+                <div class="muted-text" style="font-size: 0.75rem;">diskon spesial</div>
+            </div>
+            """, unsafe_allow_html=True)
+
+        st.markdown("")
+
+        # Render the 3 cheapest packages widget
+        render_live_prices_widget()
+
+        # Navigation button to full price comparison page
+        st.markdown("")
+        col1, col2, col3 = st.columns([1, 2, 1])
+        with col2:
+            if st.button("🔍 Lihat Semua Paket & Bandingkan Harga", type="primary", use_container_width=True, key="home_live_prices_cta"):
+                st.session_state.current_page = "price_comparison"
+                st.rerun()
+
+    except Exception as e:
+        logger.debug(f"Live prices section skipped: {e}")
+
+
+# =============================================================================
 # PAGE CONFIG & STYLING
 # =============================================================================
 
@@ -1154,6 +1244,9 @@ def render_home_page():
 
     # Umrah Bareng CTA
     render_upcoming_trips()
+
+    # Live Umrah package prices
+    render_live_prices_section()
 
     # Footer only
     render_footer()

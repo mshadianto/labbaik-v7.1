@@ -33,6 +33,13 @@ try:
 except ImportError:
     HAS_PLOTLY = False
 
+# Try to import AnalyticsDashboard service for device/flow/geo stats
+try:
+    from services.analytics.dashboard import AnalyticsDashboard as AnalyticsDashboardService
+    HAS_ANALYTICS_SERVICE = True
+except ImportError:
+    HAS_ANALYTICS_SERVICE = False
+
 
 # =============================================================================
 # CONSTANTS
@@ -689,6 +696,91 @@ def render_user_behavior(db, start_date, end_date):
 
         except Exception as e:
             logger.debug(f"Session stats error: {e}")
+
+        # -----------------------------------------------------------------
+        # Device Distribution & Page Flow (from AnalyticsDashboardService)
+        # -----------------------------------------------------------------
+        if HAS_ANALYTICS_SERVICE:
+            try:
+                svc = AnalyticsDashboardService()
+
+                st.divider()
+                st.markdown("**Device Distribution**")
+
+                device_stats = svc.get_device_stats()
+                if device_stats:
+                    device_icons = {
+                        "mobile": '<span aria-hidden="true">📱</span>',
+                        "desktop": '<span aria-hidden="true">💻</span>',
+                        "tablet": '<span aria-hidden="true">📲</span>',
+                    }
+                    device_colors = {
+                        "mobile": "#60a5fa",
+                        "desktop": "#d4af37",
+                        "tablet": "#4ade80",
+                    }
+
+                    cols = st.columns(len(device_stats))
+                    for idx, (device, pct) in enumerate(device_stats.items()):
+                        icon_html = device_icons.get(device, "")
+                        bar_color = device_colors.get(device, "#60a5fa")
+                        label = device.title()
+                        with cols[idx]:
+                            st.markdown(
+                                '<div class="kpi-card">'
+                                '<div class="kpi-icon">' + icon_html + '</div>'
+                                '<div class="kpi-value">' + str(pct) + '%</div>'
+                                '<div class="kpi-label">' + label + '</div>'
+                                '<div style="margin-top:0.5rem;background:#334155;'
+                                'border-radius:6px;height:8px;overflow:hidden;">'
+                                '<div style="width:' + str(pct) + '%;'
+                                'background:' + bar_color + ';height:100%;'
+                                'border-radius:6px;"></div>'
+                                '</div>'
+                                '</div>',
+                                unsafe_allow_html=True,
+                            )
+
+                st.divider()
+                st.markdown("**Page Flow (Popular Navigation Paths)**")
+
+                flow_data = svc.get_page_flow()
+                if flow_data and flow_data.get("flows"):
+                    flows = flow_data["flows"]
+                    # Sort by value descending so the most-used paths appear first
+                    flows_sorted = sorted(flows, key=lambda f: f.get("value", 0), reverse=True)
+                    max_val = flows_sorted[0].get("value", 1) if flows_sorted else 1
+
+                    for flow in flows_sorted:
+                        src = flow.get("from", "?")
+                        dst = flow.get("to", "?")
+                        val = flow.get("value", 0)
+                        bar_pct = int((val / max_val) * 100) if max_val else 0
+
+                        st.markdown(
+                            '<div style="background:linear-gradient(145deg,#1a1a2e,#1e293b);'
+                            'border:1px solid #334155;border-radius:10px;padding:0.75rem 1rem;'
+                            'margin-bottom:0.5rem;display:flex;align-items:center;'
+                            'justify-content:space-between;gap:0.5rem;">'
+                            '<span style="color:#b8c5d4;min-width:100px;">' + src + '</span>'
+                            '<span style="color:#d4af37;" aria-hidden="true">&rarr;</span>'
+                            '<span style="color:#e2e8f0;min-width:100px;">' + dst + '</span>'
+                            '<div style="flex:1;background:#334155;border-radius:6px;'
+                            'height:8px;overflow:hidden;margin:0 0.5rem;">'
+                            '<div style="width:' + str(bar_pct) + '%;'
+                            'background:linear-gradient(90deg,#d4af37,#f4d03f);'
+                            'height:100%;border-radius:6px;"></div>'
+                            '</div>'
+                            '<span style="color:#d4af37;font-weight:700;min-width:30px;'
+                            'text-align:right;">' + str(val) + '</span>'
+                            '</div>',
+                            unsafe_allow_html=True,
+                        )
+                else:
+                    st.info("Data page flow belum tersedia.")
+
+            except Exception as e:
+                logger.debug(f"AnalyticsDashboardService error: {e}")
 
     except Exception as e:
         st.warning(f"Tidak dapat memuat user behavior: {e}")

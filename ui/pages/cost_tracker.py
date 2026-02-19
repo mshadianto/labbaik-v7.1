@@ -197,6 +197,130 @@ TRACKER_CSS = """
 .remaining-negative {
     color: #f87171;
 }
+
+/* --- Savings Tracker Section --- */
+.savings-tracker-section {
+    margin: 1.5rem 0;
+}
+
+.savings-table-header {
+    display: grid;
+    grid-template-columns: 2fr 1.5fr 1.5fr 1.5fr;
+    padding: 0.75rem 1.25rem;
+    background: rgba(212, 175, 55, 0.08);
+    border-radius: 12px 12px 0 0;
+    border: 1px solid #334155;
+    border-bottom: none;
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: #94a3b8;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+}
+
+.savings-row {
+    display: grid;
+    grid-template-columns: 2fr 1.5fr 1.5fr 1.5fr;
+    padding: 0.85rem 1.25rem;
+    border: 1px solid #1e293b;
+    border-bottom: none;
+    background: linear-gradient(145deg, #1a1a2e 0%, #1e293b 100%);
+    align-items: center;
+    transition: background 0.15s;
+}
+
+.savings-row:hover {
+    background: linear-gradient(145deg, #1e1e34 0%, #222c3d 100%);
+}
+
+.savings-row:last-of-type {
+    border-bottom: 1px solid #1e293b;
+    border-radius: 0 0 12px 12px;
+}
+
+.savings-row.total-row {
+    background: linear-gradient(145deg, #0f172a 0%, #1a2332 100%);
+    border-top: 2px solid #334155;
+    border-bottom: 1px solid #334155;
+    border-radius: 0 0 12px 12px;
+    font-weight: 700;
+    padding: 1rem 1.25rem;
+}
+
+.savings-cat {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-weight: 500;
+    color: #e2e8f0;
+}
+
+.savings-cat .cat-icon {
+    font-size: 1.15rem;
+}
+
+.savings-amount {
+    text-align: right;
+    font-size: 0.9rem;
+    color: #e2e8f0;
+}
+
+.savings-positive {
+    color: #4ade80;
+    font-weight: 600;
+}
+
+.savings-negative {
+    color: #f87171;
+    font-weight: 600;
+}
+
+.savings-pct-badge {
+    display: inline-block;
+    padding: 0.15rem 0.5rem;
+    border-radius: 999px;
+    font-size: 0.75rem;
+    font-weight: 600;
+}
+
+.savings-pct-badge.positive {
+    background: rgba(74, 222, 128, 0.12);
+    color: #4ade80;
+}
+
+.savings-pct-badge.negative {
+    background: rgba(248, 113, 113, 0.12);
+    color: #f87171;
+}
+
+.overall-savings-banner {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 1rem;
+    margin-top: 1rem;
+    padding: 1rem 1.5rem;
+    border-radius: 14px;
+    font-size: 1rem;
+    font-weight: 600;
+}
+
+.overall-savings-banner.positive {
+    background: linear-gradient(135deg, #0d2818 0%, #1a4d2e 100%);
+    border: 1px solid #22c55e;
+    color: #4ade80;
+}
+
+.overall-savings-banner.negative {
+    background: linear-gradient(135deg, #2d0a0a 0%, #4d1a1a 100%);
+    border: 1px solid #f87171;
+    color: #f87171;
+}
+
+.overall-savings-banner .big-number {
+    font-size: 1.6rem;
+    font-weight: 800;
+}
 """
 
 # =============================================================================
@@ -532,6 +656,120 @@ def render_dashboard():
                 {pct:.0f}% &mdash;
                 {'Sisa ' + format_idr(cat_remaining) if cat_remaining >= 0 else 'Lebih ' + format_idr(abs(cat_remaining))}
             </div>
+        </div>
+        """, unsafe_allow_html=True)
+
+
+# =============================================================================
+# UI: SAVINGS TRACKER
+# =============================================================================
+
+def render_savings_tracker():
+    """Render savings comparison table: Budget vs Spent vs Savings per category."""
+    budget = st.session_state.tracker_budget
+    total_budget = get_total_budget()
+    total_spent = get_total_spent()
+    total_savings = total_budget - total_spent
+
+    st.markdown("### \U0001f4ca Savings Tracker")
+    st.caption(
+        "Perbandingan budget vs pengeluaran aktual per kategori. "
+        "Hijau = hemat, Merah = melebihi budget."
+    )
+
+    st.markdown('<div class="savings-tracker-section">', unsafe_allow_html=True)
+
+    # Table header
+    st.markdown("""
+    <div class="savings-table-header">
+        <div>Kategori</div>
+        <div style="text-align:right;">Budget</div>
+        <div style="text-align:right;">Terpakai</div>
+        <div style="text-align:right;">Selisih</div>
+    </div>
+    """, unsafe_allow_html=True)
+
+    # Category rows
+    for cat_id, cat_info in EXPENSE_CATEGORIES.items():
+        cat_budget = budget.get(cat_id, 0)
+        cat_spent = get_spent_by_category(cat_id)
+        cat_savings = cat_budget - cat_spent
+        is_positive = cat_savings >= 0
+
+        savings_class = "savings-positive" if is_positive else "savings-negative"
+        savings_label = format_idr(abs(cat_savings))
+        if not is_positive:
+            savings_label = f"-{savings_label}"
+
+        # Percentage badge
+        if cat_budget > 0:
+            pct_saved = (cat_savings / cat_budget) * 100
+            pct_class = "positive" if is_positive else "negative"
+            if is_positive:
+                pct_text = f"Hemat {abs(pct_saved):.0f}%"
+            else:
+                pct_text = f"Lebih {abs(pct_saved):.0f}%"
+            pct_badge = (
+                f'<span class="savings-pct-badge {pct_class}">{pct_text}</span>'
+            )
+        else:
+            pct_badge = ""
+
+        st.markdown(f"""
+        <div class="savings-row">
+            <div class="savings-cat">
+                <span class="cat-icon">{cat_info['icon']}</span>
+                <span>{cat_info['label']}</span>
+            </div>
+            <div class="savings-amount">{format_idr(cat_budget)}</div>
+            <div class="savings-amount">{format_idr(cat_spent)}</div>
+            <div class="savings-amount {savings_class}">
+                {savings_label} {pct_badge}
+            </div>
+        </div>
+        """, unsafe_allow_html=True)
+
+    # Total row
+    is_total_positive = total_savings >= 0
+    total_savings_class = "savings-positive" if is_total_positive else "savings-negative"
+    total_savings_label = format_idr(abs(total_savings))
+    if not is_total_positive:
+        total_savings_label = f"-{total_savings_label}"
+
+    st.markdown(f"""
+    <div class="savings-row total-row">
+        <div class="savings-cat">
+            <span class="cat-icon">\U0001f4b0</span>
+            <span>TOTAL</span>
+        </div>
+        <div class="savings-amount">{format_idr(total_budget)}</div>
+        <div class="savings-amount">{format_idr(total_spent)}</div>
+        <div class="savings-amount {total_savings_class}">{total_savings_label}</div>
+    </div>
+    """, unsafe_allow_html=True)
+
+    st.markdown('</div>', unsafe_allow_html=True)
+
+    # Overall savings percentage banner
+    if total_budget > 0:
+        overall_pct = (total_savings / total_budget) * 100
+        banner_class = "positive" if is_total_positive else "negative"
+
+        if is_total_positive:
+            banner_icon = "\u2705"
+            banner_text = "Total Penghematan"
+            pct_display = f"{overall_pct:.1f}%"
+        else:
+            banner_icon = "\U0001f6a8"
+            banner_text = "Budget Terlampaui"
+            pct_display = f"{abs(overall_pct):.1f}%"
+
+        st.markdown(f"""
+        <div class="overall-savings-banner {banner_class}">
+            <span>{banner_icon}</span>
+            <span>{banner_text}:</span>
+            <span class="big-number">{pct_display}</span>
+            <span>({format_idr_full(abs(total_savings))})</span>
         </div>
         """, unsafe_allow_html=True)
 
@@ -1023,6 +1261,11 @@ def render_cost_tracker_page():
 
     # Dashboard metrics and category breakdown
     render_dashboard()
+
+    st.divider()
+
+    # Savings comparison: Budget vs Actual per category
+    render_savings_tracker()
 
     st.divider()
 

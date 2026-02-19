@@ -17,10 +17,10 @@ from ui.components.shared_styles import inject_css, HERO_CSS, CARD_CSS, AI_CARD_
 
 # Demo hotel data for when API is unavailable
 DEMO_HOTELS = [
-    {"name": "Hilton Suites Makkah", "stars": 5, "distance": "350m dari Haram", "prices": {"Booking.com": "SAR 890", "Agoda": "SAR 920", "Expedia": "SAR 950"}},
-    {"name": "Elaf Ajyad Hotel", "stars": 4, "distance": "500m dari Haram", "prices": {"Booking.com": "SAR 450", "Agoda": "SAR 470", "Traveloka": "SAR 440"}},
-    {"name": "Al Marwa Rayhaan", "stars": 5, "distance": "200m dari Haram", "prices": {"Booking.com": "SAR 1,200", "Hotels.com": "SAR 1,250", "Expedia": "SAR 1,180"}},
-    {"name": "Dar Al Tawhid Intercontinental", "stars": 5, "distance": "100m dari Haram", "prices": {"Booking.com": "SAR 1,800", "Agoda": "SAR 1,850"}},
+    {"name": "Hilton Suites Makkah", "stars": 5, "distance": "350m dari Haram", "prices": {"Booking.com": "SAR 890", "Agoda": "SAR 920", "Expedia": "SAR 950"}, "amenities": "Free WiFi, free shuttle to Haram, breakfast included, air conditioning, elevator, family room, restaurant, room service, laundry, prayer room"},
+    {"name": "Elaf Ajyad Hotel", "stars": 4, "distance": "500m dari Haram", "prices": {"Booking.com": "SAR 450", "Agoda": "SAR 470", "Traveloka": "SAR 440"}, "amenities": "Free WiFi, air conditioning, elevator, restaurant, 24-hour reception desk, parking available, wheelchair accessible"},
+    {"name": "Al Marwa Rayhaan", "stars": 5, "distance": "200m dari Haram", "prices": {"Booking.com": "SAR 1,200", "Hotels.com": "SAR 1,250", "Expedia": "SAR 1,180"}, "amenities": "Free WiFi, free shuttle to Masjidil Haram, complimentary breakfast, family room, connecting rooms, spa, gym, pool, concierge, room service, Quran in room"},
+    {"name": "Dar Al Tawhid Intercontinental", "stars": 5, "distance": "100m dari Haram", "prices": {"Booking.com": "SAR 1,800", "Agoda": "SAR 1,850"}, "amenities": "Free WiFi, free breakfast, suite available, wheelchair accessible, elevator, prayer room, minibar, safe, room service, laundry, concierge, air conditioning"},
 ]
 
 # =============================================================================
@@ -46,6 +46,27 @@ try:
 except ImportError:
     HAS_ACCESS_CONTROL = False
     logger.warning("Access control not available")
+
+# Amenity intelligence imports
+try:
+    from services.intelligence.amenities import extract_signals, get_highlight_amenities
+    HAS_AMENITIES = True
+except ImportError:
+    HAS_AMENITIES = False
+    logger.warning("Amenity intelligence not available")
+
+# Risk score imports
+try:
+    from services.intelligence.risk_score import (
+        get_risk_calculator,
+        RiskLevel,
+        format_risk_badge,
+        format_risk_color,
+    )
+    HAS_RISK_SCORE = True
+except ImportError:
+    HAS_RISK_SCORE = False
+    logger.warning("Risk score service not available")
 
 
 # =============================================================================
@@ -178,6 +199,38 @@ def render_hotel_card(hotel: Dict, nights: int = 1):
             if address:
                 st.caption(f"📍 {address}")
 
+            # Amenity highlight badges
+            if HAS_AMENITIES:
+                amenities_text = hotel.get('amenities', '')
+                if amenities_text:
+                    try:
+                        signals = extract_signals(amenities_text)
+                        highlights = get_highlight_amenities(signals)
+                        if highlights:
+                            badge_colors = {
+                                "Shuttle ke Haram": "#2e7d32",
+                                "Free Shuttle": "#2e7d32",
+                                "Shuttle Available": "#1b5e20",
+                                "Wheelchair Access": "#1565c0",
+                                "Free Breakfast": "#e65100",
+                                "Breakfast Available": "#bf360c",
+                                "Family Room": "#6a1b9a",
+                                "Free WiFi": "#00838f",
+                                "Prayer Room": "#4a148c",
+                            }
+                            badges_html = " ".join(
+                                f'<span style="display:inline-block;background:{badge_colors.get(h, "#37474f")}; '
+                                f'color:#ffffff;font-size:0.7rem;padding:2px 8px;border-radius:12px; '
+                                f'margin:2px 2px 2px 0;white-space:nowrap;">{h}</span>'
+                                for h in highlights
+                            )
+                            st.markdown(
+                                f'<div style="margin-top:4px;">{badges_html}</div>',
+                                unsafe_allow_html=True,
+                            )
+                    except Exception:
+                        pass  # Graceful fallback if amenity extraction fails
+
         with col2:
             # Price
             price = hotel.get('price_per_night', 0)
@@ -185,6 +238,40 @@ def render_hotel_card(hotel: Dict, nights: int = 1):
 
             st.markdown(f"### {currency} {price:,.0f}")
             st.caption("per malam")
+
+            # Risk score badge (based on seasonal/urgency factors)
+            if HAS_RISK_SCORE:
+                search_params = st.session_state.get('hotel_search_params', {})
+                check_in_str = search_params.get('check_in', '')
+                if check_in_str:
+                    try:
+                        from datetime import date as _date_type
+                        checkin_date = datetime.strptime(check_in_str, '%Y-%m-%d').date()
+                        calculator = get_risk_calculator()
+                        seasonal_score, seasonal_reasons = calculator.calculate_seasonal_score(checkin_date)
+                        urgency_score, urgency_reasons = calculator.calculate_urgency_score(checkin_date)
+                        # Combine seasonal (60%) and urgency (40%) for a simple composite
+                        combined_score = int(seasonal_score * 0.6 + urgency_score * 0.4)
+                        combined_score = min(100, max(0, combined_score))
+                        # Determine risk level from combined score
+                        if combined_score >= 81:
+                            risk_level = RiskLevel.CRITICAL
+                        elif combined_score >= 61:
+                            risk_level = RiskLevel.HIGH
+                        elif combined_score >= 31:
+                            risk_level = RiskLevel.MEDIUM
+                        else:
+                            risk_level = RiskLevel.LOW
+                        risk_color = format_risk_color(risk_level)
+                        risk_text = format_risk_badge(risk_level)
+                        st.markdown(
+                            f'<div style="display:inline-block;background:{risk_color}; '
+                            f'color:#ffffff;font-size:0.7rem;font-weight:bold;padding:3px 10px; '
+                            f'border-radius:12px;margin-top:4px;">{risk_text}</div>',
+                            unsafe_allow_html=True,
+                        )
+                    except Exception:
+                        pass  # Graceful fallback if risk calculation fails
 
             # Total price
             total = price * nights
@@ -425,6 +512,35 @@ def render_hotel_compare_page():
                         st.markdown(f"**{'⭐' * h['stars']} {h['name']}** — {h['distance']}")
                         price_text = " | ".join(f"{k}: **{v}**" for k, v in h["prices"].items())
                         st.markdown(price_text)
+                        # Amenity badges for demo hotels
+                        if HAS_AMENITIES and h.get('amenities'):
+                            try:
+                                demo_signals = extract_signals(h['amenities'])
+                                demo_highlights = get_highlight_amenities(demo_signals)
+                                if demo_highlights:
+                                    demo_badge_colors = {
+                                        "Shuttle ke Haram": "#2e7d32",
+                                        "Free Shuttle": "#2e7d32",
+                                        "Shuttle Available": "#1b5e20",
+                                        "Wheelchair Access": "#1565c0",
+                                        "Free Breakfast": "#e65100",
+                                        "Breakfast Available": "#bf360c",
+                                        "Family Room": "#6a1b9a",
+                                        "Free WiFi": "#00838f",
+                                        "Prayer Room": "#4a148c",
+                                    }
+                                    demo_badges_html = " ".join(
+                                        f'<span style="display:inline-block;background:{demo_badge_colors.get(hl, "#37474f")}; '
+                                        f'color:#ffffff;font-size:0.7rem;padding:2px 8px;border-radius:12px; '
+                                        f'margin:2px 2px 2px 0;white-space:nowrap;">{hl}</span>'
+                                        for hl in demo_highlights
+                                    )
+                                    st.markdown(
+                                        f'<div style="margin-top:4px;">{demo_badges_html}</div>',
+                                        unsafe_allow_html=True,
+                                    )
+                            except Exception:
+                                pass
             else:
                 render_skeleton("cards", count=3)
                 st.caption("Pilih kota dan tanggal untuk melihat harga hotel")

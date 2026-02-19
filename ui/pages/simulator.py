@@ -185,7 +185,95 @@ SIMULATOR_CSS = """
     color: #ccc;
     font-size: 0.9rem;
 }
+
+.budget-template-card {
+    background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+    border: 1px solid #333;
+    border-radius: 12px;
+    padding: 1rem;
+    text-align: center;
+    transition: border-color 0.2s ease;
+    min-height: 180px;
+}
+
+.budget-template-card:hover {
+    border-color: #d4af37;
+}
+
+.budget-template-card .template-icon {
+    font-size: 2rem;
+    margin-bottom: 0.5rem;
+}
+
+.budget-template-card .template-name {
+    color: #d4af37;
+    font-weight: bold;
+    font-size: 1rem;
+    margin-bottom: 0.3rem;
+}
+
+.budget-template-card .template-desc {
+    color: #b0b0b0;
+    font-size: 0.8rem;
+    margin-bottom: 0.5rem;
+}
+
+.budget-template-card .template-price {
+    color: #28a745;
+    font-weight: bold;
+    font-size: 1.1rem;
+}
+
+@media (max-width: 768px) {
+    .budget-template-card {
+        min-height: 140px;
+        padding: 0.75rem;
+    }
+}
 """
+
+# =============================================================================
+# BUDGET TEMPLATE PRESETS
+# =============================================================================
+
+BUDGET_TEMPLATES = {
+    "backpacker": {
+        "label": "🎒 Backpacker",
+        "description": "Umrah hemat, hotel budget, makan sederhana",
+        "hotel_stars": 2,
+        "meals_budget": "hemat",
+        "transport": "bus",
+        "duration_days": 9,
+        "total_estimate_idr": 18_000_000,
+    },
+    "standard": {
+        "label": "⭐ Standard",
+        "description": "Umrah nyaman, hotel bintang 3-4, makan lengkap",
+        "hotel_stars": 3,
+        "meals_budget": "standar",
+        "transport": "mix",
+        "duration_days": 9,
+        "total_estimate_idr": 28_000_000,
+    },
+    "premium": {
+        "label": "💎 Premium",
+        "description": "Hotel bintang 5 dekat Haram, full board",
+        "hotel_stars": 5,
+        "meals_budget": "premium",
+        "transport": "private",
+        "duration_days": 12,
+        "total_estimate_idr": 45_000_000,
+    },
+    "vip": {
+        "label": "👑 VIP Executive",
+        "description": "View Haram, private guide, business class",
+        "hotel_stars": 5,
+        "meals_budget": "premium",
+        "transport": "private",
+        "duration_days": 12,
+        "total_estimate_idr": 75_000_000,
+    },
+}
 
 
 # =============================================================================
@@ -2426,10 +2514,32 @@ def render_simulator_page():
             st.metric("📊 Akurasi", "95%+")
     
     st.divider()
-    
+
+    # Quick Start - Budget Template Presets
+    st.markdown("### 🚀 Quick Start — Pilih Template Budget")
+    st.caption("Gunakan sebagai referensi untuk mengisi form di bawah")
+
+    tpl_cols = st.columns(4)
+    for idx, (key, tpl) in enumerate(BUDGET_TEMPLATES.items()):
+        with tpl_cols[idx]:
+            icon = tpl["label"].split(" ")[0]
+            name = " ".join(tpl["label"].split(" ")[1:])
+            price_str = f"Rp {tpl['total_estimate_idr']:,.0f}".replace(",", ".")
+            st.markdown(f"""
+<div class="budget-template-card">
+    <div class="template-icon"><span aria-hidden="true">{icon}</span></div>
+    <div class="template-name">{name}</div>
+    <div class="template-desc">{tpl['description']}</div>
+    <div class="template-price">~{price_str}</div>
+    <div class="template-desc">{tpl['duration_days']} hari · Hotel {'⭐' * tpl['hotel_stars']}</div>
+</div>
+""", unsafe_allow_html=True)
+
+    st.divider()
+
     # Two column layout
     col_input, col_result = st.columns([1, 1])
-    
+
     with col_input:
         params = render_input_section()
     
