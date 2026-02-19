@@ -90,6 +90,27 @@ except ImportError:
     HAS_ANALYTICS = False
     def track_page(page): pass
 
+# Risk Score Intelligence
+try:
+    from services.intelligence.risk_score import (
+        get_risk_calculator,
+        RiskLevel,
+        format_risk_badge,
+        format_risk_color,
+    )
+    HAS_RISK_SCORE = True
+except ImportError:
+    HAS_RISK_SCORE = False
+    logger.warning("Risk score service not available")
+
+# Geo Cluster & Deduplication
+try:
+    from services.intelligence.geo_cluster import deduplicate_hotels, merge_hotel_data
+    HAS_GEO_CLUSTER = True
+except ImportError:
+    HAS_GEO_CLUSTER = False
+    logger.warning("Geo cluster service not available")
+
 
 # =============================================================================
 # PAGE-SPECIFIC CSS
@@ -251,6 +272,89 @@ PRICE_HUB_CSS = """
 
 .freshness-dot.stale {
     background: #f87171;
+}
+
+/* Risk score badge */
+.risk-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+    padding: 3px 10px;
+    border-radius: 6px;
+    font-size: 0.75rem;
+    font-weight: bold;
+    margin-top: 4px;
+    border: 1px solid;
+}
+
+.risk-badge.risk-low {
+    background: rgba(76, 175, 80, 0.15);
+    color: #4CAF50;
+    border-color: #4CAF50;
+}
+
+.risk-badge.risk-medium {
+    background: rgba(255, 193, 7, 0.15);
+    color: #FFC107;
+    border-color: #FFC107;
+}
+
+.risk-badge.risk-high {
+    background: rgba(255, 152, 0, 0.15);
+    color: #FF9800;
+    border-color: #FF9800;
+}
+
+.risk-badge.risk-critical {
+    background: rgba(244, 67, 54, 0.15);
+    color: #F44336;
+    border-color: #F44336;
+}
+
+.risk-tooltip {
+    font-size: 0.72rem;
+    color: #b0b0b0;
+    margin-top: 2px;
+    font-style: italic;
+}
+
+/* Merged hotel indicator */
+.merge-indicator {
+    display: inline-block;
+    background: #1e293b;
+    color: #b8c5d4;
+    padding: 2px 8px;
+    border-radius: 8px;
+    font-size: 0.72rem;
+    margin-top: 4px;
+    border: 1px solid #334155;
+}
+
+/* Risk legend section */
+.risk-legend-item {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.3rem 0;
+}
+
+.risk-legend-dot {
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    display: inline-block;
+    flex-shrink: 0;
+}
+
+.risk-legend-label {
+    color: #e2e8f0;
+    font-size: 0.82rem;
+    font-weight: 600;
+}
+
+.risk-legend-desc {
+    color: #b0b0b0;
+    font-size: 0.78rem;
 }
 
 /* Source stat card */
@@ -515,6 +619,175 @@ def _build_source_badge_html(source_name: str) -> str:
         '<span class="source-badge" style="background-color:'
         + badge_color + ';">' + badge_label + '</span>'
     )
+
+
+def _compute_risk_for_dates(check_in_str: str, check_out_str: str) -> Optional[Dict]:
+    """
+    Compute risk level based on search dates using seasonal + urgency scores.
+
+    Returns dict with level, score, color, badge_text, tooltip or None.
+    """
+    if not HAS_RISK_SCORE:
+        return None
+
+    try:
+        calculator = get_risk_calculator()
+
+        # Parse dates
+        if isinstance(check_in_str, str):
+            checkin_date = datetime.strptime(check_in_str, '%Y-%m-%d').date()
+        elif isinstance(check_in_str, date):
+            checkin_date = check_in_str
+        else:
+            return None
+
+        # Calculate seasonal and urgency scores
+        seasonal_score, seasonal_reasons = calculator.calculate_seasonal_score(checkin_date)
+        urgency_score, urgency_reasons = calculator.calculate_urgency_score(checkin_date)
+
+        # Composite: 60% seasonal + 40% urgency
+        composite = int(seasonal_score * 0.6 + urgency_score * 0.4)
+        composite = min(100, max(0, composite))
+
+        # Map to risk level
+        if composite >= 81:
+            level = RiskLevel.CRITICAL
+        elif composite >= 61:
+            level = RiskLevel.HIGH
+        elif composite >= 31:
+            level = RiskLevel.MEDIUM
+        else:
+            level = RiskLevel.LOW
+
+        color = format_risk_color(level)
+
+        # Indonesian badge text and tooltips
+        badge_texts = {
+            RiskLevel.LOW: "Risiko Rendah",
+            RiskLevel.MEDIUM: "Risiko Sedang",
+            RiskLevel.HIGH: "Risiko Tinggi",
+            RiskLevel.CRITICAL: "Risiko Kritis",
+        }
+        tooltips = {
+            RiskLevel.LOW: "Harga stabil, ketersediaan tinggi. Aman untuk membandingkan.",
+            RiskLevel.MEDIUM: "Permintaan mulai naik. Pertimbangkan untuk booking segera.",
+            RiskLevel.HIGH: "Harga kemungkinan naik. Segera booking untuk harga terbaik.",
+            RiskLevel.CRITICAL: "Peak season, harga tertinggi. Booking sekarang sebelum habis!",
+        }
+
+        reasons = seasonal_reasons + urgency_reasons
+
+        return {
+            "level": level,
+            "score": composite,
+            "color": color,
+            "badge_text": badge_texts.get(level, "Tidak Diketahui"),
+            "tooltip": tooltips.get(level, ""),
+            "reasons": reasons,
+        }
+
+    except Exception as e:
+        logger.error(f"Risk score computation failed: {e}")
+        return None
+
+
+def _render_risk_badge_html(risk_info: Dict) -> str:
+    """Build HTML for a risk badge with tooltip."""
+    level = risk_info["level"]
+    css_class = f"risk-{level.value}"
+    badge_text = risk_info["badge_text"]
+    tooltip = risk_info["tooltip"]
+    score = risk_info["score"]
+
+    html = (
+        '<div>'
+        '<span class="risk-badge ' + css_class + '" '
+        'title="' + tooltip + '">'
+        + badge_text + ' (' + str(score) + ')'
+        '</span>'
+        '<div class="risk-tooltip">' + tooltip + '</div>'
+        '</div>'
+    )
+    return html
+
+
+def _render_risk_legend():
+    """Render the Skor Risiko legend/explainer as an expandable section."""
+    with st.expander("Skor Risiko — Panduan Level", expanded=False):
+        levels = [
+            ("#4CAF50", "Rendah", "Harga stabil, ketersediaan tinggi"),
+            ("#FFC107", "Sedang", "Pertimbangkan untuk booking segera"),
+            ("#FF9800", "Tinggi", "Harga kemungkinan naik, segera booking"),
+            ("#F44336", "Kritis", "Peak season, harga tertinggi"),
+        ]
+        emojis = [
+            "\U0001f7e2",  # green circle
+            "\U0001f7e1",  # yellow circle
+            "\U0001f7e0",  # orange circle
+            "\U0001f534",  # red circle
+        ]
+
+        for i, (color, label, desc) in enumerate(levels):
+            emoji = emojis[i]
+            item_html = (
+                '<div class="risk-legend-item">'
+                '<span class="risk-legend-dot" style="background:' + color + ';" '
+                'aria-hidden="true"></span>'
+                '<span class="risk-legend-label">'
+                '<span aria-hidden="true">' + emoji + '</span> ' + label + '</span>'
+                '<span class="risk-legend-desc">— ' + desc + '</span>'
+                '</div>'
+            )
+            st.markdown(item_html, unsafe_allow_html=True)
+
+        st.caption(
+            "Skor dihitung berdasarkan musim (60%) dan urgensi waktu check-in (40%). "
+            "Semakin tinggi skor, semakin disarankan untuk segera booking."
+        )
+
+
+def _deduplicate_hotel_list(hotels: List[Dict], city: str) -> tuple:
+    """
+    Run geo-cluster deduplication on hotel list.
+
+    Returns (deduplicated_hotels, clusters) or (hotels, []) if unavailable.
+    """
+    if not HAS_GEO_CLUSTER:
+        return hotels, []
+
+    try:
+        deduped, clusters = deduplicate_hotels(hotels, city, auto_merge=True)
+        return deduped, clusters
+    except Exception as e:
+        logger.error(f"Hotel deduplication failed: {e}")
+        return hotels, []
+
+
+def _get_alternate_names(hotel: Dict, clusters: list) -> List[str]:
+    """Get alternate names for a hotel from cluster data."""
+    if not clusters:
+        return []
+
+    hotel_id = hotel.get("hotel_id") or hotel.get("id")
+    if not hotel_id:
+        return []
+
+    for cluster in clusters:
+        member_ids = [
+            m.get("hotel_id") or m.get("id") for m in cluster.members
+        ]
+        if hotel_id in member_ids:
+            # Return names of other members (not this hotel)
+            hotel_name = hotel.get("hotel_name") or hotel.get("name", "")
+            alt_names = []
+            for m in cluster.members:
+                m_id = m.get("hotel_id") or m.get("id")
+                m_name = m.get("hotel_name") or m.get("name", "")
+                if m_id != hotel_id and m_name and m_name != hotel_name:
+                    alt_names.append(m_name)
+            return alt_names
+
+    return []
 
 
 def _get_connected_aggregator():
@@ -930,8 +1203,14 @@ def render_hotel_search_form() -> Optional[Dict]:
     return None
 
 
-def render_hotel_card(hotel: Dict, nights: int = 1, show_vendors: bool = True):
-    """Render a single hotel card with vendor comparison."""
+def render_hotel_card(
+    hotel: Dict,
+    nights: int = 1,
+    show_vendors: bool = True,
+    risk_info: Optional[Dict] = None,
+    alt_names: Optional[List[str]] = None,
+):
+    """Render a single hotel card with vendor comparison, risk badge, and merge indicator."""
 
     with st.container(border=True):
         col1, col2 = st.columns([2, 1])
@@ -948,6 +1227,31 @@ def render_hotel_card(hotel: Dict, nights: int = 1, show_vendors: bool = True):
                 truncated = address[:50]
                 st.caption(f"{truncated}...")
 
+            # Merge indicator — show alternate names from deduplication
+            try:
+                if alt_names:
+                    names_str = ", ".join(alt_names[:3])
+                    merge_html = (
+                        '<span class="merge-indicator">'
+                        '<span aria-hidden="true">&#128279;</span> '
+                        'Juga dikenal sebagai: ' + names_str
+                        + '</span>'
+                    )
+                    st.markdown(merge_html, unsafe_allow_html=True)
+
+                # Show merged count if hotel was merged from multiple providers
+                if hotel.get("is_merged") and hotel.get("merged_count", 0) > 1:
+                    count = hotel["merged_count"]
+                    merged_html = (
+                        '<span class="merge-indicator">'
+                        '<span aria-hidden="true">&#128200;</span> '
+                        'Data digabung dari ' + str(count) + ' sumber'
+                        '</span>'
+                    )
+                    st.markdown(merged_html, unsafe_allow_html=True)
+            except Exception:
+                pass
+
         with col2:
             price = hotel.get('price_per_night', 0)
             currency = hotel.get('currency', 'SAR')
@@ -958,6 +1262,14 @@ def render_hotel_card(hotel: Dict, nights: int = 1, show_vendors: bool = True):
             total = price * nights
             st.markdown(f"**Total: {currency} {total:,.0f}**")
             st.caption(f"untuk {nights} malam")
+
+            # Risk score badge next to price
+            try:
+                if risk_info:
+                    badge_html = _render_risk_badge_html(risk_info)
+                    st.markdown(badge_html, unsafe_allow_html=True)
+            except Exception:
+                pass
 
         # Vendor comparison
         vendors = hotel.get('vendors', [])
@@ -1001,7 +1313,7 @@ def render_hotel_card(hotel: Dict, nights: int = 1, show_vendors: bool = True):
 
 
 def render_hotel_results(result: Dict):
-    """Render hotel search results."""
+    """Render hotel search results with risk scores and deduplication."""
 
     hotels = result.get('hotels', [])
     nights = 1
@@ -1018,9 +1330,29 @@ def render_hotel_results(result: Dict):
         st.warning("Tidak ada hotel ditemukan untuk pencarian ini.")
         return
 
+    # --- Geo-cluster deduplication ---
+    city_name = result.get('city', 'Unknown')
+    clusters = []
+    dedup_count = 0
+    try:
+        original_count = len(hotels)
+        hotels, clusters = _deduplicate_hotel_list(hotels, city_name)
+        dedup_count = original_count - len(hotels)
+    except Exception:
+        pass
+
+    # --- Compute risk score for these search dates ---
+    risk_info = None
+    try:
+        ci_str = result.get('check_in')
+        co_str = result.get('check_out')
+        if ci_str:
+            risk_info = _compute_risk_for_dates(ci_str, co_str)
+    except Exception:
+        pass
+
     # Header
     hotel_count = len(hotels)
-    city_name = result.get('city', 'Unknown')
     st.markdown(f"### {hotel_count} Hotel di {city_name}")
 
     source = result.get('source', 'unknown')
@@ -1032,6 +1364,19 @@ def render_hotel_results(result: Dict):
     ci = result.get('check_in')
     co = result.get('check_out')
     st.caption(f"Check-in: {ci} | Check-out: {co} | {nights} malam")
+
+    # Show dedup info if duplicates were merged
+    if dedup_count > 0:
+        st.info(
+            f"Ditemukan {dedup_count} duplikat hotel yang telah digabungkan secara otomatis."
+        )
+
+    # Risk score legend
+    try:
+        if risk_info:
+            _render_risk_legend()
+    except Exception:
+        pass
 
     # Sort options
     sort_by = st.selectbox(
@@ -1052,7 +1397,19 @@ def render_hotel_results(result: Dict):
     st.markdown("---")
 
     for hotel in hotels:
-        render_hotel_card(hotel, nights)
+        # Get alternate names from clusters
+        alt_names = []
+        try:
+            alt_names = _get_alternate_names(hotel, clusters)
+        except Exception:
+            pass
+
+        render_hotel_card(
+            hotel,
+            nights,
+            risk_info=risk_info,
+            alt_names=alt_names,
+        )
 
     # Gamification: +25 XP for comparing prices (first time)
     if not st.session_state.get("price_hub_compare_xp_awarded", False):

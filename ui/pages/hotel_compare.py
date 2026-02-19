@@ -15,6 +15,76 @@ logger = logging.getLogger(__name__)
 from services.ai.helpers import ai_complete, add_xp_safe
 from ui.components.shared_styles import inject_css, HERO_CSS, CARD_CSS, AI_CARD_CSS, SKELETON_CSS, render_skeleton
 
+# =============================================================================
+# AMENITY FILTER CSS
+# =============================================================================
+
+AMENITY_FILTER_CSS = """
+<style>
+/* Amenity filter section */
+.amenity-filter-section {
+    background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+    border: 1px solid #2a2a4a;
+    border-radius: 10px;
+    padding: 0.8rem 1rem;
+    margin: 0.8rem 0;
+}
+.amenity-filter-section h4 {
+    color: #d4af37;
+    font-size: 0.95rem;
+    margin: 0 0 0.5rem 0;
+}
+
+/* Amenity match badge on hotel cards */
+.amenity-match-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: #1a1a2e;
+    border: 1px solid #2a2a4a;
+    border-radius: 8px;
+    padding: 6px 12px;
+    margin-top: 6px;
+}
+.amenity-match-badge .match-text {
+    color: #b8c5d4;
+    font-size: 0.8rem;
+}
+.amenity-match-badge .match-text strong {
+    color: #d4af37;
+}
+
+/* Amenity match progress bar */
+.amenity-match-bar {
+    height: 6px;
+    border-radius: 3px;
+    background: #2a2a4a;
+    overflow: hidden;
+    width: 100%;
+    margin-top: 4px;
+}
+.amenity-match-bar-fill {
+    height: 100%;
+    border-radius: 3px;
+    transition: width 0.3s ease;
+}
+
+/* Match count summary */
+.amenity-match-summary {
+    background: linear-gradient(90deg, #1a1a2e 0%, #0d1b2a 100%);
+    border: 1px solid #d4af37;
+    border-radius: 8px;
+    padding: 0.6rem 1rem;
+    margin: 0.5rem 0;
+    color: #b8c5d4;
+    font-size: 0.9rem;
+}
+.amenity-match-summary strong {
+    color: #d4af37;
+}
+</style>
+"""
+
 # Demo hotel data for when API is unavailable
 DEMO_HOTELS = [
     {"name": "Hilton Suites Makkah", "stars": 5, "distance": "350m dari Haram", "prices": {"Booking.com": "SAR 890", "Agoda": "SAR 920", "Expedia": "SAR 950"}, "amenities": "Free WiFi, free shuttle to Haram, breakfast included, air conditioning, elevator, family room, restaurant, room service, laundry, prayer room"},
@@ -93,6 +163,60 @@ def get_default_dates() -> tuple:
     check_in = datetime.now() + timedelta(days=30)
     check_out = check_in + timedelta(days=5)
     return check_in.date(), check_out.date()
+
+
+# =============================================================================
+# AMENITY FILTER DEFINITIONS
+# =============================================================================
+
+# Maps filter key -> (label for UI, signal attribute name on AmenitySignals)
+AMENITY_FILTER_OPTIONS = [
+    ("shuttle", "Shuttle ke Haram", "shuttle"),
+    ("wifi", "Free WiFi", "wifi"),
+    ("breakfast", "Sarapan Gratis", "breakfast"),
+    ("prayer_room", "Ruang Sholat", "prayer_room"),
+    ("wheelchair", "Akses Kursi Roda", "wheelchair_access"),
+    ("family_room", "Kamar Keluarga", "family_room"),
+]
+
+
+def _get_amenities_text(hotel: Dict) -> str:
+    """Extract amenities text from hotel dict, handling both str and list formats."""
+    amenities = hotel.get('amenities', '')
+    if isinstance(amenities, list):
+        return ', '.join(str(a) for a in amenities)
+    return str(amenities) if amenities else ''
+
+
+def _compute_amenity_match(hotel: Dict, active_filters: List[str]) -> tuple:
+    """
+    Compute amenity match for a hotel against active filters.
+
+    Returns:
+        (matched_count, total_filters, matched_names, signals)
+    """
+    if not HAS_AMENITIES or not active_filters:
+        return (0, 0, [], None)
+
+    amenities_text = _get_amenities_text(hotel)
+    if not amenities_text:
+        return (0, len(active_filters), [], None)
+
+    try:
+        signals = extract_signals(amenities_text)
+    except Exception:
+        return (0, len(active_filters), [], None)
+
+    # Map filter keys to signal attribute names
+    filter_to_attr = {f[0]: f[2] for f in AMENITY_FILTER_OPTIONS}
+
+    matched = []
+    for fkey in active_filters:
+        attr_name = filter_to_attr.get(fkey, fkey)
+        if getattr(signals, attr_name, False):
+            matched.append(fkey)
+
+    return (len(matched), len(active_filters), matched, signals)
 
 
 # =============================================================================
@@ -182,7 +306,87 @@ def render_search_form() -> Optional[Dict]:
     return None
 
 
-def render_hotel_card(hotel: Dict, nights: int = 1):
+def render_amenity_filters():
+    """Render amenity filter checkboxes. Returns list of active filter keys."""
+    if not HAS_AMENITIES:
+        return []
+
+    try:
+        st.markdown("""
+            <div class="amenity-filter-section">
+                <h4><span aria-hidden="true">🏷️ </span>Filter Fasilitas</h4>
+            </div>
+        """, unsafe_allow_html=True)
+
+        # Initialize session state for amenity filters if not present
+        if 'amenity_filters' not in st.session_state:
+            st.session_state.amenity_filters = {}
+
+        active_filters = []
+
+        for fkey, label, _attr in AMENITY_FILTER_OPTIONS:
+            checked = st.checkbox(
+                label,
+                value=st.session_state.amenity_filters.get(fkey, False),
+                key=f"amenity_filter_{fkey}",
+            )
+            st.session_state.amenity_filters[fkey] = checked
+            if checked:
+                active_filters.append(fkey)
+
+        if active_filters:
+            st.caption(f"{len(active_filters)} filter aktif")
+
+        return active_filters
+
+    except Exception as e:
+        logger.warning(f"Amenity filter render error: {e}")
+        return []
+
+
+def render_amenity_match_badge(hotel: Dict, active_filters: List[str]):
+    """Render amenity match score badge on a hotel card."""
+    if not HAS_AMENITIES or not active_filters:
+        return
+
+    try:
+        matched, total, matched_names, _signals = _compute_amenity_match(hotel, active_filters)
+
+        if total == 0:
+            return
+
+        # Determine color based on match ratio
+        ratio = matched / total
+        if ratio >= 1.0:
+            bar_color = "#2e7d32"  # Green - perfect match
+            text_color = "#66bb6a"
+        elif ratio >= 0.5:
+            bar_color = "#d4af37"  # Gold - partial match
+            text_color = "#d4af37"
+        else:
+            bar_color = "#c62828"  # Red - low match
+            text_color = "#ef5350"
+
+        pct = int(ratio * 100)
+
+        st.markdown(f"""
+            <div class="amenity-match-badge">
+                <div>
+                    <div class="match-text">
+                        <strong style="color:{text_color};">{matched}/{total}</strong> fasilitas cocok
+                    </div>
+                    <div class="amenity-match-bar">
+                        <div class="amenity-match-bar-fill"
+                             style="width:{pct}%;background:{bar_color};"></div>
+                    </div>
+                </div>
+            </div>
+        """, unsafe_allow_html=True)
+    except Exception:
+        pass  # Graceful fallback
+
+
+def render_hotel_card(hotel: Dict, nights: int = 1, active_filters: List[str] = None):
     """Render a single hotel card"""
 
     with st.container(border=True):
@@ -201,7 +405,7 @@ def render_hotel_card(hotel: Dict, nights: int = 1):
 
             # Amenity highlight badges
             if HAS_AMENITIES:
-                amenities_text = hotel.get('amenities', '')
+                amenities_text = _get_amenities_text(hotel)
                 if amenities_text:
                     try:
                         signals = extract_signals(amenities_text)
@@ -230,6 +434,10 @@ def render_hotel_card(hotel: Dict, nights: int = 1):
                             )
                     except Exception:
                         pass  # Graceful fallback if amenity extraction fails
+
+            # Amenity match score badge (when filters are active)
+            if active_filters:
+                render_amenity_match_badge(hotel, active_filters)
 
         with col2:
             # Price
@@ -332,8 +540,11 @@ def render_hotel_card(hotel: Dict, nights: int = 1):
             st.success(f"✅ Harga terbaik dari **{hotel.get('vendor_name')}**")
 
 
-def render_hotel_list(result: Dict):
-    """Render list of hotels"""
+def render_hotel_list(result: Dict, active_filters: List[str] = None):
+    """Render list of hotels with optional amenity filtering/reordering."""
+
+    if active_filters is None:
+        active_filters = []
 
     hotels = result.get('hotels', [])
     nights = 1  # Calculate from dates
@@ -406,9 +617,59 @@ def render_hotel_list(result: Dict):
     elif sort_by == "Bintang Tertinggi":
         hotels = sorted(hotels, key=lambda x: x.get('stars', 0), reverse=True)
 
+    # =========================================================================
+    # AMENITY FILTER: Reorder hotels (matching first, then non-matching)
+    # =========================================================================
+    matching_count = 0
+    total_count = len(hotels)
+
+    if active_filters and HAS_AMENITIES:
+        try:
+            matching_hotels = []
+            non_matching_hotels = []
+
+            for hotel in hotels:
+                matched, total, _names, _signals = _compute_amenity_match(hotel, active_filters)
+                if matched > 0:
+                    matching_hotels.append((matched, hotel))
+                    matching_count += 1
+                else:
+                    non_matching_hotels.append(hotel)
+
+            # Sort matching hotels by match count (descending), preserving
+            # the original sort order within same match count
+            matching_hotels.sort(key=lambda x: x[0], reverse=True)
+
+            # Rebuild hotel list: matching first, then non-matching
+            hotels = [h for (_m, h) in matching_hotels] + non_matching_hotels
+
+        except Exception as e:
+            logger.warning(f"Amenity filter reorder error: {e}")
+
+    # Show amenity match summary when filters are active
+    if active_filters and HAS_AMENITIES:
+        if matching_count > 0:
+            st.markdown(f"""
+                <div class="amenity-match-summary">
+                    <span aria-hidden="true">🏷️ </span>
+                    <strong>{matching_count}</strong> hotel cocok dari
+                    <strong>{total_count}</strong> total
+                    ({len(active_filters)} filter fasilitas aktif)
+                </div>
+            """, unsafe_allow_html=True)
+        else:
+            st.markdown(f"""
+                <div class="amenity-match-summary" style="border-color:#c62828;">
+                    <span aria-hidden="true">⚠️ </span>
+                    <strong>0</strong> hotel cocok dari
+                    <strong>{total_count}</strong> total
+                    &mdash; coba kurangi filter fasilitas
+                </div>
+            """, unsafe_allow_html=True)
+
     # Render hotels
     for hotel in hotels:
-        render_hotel_card(hotel, nights)
+        render_hotel_card(hotel, nights, active_filters=active_filters)
         st.markdown("")
 
 
@@ -452,6 +713,9 @@ def render_hotel_compare_page():
 
     inject_css(HERO_CSS, CARD_CSS, AI_CARD_CSS, SKELETON_CSS)
 
+    # Inject amenity filter CSS
+    st.markdown(AMENITY_FILTER_CSS, unsafe_allow_html=True)
+
     # Page header
     st.markdown("""
         <div class="page-hero">
@@ -465,11 +729,15 @@ def render_hotel_compare_page():
 
     st.markdown("---")
 
-    # Search form
+    # Search form + amenity filters (left column) | Results (right column)
     col1, col2 = st.columns([1, 2])
 
     with col1:
         search_params = render_search_form()
+
+        # Amenity filter section (below search form)
+        st.markdown("---")
+        active_filters = render_amenity_filters()
 
     with col2:
         # Show results or placeholder
@@ -495,7 +763,10 @@ def render_hotel_compare_page():
 
         # Show stored results
         if 'hotel_search_result' in st.session_state:
-            render_hotel_list(st.session_state['hotel_search_result'])
+            render_hotel_list(
+                st.session_state['hotel_search_result'],
+                active_filters=active_filters,
+            )
         else:
             if not HAS_MAKCORPS:
                 # Demo data fallback
@@ -507,7 +778,49 @@ def render_hotel_compare_page():
                         <span style="color:#b0b0b0;font-size:0.85rem;"> — Hubungkan Makcorps API untuk harga real-time dari 200+ OTA</span>
                     </div>
                 ''', unsafe_allow_html=True)
-                for h in DEMO_HOTELS:
+
+                # Apply amenity filtering/reordering to demo hotels too
+                demo_display = list(DEMO_HOTELS)
+                demo_matching_count = 0
+
+                if active_filters and HAS_AMENITIES:
+                    try:
+                        matching_demos = []
+                        non_matching_demos = []
+                        for dh in demo_display:
+                            matched, _total, _names, _sig = _compute_amenity_match(dh, active_filters)
+                            if matched > 0:
+                                matching_demos.append((matched, dh))
+                                demo_matching_count += 1
+                            else:
+                                non_matching_demos.append(dh)
+                        matching_demos.sort(key=lambda x: x[0], reverse=True)
+                        demo_display = [d for (_m, d) in matching_demos] + non_matching_demos
+                    except Exception:
+                        pass
+
+                # Show match summary for demo hotels
+                if active_filters and HAS_AMENITIES:
+                    if demo_matching_count > 0:
+                        st.markdown(f"""
+                            <div class="amenity-match-summary">
+                                <span aria-hidden="true">🏷️ </span>
+                                <strong>{demo_matching_count}</strong> hotel cocok dari
+                                <strong>{len(DEMO_HOTELS)}</strong> total
+                                ({len(active_filters)} filter fasilitas aktif)
+                            </div>
+                        """, unsafe_allow_html=True)
+                    else:
+                        st.markdown(f"""
+                            <div class="amenity-match-summary" style="border-color:#c62828;">
+                                <span aria-hidden="true">⚠️ </span>
+                                <strong>0</strong> hotel cocok dari
+                                <strong>{len(DEMO_HOTELS)}</strong> total
+                                &mdash; coba kurangi filter fasilitas
+                            </div>
+                        """, unsafe_allow_html=True)
+
+                for h in demo_display:
                     with st.container(border=True):
                         st.markdown(f"**{'⭐' * h['stars']} {h['name']}** — {h['distance']}")
                         price_text = " | ".join(f"{k}: **{v}**" for k, v in h["prices"].items())
@@ -541,6 +854,10 @@ def render_hotel_compare_page():
                                     )
                             except Exception:
                                 pass
+
+                        # Amenity match badge for demo hotels
+                        if active_filters:
+                            render_amenity_match_badge(h, active_filters)
             else:
                 render_skeleton("cards", count=3)
                 st.caption("Pilih kota dan tanggal untuk melihat harga hotel")

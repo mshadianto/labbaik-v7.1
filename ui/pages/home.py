@@ -21,6 +21,12 @@ try:
 except ImportError:
     HAS_LIVE_PRICES = False
 
+try:
+    from services.price.monitoring import PriceMonitor, get_cached_health_status
+    HAS_PRICE_MONITOR = True
+except ImportError:
+    HAS_PRICE_MONITOR = False
+
 logger = logging.getLogger(__name__)
 
 # =============================================================================
@@ -130,6 +136,92 @@ HOME_PAGE_CSS = """
 @keyframes pulse {
     0%, 100% { opacity: 1; }
     50% { opacity: 0.5; }
+}
+
+/* Data Freshness Widget */
+.data-freshness-section {
+    background: linear-gradient(135deg, #111 0%, #1a1a1a 100%);
+    border: 1px solid #333;
+    border-radius: 12px;
+    padding: 1rem 1.2rem;
+    margin-top: 0.5rem;
+}
+.freshness-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 0.6rem;
+}
+.freshness-dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    display: inline-block;
+    flex-shrink: 0;
+}
+.freshness-dot.green { background: #4ade80; }
+.freshness-dot.yellow { background: #fbbf24; }
+.freshness-dot.red { background: #f87171; }
+.freshness-title {
+    color: #b8c5d4;
+    font-size: 0.85rem;
+    font-weight: 600;
+}
+.freshness-updated {
+    color: #8e9fb3;
+    font-size: 0.75rem;
+    margin-bottom: 0.6rem;
+}
+.freshness-stats {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+.freshness-stat {
+    background: #1a1a2e;
+    border: 1px solid #2a2a3e;
+    border-radius: 8px;
+    padding: 0.4rem 0.7rem;
+    text-align: center;
+    flex: 1;
+    min-width: 80px;
+}
+.freshness-stat-value {
+    color: #d4af37;
+    font-size: 0.95rem;
+    font-weight: bold;
+}
+.freshness-stat-label {
+    color: #8e9fb3;
+    font-size: 0.65rem;
+}
+.freshness-admin {
+    margin-top: 0.6rem;
+    padding-top: 0.6rem;
+    border-top: 1px solid #2a2a3e;
+}
+.freshness-admin-row {
+    display: flex;
+    justify-content: space-between;
+    padding: 0.25rem 0;
+    font-size: 0.75rem;
+}
+.freshness-admin-label { color: #8e9fb3; }
+.freshness-admin-value { color: #b8c5d4; font-weight: 500; }
+.freshness-admin-link {
+    display: inline-block;
+    margin-top: 0.5rem;
+    color: #d4af37;
+    font-size: 0.75rem;
+    text-decoration: none;
+    cursor: pointer;
+}
+.freshness-admin-link:hover { text-decoration: underline; }
+@media (max-width: 480px) {
+    .freshness-stats { gap: 6px; }
+    .freshness-stat { padding: 0.3rem 0.5rem; min-width: 60px; }
+    .freshness-stat-value { font-size: 0.85rem; }
+    .freshness-stat-label { font-size: 0.6rem; }
 }
 
 /* Home page responsive overrides — tablet */
@@ -772,6 +864,188 @@ def render_live_prices_section():
 
 
 # =============================================================================
+# DATA FRESHNESS WIDGET
+# =============================================================================
+
+def _is_admin_user() -> bool:
+    """Check if current user has admin role."""
+    try:
+        user = st.session_state.get('user')
+        if user is None:
+            return False
+        role = None
+        if hasattr(user, 'role'):
+            role = user.role
+        elif isinstance(user, dict):
+            role = user.get('role')
+        if role is not None:
+            role_str = role.value if hasattr(role, 'value') else str(role)
+            return role_str == 'admin'
+    except Exception:
+        pass
+    return False
+
+
+def render_data_freshness_widget():
+    """Render compact data freshness widget showing price data health status."""
+    if not HAS_PRICE_MONITOR:
+        return
+
+    try:
+        status = get_cached_health_status()
+        if not status:
+            return
+
+        overall = status.get('overall', 'unknown')
+
+        # Determine dot color and label
+        if overall == 'healthy':
+            dot_class = 'green'
+            status_label = 'Data Segar'
+        elif overall in ('warning', 'degraded'):
+            dot_class = 'yellow'
+            status_label = 'Data Tertunda'
+        elif overall == 'critical':
+            dot_class = 'red'
+            status_label = 'Sistem Error'
+        else:
+            dot_class = 'yellow'
+            status_label = 'Tidak Diketahui'
+
+        # Calculate "last updated" text
+        latest_update = None
+        for key in ['packages', 'hotels', 'flights']:
+            comp = status.get(key, {})
+            update_time = comp.get('last_update')
+            if update_time and (not latest_update or update_time > latest_update):
+                latest_update = update_time
+
+        updated_text = 'Belum ada data'
+        if latest_update:
+            from datetime import datetime as _dt
+            try:
+                lu = latest_update.replace(tzinfo=None) if latest_update.tzinfo else latest_update
+                hours_ago = (_dt.utcnow() - lu).total_seconds() / 3600
+                if hours_ago < 1:
+                    updated_text = 'Terakhir diperbarui: baru saja'
+                elif hours_ago < 24:
+                    updated_text = f'Terakhir diperbarui: {hours_ago:.0f} jam yang lalu'
+                else:
+                    days_ago = hours_ago / 24
+                    updated_text = f'Terakhir diperbarui: {days_ago:.0f} hari yang lalu'
+            except Exception:
+                updated_text = 'Terakhir diperbarui: -'
+
+        # Data counts
+        pkg_count = status.get('packages', {}).get('count', 0)
+        hotel_count = status.get('hotels', {}).get('count', 0)
+        flight_count = status.get('flights', {}).get('count', 0)
+
+        # Build HTML
+        html_parts = [
+            '<div class="data-freshness-section">',
+            '  <div class="freshness-header">',
+            f'    <span class="freshness-dot {dot_class}" aria-hidden="true"></span>',
+            f'    <span class="freshness-title">Status Data: {status_label}</span>',
+            '  </div>',
+            f'  <div class="freshness-updated">{updated_text}</div>',
+            '  <div class="freshness-stats">',
+            '    <div class="freshness-stat">',
+            f'      <div class="freshness-stat-value">{pkg_count}</div>',
+            '      <div class="freshness-stat-label">Paket</div>',
+            '    </div>',
+            '    <div class="freshness-stat">',
+            f'      <div class="freshness-stat-value">{hotel_count}</div>',
+            '      <div class="freshness-stat-label">Hotel</div>',
+            '    </div>',
+            '    <div class="freshness-stat">',
+            f'      <div class="freshness-stat-value">{flight_count}</div>',
+            '      <div class="freshness-stat-label">Penerbangan</div>',
+            '    </div>',
+            '  </div>',
+        ]
+
+        # Admin-only expanded view
+        if _is_admin_user():
+            html_parts.append('  <div class="freshness-admin">')
+
+            # Per-source last sync times
+            for src_key, src_label in [('packages', 'Paket'), ('hotels', 'Hotel'), ('flights', 'Penerbangan')]:
+                comp = status.get(src_key, {})
+                src_status = comp.get('status', 'unknown')
+                src_update = comp.get('last_update')
+                sync_str = '-'
+                if src_update:
+                    try:
+                        su = src_update.replace(tzinfo=None) if src_update.tzinfo else src_update
+                        wib_time = su + timedelta(hours=7)
+                        sync_str = wib_time.strftime('%d %b %H:%M') + ' WIB'
+                    except Exception:
+                        sync_str = str(src_update)[:16]
+
+                # Status indicator
+                if src_status == 'fresh':
+                    indicator = '<span style="color:#4ade80;">segar</span>'
+                elif src_status == 'stale':
+                    indicator = '<span style="color:#fbbf24;">tertunda</span>'
+                elif src_status == 'outdated':
+                    indicator = '<span style="color:#f87171;">kedaluwarsa</span>'
+                else:
+                    indicator = '<span style="color:#8e9fb3;">-</span>'
+
+                html_parts.append(
+                    f'    <div class="freshness-admin-row">'
+                    f'      <span class="freshness-admin-label">{src_label}</span>'
+                    f'      <span class="freshness-admin-value">{sync_str} ({indicator})</span>'
+                    f'    </div>'
+                )
+
+            # Error count
+            issues = status.get('issues', [])
+            error_count = len(issues)
+            error_color = '#f87171' if error_count > 0 else '#4ade80'
+            html_parts.append(
+                f'    <div class="freshness-admin-row">'
+                f'      <span class="freshness-admin-label">Error (24 jam)</span>'
+                f'      <span class="freshness-admin-value" style="color:{error_color};">{error_count} masalah</span>'
+                f'    </div>'
+            )
+
+            # n8n workflow status
+            n8n_status = status.get('n8n_workflow', 'unknown')
+            if n8n_status == 'running':
+                n8n_display = '<span style="color:#4ade80;">Berjalan</span>'
+            elif n8n_status == 'delayed':
+                n8n_display = '<span style="color:#fbbf24;">Tertunda</span>'
+            elif n8n_status == 'stopped':
+                n8n_display = '<span style="color:#f87171;">Berhenti</span>'
+            else:
+                n8n_display = '<span style="color:#8e9fb3;">Tidak diketahui</span>'
+
+            html_parts.append(
+                f'    <div class="freshness-admin-row">'
+                f'      <span class="freshness-admin-label">n8n Workflow</span>'
+                f'      <span class="freshness-admin-value">{n8n_display}</span>'
+                f'    </div>'
+            )
+
+            html_parts.append('  </div>')  # close freshness-admin
+
+        html_parts.append('</div>')  # close data-freshness-section
+
+        st.markdown('\n'.join(html_parts), unsafe_allow_html=True)
+
+        # Admin: button to full monitoring dashboard
+        if _is_admin_user():
+            if st.button("Buka Dashboard Monitoring", key="home_monitoring_dashboard_btn", use_container_width=False):
+                st.session_state.current_page = "monitoring"
+                st.rerun()
+
+    except Exception as e:
+        logger.debug(f"Data freshness widget skipped: {e}")
+
+
+# =============================================================================
 # PAGE CONFIG & STYLING
 # =============================================================================
 
@@ -1247,6 +1521,9 @@ def render_home_page():
 
     # Live Umrah package prices
     render_live_prices_section()
+
+    # Data freshness / price monitoring widget
+    render_data_freshness_widget()
 
     # Footer only
     render_footer()

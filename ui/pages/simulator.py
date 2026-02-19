@@ -29,6 +29,12 @@ try:
 except ImportError:
     HAS_KURS_SERVICE = False
 
+try:
+    from services.intelligence.season_calendar import SeasonCalendar, get_season_calendar
+    HAS_SEASON_CALENDAR = True
+except ImportError:
+    HAS_SEASON_CALENDAR = False
+
 # =============================================================================
 # SIMULATOR PAGE CSS
 # =============================================================================
@@ -228,6 +234,113 @@ SIMULATOR_CSS = """
     .budget-template-card {
         min-height: 140px;
         padding: 0.75rem;
+    }
+}
+
+.season-impact-card {
+    background: linear-gradient(135deg, #0d1b2a 0%, #1a2a4a 100%);
+    border: 1px solid #d4af37;
+    border-radius: 12px;
+    padding: 1.25rem;
+    margin: 0.75rem 0;
+}
+
+.season-impact-card h4 {
+    color: #d4af37;
+    margin: 0 0 0.75rem 0;
+    font-size: 1.05rem;
+}
+
+.season-impact-card .season-label {
+    color: #e0e0e0;
+    font-size: 0.95rem;
+    margin-bottom: 0.4rem;
+}
+
+.season-impact-card .season-detail {
+    color: #b0b0b0;
+    font-size: 0.85rem;
+    margin-bottom: 0.3rem;
+}
+
+.season-multiplier-badge {
+    display: inline-block;
+    padding: 0.3rem 0.75rem;
+    border-radius: 20px;
+    font-weight: bold;
+    font-size: 0.9rem;
+    margin: 0.4rem 0;
+}
+
+.season-multiplier-green {
+    background: rgba(40, 167, 69, 0.2);
+    color: #28a745;
+    border: 1px solid #28a745;
+}
+
+.season-multiplier-yellow {
+    background: rgba(255, 193, 7, 0.2);
+    color: #ffc107;
+    border: 1px solid #ffc107;
+}
+
+.season-multiplier-orange {
+    background: rgba(253, 126, 20, 0.2);
+    color: #fd7e14;
+    border: 1px solid #fd7e14;
+}
+
+.season-multiplier-red {
+    background: rgba(220, 53, 69, 0.2);
+    color: #dc3545;
+    border: 1px solid #dc3545;
+}
+
+.season-recommendation {
+    background: linear-gradient(135deg, #1a2a1a 0%, #1a3a2a 100%);
+    border: 1px solid #28a745;
+    border-radius: 10px;
+    padding: 1rem;
+    margin-top: 0.5rem;
+}
+
+.season-recommendation .reco-urgency {
+    font-weight: bold;
+    font-size: 0.9rem;
+    margin-bottom: 0.3rem;
+}
+
+.season-recommendation .reco-text {
+    color: #b0b0b0;
+    font-size: 0.85rem;
+}
+
+.season-low-tip {
+    background: linear-gradient(135deg, #0d2818 0%, #1a3a2a 100%);
+    border: 1px solid #28a745;
+    border-radius: 10px;
+    padding: 0.75rem 1rem;
+    margin-top: 0.5rem;
+}
+
+.season-low-tip .tip-title {
+    color: #28a745;
+    font-weight: bold;
+    font-size: 0.9rem;
+    margin-bottom: 0.3rem;
+}
+
+.season-low-tip .tip-text {
+    color: #b0b0b0;
+    font-size: 0.85rem;
+}
+
+@media (max-width: 768px) {
+    .season-impact-card {
+        padding: 1rem;
+    }
+    .season-multiplier-badge {
+        font-size: 0.8rem;
     }
 }
 """
@@ -2234,6 +2347,147 @@ def render_group_discount_analysis(cost: CostBreakdown, num_travelers: int):
 
 
 # =============================================================================
+# SEASON IMPACT (from SeasonCalendar service)
+# =============================================================================
+
+def render_season_impact(cost: CostBreakdown, params: Dict):
+    """Render season impact analysis using the SeasonCalendar service."""
+    if not HAS_SEASON_CALENDAR:
+        return
+
+    try:
+        calendar = get_season_calendar()
+        departure_date = params.get("departure_date", date.today() + timedelta(days=60))
+
+        # Get season info
+        season_period = calendar.get_season(departure_date)
+        weight = calendar.get_weight(departure_date)
+        recommendation = calendar.get_booking_recommendation(departure_date)
+
+        # Determine season display name and description
+        if season_period:
+            season_name = season_period.name
+            season_desc = season_period.description
+        else:
+            season_name = "Musim Reguler"
+            season_desc = "Bukan musim puncak - harga cenderung normal"
+
+        # Determine multiplier badge color
+        if weight <= 1.0:
+            badge_class = "season-multiplier-green"
+        elif weight <= 1.3:
+            badge_class = "season-multiplier-yellow"
+        elif weight <= 1.5:
+            badge_class = "season-multiplier-orange"
+        else:
+            badge_class = "season-multiplier-red"
+
+        # Calculate adjusted cost estimate
+        base_cost_no_season = cost.total - cost.seasonal_adj
+        adjusted_by_calendar = int(base_cost_no_season * weight)
+
+        # Urgency color mapping
+        urgency = recommendation.get("urgency", "LOW")
+        urgency_colors = {
+            "CRITICAL": "#dc3545",
+            "HIGH": "#fd7e14",
+            "MEDIUM": "#ffc107",
+            "LOW": "#28a745",
+        }
+        urgency_color = urgency_colors.get(urgency, "#28a745")
+
+        urgency_labels = {
+            "CRITICAL": "KRITIS",
+            "HIGH": "TINGGI",
+            "MEDIUM": "SEDANG",
+            "LOW": "RENDAH",
+        }
+        urgency_label = urgency_labels.get(urgency, "RENDAH")
+
+        # Build the HTML card
+        card_html = (
+            '<div class="season-impact-card" role="status" aria-live="polite">'
+            '<h4><span aria-hidden="true">📅</span> Dampak Musim</h4>'
+            f'<div class="season-label"><strong>Musim:</strong> {season_name}</div>'
+            f'<div class="season-detail">{season_desc}</div>'
+            f'<div style="margin:0.6rem 0;">'
+            f'<span class="season-multiplier-badge {badge_class}">'
+            f'Faktor harga musim: {weight}x'
+            f'</span>'
+            f'</div>'
+            f'<div class="season-label">'
+            f'<strong>Estimasi biaya setelah faktor musim:</strong> '
+            f'{format_currency(adjusted_by_calendar)}'
+            f'</div>'
+            f'<div class="season-detail">'
+            f'Dampak harga: {recommendation.get("expected_price_impact", "Normal")}'
+            f'</div>'
+            '</div>'
+        )
+        st.markdown(card_html, unsafe_allow_html=True)
+
+        # Booking recommendation
+        reco_text = recommendation.get("recommendation", "")
+        advance_days = recommendation.get("recommended_advance_booking_days", 14)
+
+        reco_html = (
+            '<div class="season-recommendation" role="status" aria-live="polite">'
+            f'<div class="reco-urgency" style="color:{urgency_color};">'
+            f'<span aria-hidden="true">&#9888;</span> '
+            f'Urgensi Booking: {urgency_label}'
+            f'</div>'
+            f'<div class="reco-text">{reco_text}</div>'
+            f'<div class="reco-text" style="margin-top:0.3rem;">'
+            f'Disarankan booking minimal <strong>{advance_days} hari</strong> sebelumnya.'
+            f'</div>'
+            '</div>'
+        )
+        st.markdown(reco_html, unsafe_allow_html=True)
+
+        # Low season date suggestions
+        travel_year = departure_date.year
+        low_season_gaps = calendar.get_low_season_dates(year=travel_year, min_gap_days=14)
+
+        if low_season_gaps and weight > 1.0:
+            # Build month names for the low season periods
+            month_names_id = {
+                1: "Januari", 2: "Februari", 3: "Maret", 4: "April",
+                5: "Mei", 6: "Juni", 7: "Juli", 8: "Agustus",
+                9: "September", 10: "Oktober", 11: "November", 12: "Desember"
+            }
+
+            low_periods = []
+            for gap_start, gap_end in low_season_gaps:
+                start_month = month_names_id.get(gap_start.month, str(gap_start.month))
+                end_month = month_names_id.get(gap_end.month, str(gap_end.month))
+                if gap_start.month == gap_end.month:
+                    low_periods.append(f"{start_month} {gap_start.year}")
+                else:
+                    low_periods.append(f"{start_month} - {end_month} {gap_end.year}")
+
+            low_text = ", ".join(low_periods[:3])
+            savings_pct = int((weight - 1.0) * 100)
+
+            tip_html = (
+                '<div class="season-low-tip" role="status" aria-live="polite">'
+                '<div class="tip-title">'
+                '<span aria-hidden="true">&#128161;</span> Tip Hemat Musim'
+                '</div>'
+                f'<div class="tip-text">'
+                f'Periode harga lebih murah di {travel_year}: <strong>{low_text}</strong>. '
+                f'Harga bisa lebih murah hingga <strong>{savings_pct}%</strong> '
+                f'dibanding musim saat ini.'
+                f'</div>'
+                '</div>'
+            )
+            st.markdown(tip_html, unsafe_allow_html=True)
+
+    except Exception:
+        # Graceful fallback -- do not break the page
+        pass
+
+
+# =============================================================================
 # AI ANALYSIS
 # =============================================================================
 
@@ -2617,7 +2871,11 @@ Dengan **Umrah Bareng**, kamu bisa:
 
         # Quick breakdown
         render_cost_breakdown(cost, params["num_travelers"])
-    
+
+        # Season impact analysis (from SeasonCalendar service)
+        if HAS_SEASON_CALENDAR:
+            render_season_impact(cost, params)
+
     st.divider()
 
     # Additional sections with Scenario Planning

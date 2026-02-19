@@ -31,6 +31,13 @@ try:
 except ImportError:
     HAS_AI_SERVICES = False
 
+# Live price service for package recommendations in chat
+try:
+    from services.price.live_prices import LivePriceService, format_price
+    HAS_LIVE_PRICES = True
+except ImportError:
+    HAS_LIVE_PRICES = False
+
 # Available AI providers
 AI_PROVIDERS = {
     "groq": {
@@ -241,6 +248,103 @@ CHAT_PAGE_CSS = """
     color: #aaa;
     font-size: 0.85rem;
     margin-bottom: 0.8rem;
+}
+
+/* Chat package recommendation cards */
+.chat-package-cards-section {
+    margin-top: 0.8rem;
+    padding: 0.8rem;
+    background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+    border: 1px solid #2a2a4a;
+    border-radius: 10px;
+}
+
+.chat-package-cards-section h4 {
+    color: #d4af37;
+    font-size: 0.95rem;
+    margin-bottom: 0.6rem;
+}
+
+.chat-package-card {
+    background: #0e1525;
+    border: 1px solid #2a2a4a;
+    border-radius: 8px;
+    padding: 0.7rem 0.9rem;
+    margin-bottom: 0.5rem;
+    transition: border-color 0.2s ease;
+}
+
+.chat-package-card:hover {
+    border-color: #d4af37;
+}
+
+.chat-package-card .pkg-name {
+    color: #e0e0e0;
+    font-weight: 600;
+    font-size: 0.9rem;
+    margin-bottom: 0.2rem;
+}
+
+.chat-package-card .pkg-price {
+    color: #28a745;
+    font-weight: 700;
+    font-size: 1rem;
+}
+
+.chat-package-card .pkg-original-price {
+    color: #b0b0b0;
+    font-size: 0.75rem;
+    text-decoration: line-through;
+    margin-left: 0.4rem;
+}
+
+.chat-package-card .pkg-details {
+    color: #b0b0b0;
+    font-size: 0.78rem;
+    margin-top: 0.2rem;
+}
+
+.chat-package-card .pkg-badge-promo {
+    display: inline-block;
+    background: #dc3545;
+    color: #fff;
+    font-size: 0.65rem;
+    font-weight: 700;
+    padding: 1px 6px;
+    border-radius: 8px;
+    margin-left: 0.4rem;
+    vertical-align: middle;
+}
+
+.chat-package-card .pkg-stars {
+    color: #d4af37;
+    font-size: 0.78rem;
+}
+
+.chat-pkg-cta {
+    display: block;
+    text-align: center;
+    margin-top: 0.6rem;
+    padding: 0.45rem;
+    background: transparent;
+    border: 1px solid #d4af37;
+    border-radius: 8px;
+    color: #d4af37;
+    font-size: 0.82rem;
+    font-weight: 600;
+    cursor: pointer;
+    text-decoration: none;
+}
+
+.chat-pkg-cta:hover {
+    background: #d4af37;
+    color: #000;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .chat-package-card {
+        transition: none;
+    }
 }
 """
 
@@ -463,11 +567,118 @@ def process_user_message(message: str):
     # Add user message
     add_message("user", message)
 
+    # Detect if user is asking about packages/prices
+    st.session_state.show_package_recommendations = detect_package_query(message)
+
     # Get AI response (simulated)
     response = get_ai_response(message)
 
     # Add AI response
     add_message("assistant", response)
+
+
+# =============================================================================
+# PACKAGE RECOMMENDATION IN CHAT
+# =============================================================================
+
+# Keywords that indicate a user is asking about packages/prices
+_PACKAGE_KEYWORDS = [
+    "paket", "harga", "biaya", "murah", "promo",
+    "umrah berapa", "rekomendasi paket", "package",
+    "tarif", "ongkos", "budget", "hemat", "diskon",
+    "termurah", "terjangkau", "ekonomis",
+]
+
+
+def detect_package_query(message: str) -> bool:
+    """Check if the user message is asking about packages or prices.
+
+    Args:
+        message: The raw user message text.
+
+    Returns:
+        True if any package/price keyword is found.
+    """
+    if not message:
+        return False
+    lowered = message.lower()
+    return any(kw in lowered for kw in _PACKAGE_KEYWORDS)
+
+
+def render_package_recommendations():
+    """Render compact package recommendation cards below an AI response.
+
+    Fetches the top 3 cheapest packages from LivePriceService and
+    displays them as styled HTML cards with a CTA to the full
+    price comparison page.  Wrapped entirely in try/except so that
+    failures never break the chat flow.
+    """
+    if not HAS_LIVE_PRICES:
+        return
+
+    try:
+        service = LivePriceService()
+        packages = service.get_cheapest_packages(limit=3)
+
+        if not packages:
+            return
+
+        # Build HTML cards
+        cards_html = ""
+        for pkg in packages:
+            # Star display for Makkah hotel
+            stars_display = '<span class="pkg-stars">' + ("&#9733;" * pkg.hotel_makkah_stars) + "</span>"
+
+            # Promo badge
+            promo_badge = ""
+            if pkg.is_promo:
+                promo_badge = (
+                    f'<span class="pkg-badge-promo">'
+                    f'<span aria-hidden="true">&#128293;</span> PROMO -{pkg.discount_percent:.0f}%'
+                    f'</span>'
+                )
+
+            # Formatted prices
+            price_str = format_price(pkg.price)
+            original_price_str = ""
+            if pkg.is_promo and pkg.original_price > pkg.price:
+                original_price_str = (
+                    f'<span class="pkg-original-price">{format_price(pkg.original_price)}</span>'
+                )
+
+            cards_html += f"""
+            <div class="chat-package-card">
+                <div class="pkg-name">{pkg.name}{promo_badge}</div>
+                <div class="pkg-price">{price_str}{original_price_str}</div>
+                <div class="pkg-details">
+                    {pkg.duration_days} hari &middot; {stars_display} Hotel Makkah &middot; {pkg.travel_agent}
+                </div>
+            </div>
+            """
+
+        # Full section HTML with accessibility attributes
+        section_html = f"""
+        <div class="chat-package-cards-section" role="status" aria-live="polite">
+            <h4><span aria-hidden="true">&#128161;</span> Rekomendasi Paket Terkait:</h4>
+            {cards_html}
+        </div>
+        """
+
+        st.markdown("---")
+        st.markdown(section_html, unsafe_allow_html=True)
+
+        # CTA button to navigate to price comparison page
+        if st.button(
+            "Lihat Semua Paket \u2192",
+            key="chat_pkg_see_all",
+            use_container_width=True,
+        ):
+            st.session_state.current_page = "price_comparison"
+            st.rerun()
+
+    except Exception:
+        # Graceful fallback -- never break chat
+        pass
 
 
 # =============================================================================
@@ -575,6 +786,7 @@ def render_chat_messages():
 
     messages = st.session_state.chat_messages
     tts_enabled = st.session_state.get("tts_enabled", False)
+    is_last_msg_index = len(messages) - 1
 
     for idx, msg in enumerate(messages):
         role = msg["role"]
@@ -588,11 +800,18 @@ def render_chat_messages():
                 st.markdown(
                     f'<div role="status" aria-live="polite">{content}</div>',
                     unsafe_allow_html=True,
-                ) if idx == len(messages) - 1 else st.markdown(content)
+                ) if idx == is_last_msg_index else st.markdown(content)
 
                 # TTS button for assistant messages (only last message to keep it clean)
-                if tts_enabled and idx == len(messages) - 1:
+                if tts_enabled and idx == is_last_msg_index:
                     render_tts_player(content, idx)
+
+                # Package recommendations after the last assistant response
+                if (
+                    idx == is_last_msg_index
+                    and st.session_state.get("show_package_recommendations", False)
+                ):
+                    render_package_recommendations()
 
 
 def render_tts_player(text: str, message_idx: int):

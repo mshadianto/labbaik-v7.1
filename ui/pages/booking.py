@@ -16,6 +16,20 @@ import json
 from ui.components.shared_styles import inject_css, HERO_CSS, CARD_CSS, AI_CARD_CSS, BADGE_CSS
 from services.ai.helpers import ai_complete, add_xp_safe
 
+# Season Calendar integration
+try:
+    from services.intelligence.season_calendar import SeasonCalendar, get_season_calendar
+    HAS_SEASON_CALENDAR = True
+except ImportError:
+    HAS_SEASON_CALENDAR = False
+
+# Crowd Prediction integration
+try:
+    from features.crowd_prediction import CrowdPredictor
+    HAS_CROWD_PREDICTION = True
+except ImportError:
+    HAS_CROWD_PREDICTION = False
+
 # =============================================================================
 # PAGE-SPECIFIC CSS
 # =============================================================================
@@ -432,15 +446,31 @@ def calculate_total_price(data: Dict) -> Dict[str, int]:
         if addon:
             addons_price += addon.price * traveler_count
 
-    # Seasonal adjustment
+    # Seasonal adjustment (use SeasonCalendar if available, else basic month check)
     dep_date = data.get("departure_date")
     seasonal = 0
     if dep_date:
-        month = dep_date.month
-        if month in [3, 4]:  # Ramadan
-            seasonal = int(base_price * 0.25)
-        elif month in [6, 7, 12]:  # Peak season
-            seasonal = int(base_price * 0.15)
+        if HAS_SEASON_CALENDAR:
+            try:
+                _sc = get_season_calendar()
+                _sw = _sc.get_weight(dep_date)
+                if _sw > 1.0:
+                    # weight 1.0 = 0%, 1.5 = ~15%, 1.8 = ~25%, 2.0 = ~35%
+                    seasonal_pct = (_sw - 1.0) * 0.35
+                    seasonal = int(base_price * seasonal_pct)
+            except Exception:
+                # Fallback to basic month check
+                month = dep_date.month
+                if month in [3, 4]:
+                    seasonal = int(base_price * 0.25)
+                elif month in [6, 7, 12]:
+                    seasonal = int(base_price * 0.15)
+        else:
+            month = dep_date.month
+            if month in [3, 4]:  # Ramadan
+                seasonal = int(base_price * 0.25)
+            elif month in [6, 7, 12]:  # Peak season
+                seasonal = int(base_price * 0.15)
 
     total = base_price + hotel_upgrade + addons_price + seasonal
 
@@ -632,6 +662,323 @@ def _render_ai_tips_fallback(package):
         unsafe_allow_html=True,
     )
     st.markdown(tips)
+
+
+# =============================================================================
+# SEASON INTELLIGENCE
+# =============================================================================
+
+def render_season_intelligence(departure_date: date):
+    """
+    Render season intelligence info box with booking recommendations.
+
+    Shows season badge, price impact, booking recommendation,
+    crowd prediction summary, and low-season alternatives.
+
+    Args:
+        departure_date: The selected travel departure date
+    """
+    if not HAS_SEASON_CALENDAR:
+        return
+
+    try:
+        calendar = get_season_calendar()
+        season = calendar.get_season(departure_date)
+        recommendation = calendar.get_booking_recommendation(departure_date)
+        weight = recommendation["weight"]
+        urgency = recommendation["urgency"]
+
+        # Determine season badge color and label
+        if weight >= 1.8:
+            badge_color = "#ef4444"
+            badge_bg = "rgba(239, 68, 68, 0.15)"
+            badge_border = "#ef4444"
+            badge_emoji = "\U0001f534"
+            season_label = recommendation["season"]
+            badge_text = f"Peak Season \u2014 {season_label}"
+        elif weight >= 1.5:
+            badge_color = "#eab308"
+            badge_bg = "rgba(234, 179, 8, 0.15)"
+            badge_border = "#eab308"
+            badge_emoji = "\U0001f7e1"
+            season_label = recommendation["season"]
+            badge_text = f"High Season \u2014 {season_label}"
+        elif weight >= 1.3:
+            badge_color = "#f97316"
+            badge_bg = "rgba(249, 115, 22, 0.15)"
+            badge_border = "#f97316"
+            badge_emoji = "\U0001f7e0"
+            season_label = recommendation["season"]
+            badge_text = f"Shoulder Season \u2014 {season_label}"
+        else:
+            badge_color = "#22c55e"
+            badge_bg = "rgba(34, 197, 94, 0.15)"
+            badge_border = "#22c55e"
+            badge_emoji = "\U0001f7e2"
+            badge_text = "Low Season \u2014 Harga Normal"
+
+        # Urgency indicator colors
+        urgency_colors = {
+            "CRITICAL": ("#ef4444", "Sangat Mendesak"),
+            "HIGH": ("#eab308", "Mendesak"),
+            "MEDIUM": ("#f97316", "Sedang"),
+            "LOW": ("#22c55e", "Santai"),
+        }
+        urgency_color, urgency_label = urgency_colors.get(urgency, ("#b0b0b0", "Normal"))
+
+        # Price impact text
+        if weight > 1.0:
+            price_impact_text = (
+                f"Harga diperkirakan <strong style=\"color: {badge_color};\">"
+                f"{weight}x lebih tinggi</strong> dari harga normal "
+                f"({recommendation['expected_price_impact']})"
+            )
+        else:
+            price_impact_text = (
+                "Harga normal \u2014 tidak ada kenaikan musiman"
+            )
+
+        # Build the season intelligence HTML
+        html = f"""
+        <div style="background: linear-gradient(135deg, #0d1b2a, #1a2a3a);
+                    border: 1px solid {badge_border}; border-left: 4px solid {badge_border};
+                    border-radius: 16px; padding: 1.25rem; margin: 1rem 0;"
+             role="status" aria-live="polite">
+            <div style="display: flex; align-items: center; gap: 0.75rem; margin-bottom: 0.75rem;">
+                <span aria-hidden="true" style="font-size: 1.5rem;">{badge_emoji}</span>
+                <div>
+                    <div style="color: {badge_color}; font-weight: bold; font-size: 1.05rem;">
+                        {badge_text}
+                    </div>
+                    <div style="color: #b0b0b0; font-size: 0.8rem;">
+                        Tanggal: {departure_date.strftime('%d %B %Y')}
+                    </div>
+                </div>
+                <div style="margin-left: auto; background: {badge_bg}; padding: 0.3rem 0.75rem;
+                            border-radius: 20px; border: 1px solid {badge_border};">
+                    <span style="color: {badge_color}; font-size: 0.8rem; font-weight: bold;">
+                        Urgency: {urgency_label}
+                    </span>
+                </div>
+            </div>
+
+            <div style="background: rgba(255,255,255,0.03); border-radius: 10px;
+                        padding: 0.75rem; margin-bottom: 0.75rem;">
+                <div style="color: #d4af37; font-size: 0.8rem; font-weight: bold; margin-bottom: 0.25rem;">
+                    <span aria-hidden="true">\U0001f4b0</span> Dampak Harga
+                </div>
+                <div style="color: #b8c5d4; font-size: 0.9rem;">
+                    {price_impact_text}
+                </div>
+            </div>
+
+            <div style="background: rgba(212, 175, 55, 0.08); border-radius: 10px;
+                        padding: 0.75rem; border-left: 3px solid #d4af37;">
+                <div style="color: #d4af37; font-size: 0.8rem; font-weight: bold; margin-bottom: 0.25rem;">
+                    <span aria-hidden="true">\U0001f4cc</span> Rekomendasi Booking
+                </div>
+                <div style="color: #b8c5d4; font-size: 0.9rem;">
+                    {recommendation['recommendation']}
+                </div>
+                <div style="color: #8e9fb3; font-size: 0.8rem; margin-top: 0.25rem;">
+                    Disarankan booking minimal {recommendation['recommended_advance_booking_days']} hari sebelum keberangkatan.
+                </div>
+            </div>
+        </div>
+        """
+
+        st.markdown(html, unsafe_allow_html=True)
+
+        # Crowd prediction summary for the departure date
+        if HAS_CROWD_PREDICTION:
+            try:
+                predictor = CrowdPredictor()
+                # Predict crowd at a typical arrival time (morning)
+                from datetime import datetime as dt
+                arrival_time = dt(
+                    departure_date.year, departure_date.month, departure_date.day,
+                    10, 0, 0
+                )
+                crowd_makkah = predictor.predict("makkah", arrival_time)
+                crowd_madinah = predictor.predict("madinah", arrival_time)
+
+                st.markdown(f"""
+                <div style="display: flex; gap: 0.75rem; margin: 0.5rem 0 1rem 0; flex-wrap: wrap;">
+                    <div style="flex: 1; min-width: 200px; background: #1a1a1a; border-radius: 12px;
+                                padding: 0.75rem; border: 1px solid #333; text-align: center;">
+                        <div style="color: #b0b0b0; font-size: 0.75rem;">
+                            <span aria-hidden="true">\U0001f54b</span> Keramaian Makkah
+                        </div>
+                        <div style="color: {crowd_makkah['color']}; font-size: 1.2rem; font-weight: bold;">
+                            {crowd_makkah['description']}
+                        </div>
+                        <div style="color: #8e9fb3; font-size: 0.75rem;">Level: {crowd_makkah['level']}%</div>
+                    </div>
+                    <div style="flex: 1; min-width: 200px; background: #1a1a1a; border-radius: 12px;
+                                padding: 0.75rem; border: 1px solid #333; text-align: center;">
+                        <div style="color: #b0b0b0; font-size: 0.75rem;">
+                            <span aria-hidden="true">\U0001f54c</span> Keramaian Madinah
+                        </div>
+                        <div style="color: {crowd_madinah['color']}; font-size: 1.2rem; font-weight: bold;">
+                            {crowd_madinah['description']}
+                        </div>
+                        <div style="color: #8e9fb3; font-size: 0.75rem;">Level: {crowd_madinah['level']}%</div>
+                    </div>
+                </div>
+                """, unsafe_allow_html=True)
+            except Exception:
+                pass
+
+        # Suggest low-season alternatives if the user picked peak dates
+        if weight >= 1.5:
+            try:
+                low_seasons = calendar.get_low_season_dates(
+                    year=departure_date.year, min_gap_days=14
+                )
+                if low_seasons:
+                    alt_html = """
+                    <div style="background: linear-gradient(135deg, #0a1a0d, #1a2a1a);
+                                border: 1px solid #22c55e; border-radius: 12px;
+                                padding: 1rem; margin: 0.5rem 0 1rem 0;">
+                        <div style="color: #22c55e; font-weight: bold; font-size: 0.9rem; margin-bottom: 0.5rem;">
+                            <span aria-hidden="true">\U0001f4a1</span> Alternatif Low Season (Lebih Hemat)
+                        </div>
+                        <div style="color: #b8c5d4; font-size: 0.85rem;">
+                            Pertimbangkan periode berikut untuk harga lebih terjangkau:
+                        </div>
+                        <div style="margin-top: 0.5rem; display: flex; flex-wrap: wrap; gap: 0.5rem;">
+                    """
+                    for ls_start, ls_end in low_seasons[:3]:
+                        alt_html += f"""
+                            <div style="background: rgba(34, 197, 94, 0.1); border: 1px solid #22c55e;
+                                        border-radius: 8px; padding: 0.4rem 0.75rem;">
+                                <span style="color: #22c55e; font-size: 0.85rem; font-weight: bold;">
+                                    {ls_start.strftime('%d %b')} \u2013 {ls_end.strftime('%d %b %Y')}
+                                </span>
+                            </div>
+                        """
+                    alt_html += """
+                        </div>
+                    </div>
+                    """
+                    st.markdown(alt_html, unsafe_allow_html=True)
+            except Exception:
+                pass
+
+    except Exception:
+        # Graceful fallback - silently skip if season intelligence fails
+        pass
+
+
+# =============================================================================
+# COST TRACKER SYNC
+# =============================================================================
+
+def render_cost_tracker_sync():
+    """
+    Render a button to sync booking cost data to the cost tracker.
+
+    Saves booking cost breakdown to st.session_state.booking_costs
+    for the cost tracker feature to pick up.
+    """
+    try:
+        data = st.session_state.booking_data
+        prices = calculate_total_price(data)
+
+        if prices["total"] <= 0:
+            return
+
+        package = next((p for p in PACKAGES if p.type.value == data.get("package_type")), None)
+        package_name = package.name if package else "Paket Umrah"
+        travelers_count = max(len(data.get("travelers", [])), 1)
+        dep_date = data.get("departure_date")
+        dep_date_str = dep_date.strftime("%d %B %Y") if dep_date else "Belum ditentukan"
+
+        st.markdown("---")
+        st.markdown(f"""
+        <div style="background: linear-gradient(135deg, #1a1a2e, #1e293b);
+                    border: 1px solid #d4af37; border-radius: 16px;
+                    padding: 1.25rem; margin: 1rem 0;">
+            <div style="display: flex; align-items: center; gap: 0.75rem; margin-bottom: 0.75rem;">
+                <span aria-hidden="true" style="font-size: 1.5rem;">\U0001f4ca</span>
+                <div>
+                    <div style="color: #d4af37; font-weight: bold; font-size: 1rem;">
+                        Sinkronkan ke Cost Tracker
+                    </div>
+                    <div style="color: #b0b0b0; font-size: 0.8rem;">
+                        Simpan rincian biaya booking ke pelacak biaya Anda
+                    </div>
+                </div>
+            </div>
+        </div>
+        """, unsafe_allow_html=True)
+
+        if st.button(
+            "\U0001f4ca Sinkronkan ke Cost Tracker",
+            key="btn_sync_cost_tracker",
+            type="primary",
+            use_container_width=True,
+        ):
+            # Build the cost breakdown by category
+            booking_costs = {
+                "source": "booking_flow",
+                "timestamp": datetime.now().isoformat(),
+                "package_name": package_name,
+                "departure_date": dep_date_str,
+                "travelers_count": travelers_count,
+                "breakdown": {
+                    "paket_dasar": {
+                        "label": f"Paket {package_name} ({travelers_count} orang)",
+                        "amount": prices["base"],
+                    },
+                },
+                "total": prices["total"],
+                "per_person": prices["per_person"],
+            }
+
+            # Add hotel upgrade if applicable
+            if prices.get("hotel_upgrade", 0) > 0:
+                booking_costs["breakdown"]["upgrade_hotel"] = {
+                    "label": f"Upgrade Hotel Bintang {data.get('hotel_star', 4)}",
+                    "amount": prices["hotel_upgrade"],
+                }
+
+            # Add add-ons if applicable
+            if prices.get("addons", 0) > 0:
+                addons_detail = []
+                for addon_id in data.get("addons", []):
+                    addon = next((a for a in ADDONS if a.id == addon_id), None)
+                    if addon:
+                        addons_detail.append(f"{addon.name} ({format_currency(addon.price)})")
+                booking_costs["breakdown"]["addons"] = {
+                    "label": "Add-ons: " + ", ".join(addons_detail),
+                    "amount": prices["addons"],
+                }
+
+            # Add seasonal adjustment if applicable
+            if prices.get("seasonal", 0) > 0:
+                booking_costs["breakdown"]["penyesuaian_musiman"] = {
+                    "label": "Penyesuaian Musiman",
+                    "amount": prices["seasonal"],
+                }
+
+            # Save to session state
+            st.session_state.booking_costs = booking_costs
+
+            st.success(
+                f"\u2705 Berhasil! Data biaya booking ({format_currency(prices['total'])}) "
+                f"telah disinkronkan ke Cost Tracker."
+            )
+            st.caption(
+                "\U0001f4a1 Buka halaman Cost Tracker untuk melihat rincian biaya lengkap."
+            )
+
+            # Award XP for syncing
+            add_xp_safe(10, "Menyinkronkan data booking ke Cost Tracker")
+
+    except Exception:
+        # Graceful fallback
+        pass
 
 
 # =============================================================================
@@ -890,16 +1237,41 @@ def render_step_schedule():
         )
         data["departure_date"] = departure_date
 
-        # Calendar highlight
-        month = departure_date.month
-        if month == 3 or month == 4:
-            st.warning("\u26a0\ufe0f **Periode Ramadan** - Harga lebih tinggi, sangat ramai")
-        elif month in [6, 7]:
-            st.info("\u2139\ufe0f **Peak Season** - Musim liburan sekolah")
-        elif month == 12:
-            st.info("\u2139\ufe0f **Peak Season** - Liburan akhir tahun")
+        # Season intelligence (enhanced) or basic fallback
+        if HAS_SEASON_CALENDAR:
+            try:
+                _cal = get_season_calendar()
+                _w = _cal.get_weight(departure_date)
+                if _w >= 1.8:
+                    st.warning("\u26a0\ufe0f **Peak Season** \u2014 Harga jauh lebih tinggi, sangat ramai")
+                elif _w >= 1.5:
+                    st.info("\u2139\ufe0f **High Season** \u2014 Demand tinggi, harga naik")
+                elif _w >= 1.3:
+                    st.info("\u2139\ufe0f **Shoulder Season** \u2014 Harga sedikit lebih tinggi")
+                else:
+                    st.success("\u2705 **Low Season** \u2014 Harga normal, banyak pilihan tersedia")
+            except Exception:
+                # Fall through to basic check
+                month = departure_date.month
+                if month == 3 or month == 4:
+                    st.warning("\u26a0\ufe0f **Periode Ramadan** - Harga lebih tinggi, sangat ramai")
+                elif month in [6, 7]:
+                    st.info("\u2139\ufe0f **Peak Season** - Musim liburan sekolah")
+                elif month == 12:
+                    st.info("\u2139\ufe0f **Peak Season** - Liburan akhir tahun")
+                else:
+                    st.success("\u2705 **Regular Season** - Harga normal")
         else:
-            st.success("\u2705 **Regular Season** - Harga normal")
+            # Basic month-based fallback
+            month = departure_date.month
+            if month == 3 or month == 4:
+                st.warning("\u26a0\ufe0f **Periode Ramadan** - Harga lebih tinggi, sangat ramai")
+            elif month in [6, 7]:
+                st.info("\u2139\ufe0f **Peak Season** - Musim liburan sekolah")
+            elif month == 12:
+                st.info("\u2139\ufe0f **Peak Season** - Liburan akhir tahun")
+            else:
+                st.success("\u2705 **Regular Season** - Harga normal")
 
     with col2:
         st.markdown("### \U0001f6ec Kepulangan")
@@ -934,6 +1306,11 @@ def render_step_schedule():
 
         st.caption(f"\U0001f54b {days_makkah} malam di Makkah")
         st.caption(f"\U0001f54c {days_madinah} malam di Madinah")
+
+    # Season Intelligence section
+    st.markdown("---")
+    st.markdown("### \U0001f4ca Analisis Musim & Keramaian")
+    render_season_intelligence(departure_date)
 
     # Hotel selection
     st.markdown("---")
@@ -1447,6 +1824,9 @@ def render_step_confirmation():
 
         for num, text in steps:
             st.markdown(f"{num} {text}")
+
+    # Cost Tracker sync
+    render_cost_tracker_sync()
 
     # Actions
     col1, col2, col3 = st.columns(3)

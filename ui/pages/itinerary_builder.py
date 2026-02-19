@@ -831,6 +831,106 @@ def export_to_text(itinerary: List[dict], start_date: date) -> str:
     return "\n".join(output)
 
 
+def generate_ics_file(itinerary: List[dict], start_date: date) -> str:
+    """Generate iCalendar (.ics) file content from itinerary data.
+
+    Uses plain string formatting (no external dependency).
+    Each activity in every day becomes a VEVENT entry.
+    """
+    try:
+        lines = [
+            "BEGIN:VCALENDAR",
+            "VERSION:2.0",
+            "PRODID:-//LABBAIK Smart Planner//ID",
+            "CALSCALE:GREGORIAN",
+            "METHOD:PUBLISH",
+            "X-WR-CALNAME:Jadwal Umrah - LABBAIK.AI",
+            "X-WR-TIMEZONE:Asia/Riyadh",
+        ]
+
+        uid_counter = 0
+        timestamp = datetime.utcnow().strftime("%Y%m%dT%H%M%SZ")
+
+        for day in itinerary:
+            day_date = start_date + timedelta(days=day["day"] - 1)
+            date_str = day_date.strftime("%Y%m%d")
+            location = day.get("location", "")
+
+            for activity in day.get("schedule", []):
+                uid_counter += 1
+                time_str = activity.get("time", "08:00")
+                title = activity.get("title", "Aktivitas")
+                desc = activity.get("desc", "")
+                duration_min = activity.get("duration", 30)
+                tag = activity.get("tag", "")
+
+                # Parse start time
+                try:
+                    h, m = map(int, time_str.split(":"))
+                except (ValueError, AttributeError):
+                    h, m = 8, 0
+
+                dt_start = datetime(day_date.year, day_date.month, day_date.day, h, m, 0)
+
+                # Calculate end time; clamp minimum duration to 15 minutes
+                effective_duration = max(duration_min, 15) if duration_min > 0 else 15
+                dt_end = dt_start + timedelta(minutes=effective_duration)
+
+                # If end time crosses midnight, cap at 23:59
+                if dt_end.date() > dt_start.date():
+                    dt_end = datetime(dt_start.year, dt_start.month, dt_start.day, 23, 59, 0)
+
+                dtstart = dt_start.strftime("%Y%m%dT%H%M%S")
+                dtend = dt_end.strftime("%Y%m%dT%H%M%S")
+
+                # Escape special characters for iCal text fields
+                safe_title = title.replace("\\", "\\\\").replace(",", "\\,").replace(";", "\\;").replace("\n", "\\n")
+                safe_desc = desc.replace("\\", "\\\\").replace(",", "\\,").replace(";", "\\;").replace("\n", "\\n")
+                safe_location = location.replace("\\", "\\\\").replace(",", "\\,").replace(";", "\\;").replace("\n", "\\n")
+
+                # Build category from tag
+                category_map = {
+                    "ibadah": "Ibadah",
+                    "transport": "Transport",
+                    "rest": "Istirahat",
+                    "food": "Makan",
+                    "explore": "Ziarah",
+                }
+                category = category_map.get(tag, "Lainnya")
+
+                uid = f"labbaik-{date_str}-{uid_counter:04d}@labbaik.io"
+
+                lines.append("BEGIN:VEVENT")
+                lines.append(f"UID:{uid}")
+                lines.append(f"DTSTAMP:{timestamp}")
+                lines.append(f"DTSTART;TZID=Asia/Riyadh:{dtstart}")
+                lines.append(f"DTEND;TZID=Asia/Riyadh:{dtend}")
+                lines.append(f"SUMMARY:{safe_title}")
+                lines.append(f"DESCRIPTION:{safe_desc}")
+                lines.append(f"LOCATION:{safe_location}")
+                lines.append(f"CATEGORIES:{category}")
+                lines.append("STATUS:CONFIRMED")
+                lines.append("END:VEVENT")
+
+        lines.append("END:VCALENDAR")
+        return "\r\n".join(lines)
+    except Exception:
+        # Fallback: return a minimal valid .ics with a single reminder event
+        fallback_date = start_date.strftime("%Y%m%d")
+        return (
+            "BEGIN:VCALENDAR\r\n"
+            "VERSION:2.0\r\n"
+            "PRODID:-//LABBAIK Smart Planner//ID\r\n"
+            "BEGIN:VEVENT\r\n"
+            f"DTSTART:{fallback_date}T080000\r\n"
+            f"DTEND:{fallback_date}T090000\r\n"
+            "SUMMARY:Jadwal Umrah - LABBAIK.AI\r\n"
+            "DESCRIPTION:Buka LABBAIK.AI untuk melihat jadwal lengkap\r\n"
+            "END:VEVENT\r\n"
+            "END:VCALENDAR"
+        )
+
+
 def export_to_whatsapp(itinerary: List[dict], start_date: date) -> str:
     """Export itinerary to WhatsApp-friendly format."""
     output = []
@@ -1402,8 +1502,8 @@ def render_itinerary_builder_page():
 
         with tab_jadwal:
             # Export
-            st.markdown("#### \U0001f4e4 Export Jadwal")
-            exp1, exp2, exp3 = st.columns(3)
+            st.markdown("#### <span aria-hidden=\"true\">\U0001f4e4</span> Export Jadwal", unsafe_allow_html=True)
+            exp1, exp2, exp3, exp4 = st.columns(4)
             with exp1:
                 st.download_button(
                     "\U0001f4c4 Download TXT",
@@ -1428,6 +1528,19 @@ def render_itinerary_builder_page():
                     mime="application/json",
                     use_container_width=True,
                 )
+            with exp4:
+                try:
+                    ics_content = generate_ics_file(itinerary, start_date)
+                    st.download_button(
+                        "\U0001f4c5 Export ke Kalender (.ics)",
+                        data=ics_content,
+                        file_name=f"jadwal_umrah_{start_date.strftime('%Y%m%d')}.ics",
+                        mime="text/calendar",
+                        use_container_width=True,
+                    )
+                    st.caption("Buka di Google Calendar, Outlook, atau Apple Calendar")
+                except Exception:
+                    st.warning("Gagal membuat file kalender. Silakan coba lagi.")
 
             if st.button("\U0001f4cb Salin ke Clipboard", key="copy_itinerary", use_container_width=True):
                 wa_text = export_to_whatsapp(itinerary, start_date)
