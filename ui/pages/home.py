@@ -27,7 +27,30 @@ try:
 except ImportError:
     HAS_PRICE_MONITOR = False
 
+try:
+    from hijri_converter import Gregorian
+    HAS_HIJRI = True
+except ImportError:
+    HAS_HIJRI = False
+
 logger = logging.getLogger(__name__)
+
+
+def _get_hijri_date_str(gregorian_date):
+    """Convert Gregorian date to Hijri string."""
+    if not HAS_HIJRI:
+        return None
+    try:
+        h = Gregorian(gregorian_date.year, gregorian_date.month, gregorian_date.day).to_hijri()
+        HIJRI_MONTHS = [
+            "Muharram", "Safar", "Rabiul Awal", "Rabiul Akhir",
+            "Jumadil Awal", "Jumadil Akhir", "Rajab", "Sya'ban",
+            "Ramadan", "Syawal", "Dzulqa'dah", "Dzulhijjah"
+        ]
+        month_name = HIJRI_MONTHS[h.month - 1] if 1 <= h.month <= 12 else str(h.month)
+        return f"{h.day} {month_name} {h.year} H"
+    except Exception:
+        return None
 
 # =============================================================================
 # PERFORMANCE: CACHING
@@ -131,6 +154,12 @@ HOME_PAGE_CSS = """
 .stat-icon-v6 { font-size: 1.3rem; }
 .stat-label-v6 { font-size: 0.7rem; color: #b0b0b0; }
 .stat-value-v6 { font-size: 1.1rem; font-weight: bold; color: #d4af37; }
+
+/* Hijri date display */
+.hijri-date-display {
+    color: #d4af37; font-size: 0.95rem; font-style: italic;
+    margin-top: 4px;
+}
 
 /* Pulse animation for live indicator */
 @keyframes pulse {
@@ -1069,12 +1098,26 @@ def render_hero_section():
     # CSS now in HOME_PAGE_CSS, injected via inject_custom_css()
 
     # Hero content - Premium Brand Identity
+    # Build Hijri date string for hero
+    today = date.today()
+    GREGORIAN_MONTHS_ID = [
+        "Januari", "Februari", "Maret", "April", "Mei", "Juni",
+        "Juli", "Agustus", "September", "Oktober", "November", "Desember"
+    ]
+    gregorian_str = f"{today.day} {GREGORIAN_MONTHS_ID[today.month - 1]} {today.year}"
+    hijri_str = _get_hijri_date_str(today)
+    if hijri_str:
+        date_display = f'{gregorian_str} / {hijri_str}'
+    else:
+        date_display = gregorian_str
+
     st.markdown(f"""
     <div class="hero-section-v6">
         <div class="arabic-calligraphy-v6">لَبَّيْكَ اللَّهُمَّ لَبَّيْكَ</div>
         <div class="brand-name-v6">LABBAIK</div>
         <div class="tagline-v6">Smart Planner</div>
         <div class="subtitle-v6">{BRAND_TAGLINE}</div>
+        <div class="hijri-date-display">{date_display}</div>
         <div class="version-badge-v6">{get_display_version()} - The Only AI Umrah Companion</div>
     </div>
     """, unsafe_allow_html=True)

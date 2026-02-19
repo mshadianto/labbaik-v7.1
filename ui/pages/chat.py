@@ -224,6 +224,24 @@ Biaya umrah bervariasi tergantung beberapa faktor:
 # PAGE-SPECIFIC CSS
 # =============================================================================
 
+WA_SHARE_CSS = """
+.wa-share-btn {
+    display: inline-flex; align-items: center; gap: 8px;
+    background: #25D366; color: white; padding: 8px 16px;
+    border-radius: 8px; text-decoration: none; font-weight: 600;
+    font-size: 0.85rem; transition: background 0.2s;
+}
+.wa-share-btn:hover { background: #128C7E; color: white; }
+"""
+
+
+def _build_wa_share_url(text):
+    """Build WhatsApp share URL with encoded text."""
+    import urllib.parse
+    encoded = urllib.parse.quote(text)
+    return f"https://wa.me/?text={encoded}"
+
+
 CHAT_PAGE_CSS = """
 /* Expert AI paywall card */
 .expert-paywall {
@@ -813,6 +831,29 @@ def render_chat_messages():
                 ):
                     render_package_recommendations()
 
+                # WhatsApp share link for AI responses (skip welcome message)
+                if idx > 0:
+                    # Find the user question that preceded this response
+                    user_question = ""
+                    for prev_idx in range(idx - 1, -1, -1):
+                        if messages[prev_idx]["role"] == "user":
+                            user_question = messages[prev_idx]["content"]
+                            break
+                    answer_summary = content[:500]
+                    share_text = (
+                        f"Pertanyaan: {user_question}\n\n"
+                        f"Jawaban: {answer_summary}\n\n"
+                        f"-- Dijawab oleh LABBAIK Smart Planner\n"
+                        f"https://app.labbaik.io"
+                    )
+                    wa_url = _build_wa_share_url(share_text)
+                    st.markdown(
+                        f'<a href="{wa_url}" target="_blank" rel="noopener noreferrer" '
+                        f'class="wa-share-btn">'
+                        f'<span aria-hidden="true">&#128172;</span> Bagikan via WhatsApp</a>',
+                        unsafe_allow_html=True,
+                    )
+
 
 def render_tts_player(text: str, message_idx: int):
     """Render TTS audio player for a message."""
@@ -1032,7 +1073,7 @@ def render_chat_page():
     """Main chat page renderer."""
 
     # Inject shared + page-specific CSS
-    inject_css(HERO_CSS, CARD_CSS, SKELETON_CSS, CHAT_PAGE_CSS)
+    inject_css(HERO_CSS, CARD_CSS, SKELETON_CSS, CHAT_PAGE_CSS, WA_SHARE_CSS)
 
     # Track page view
     try:

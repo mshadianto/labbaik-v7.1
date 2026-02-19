@@ -557,6 +557,9 @@ def init_session_state():
         # Feature-specific state is lazy-initialized by each page's own init function
         # (e.g. init_readiness_state, init_cost_tracker_state, init_tanya_ustadz_state,
         #  init_doc_checker_state, init_peta_state)
+
+        # Page Feedback
+        "page_feedback": {},
     }
     
     for key, value in defaults.items():
@@ -646,6 +649,106 @@ def render_visitor_analytics_status():
 
     except Exception:
         st.caption("📊 Active")
+
+
+# =============================================================================
+# PAGE FEEDBACK WIDGET
+# =============================================================================
+
+PAGE_FEEDBACK_CSS = """
+<style>
+.page-feedback-section {
+    margin-top: 40px; padding: 20px;
+    background: rgba(255,255,255,0.03);
+    border-top: 1px solid rgba(212,175,55,0.2);
+    border-radius: 8px;
+}
+.page-feedback-title {
+    color: #d4af37; font-size: 1rem; margin-bottom: 12px;
+}
+.feedback-stars { font-size: 1.5rem; cursor: pointer; }
+.feedback-thanks {
+    color: #22c55e; font-size: 0.9rem; margin-top: 8px;
+}
+</style>
+"""
+
+
+def _get_feedback_summary() -> dict:
+    """Return average rating and count across all rated pages.
+
+    Returns:
+        dict with keys 'average' (float) and 'count' (int).
+    """
+    feedbacks = st.session_state.get("page_feedback", {})
+    if not feedbacks:
+        return {"average": 0.0, "count": 0}
+    ratings = [fb["rating"] for fb in feedbacks.values() if "rating" in fb]
+    if not ratings:
+        return {"average": 0.0, "count": 0}
+    return {"average": sum(ratings) / len(ratings), "count": len(ratings)}
+
+
+def render_page_feedback():
+    """Render a lightweight 'Rate this page' widget at the bottom of the current page.
+
+    The widget is shown once per page per session. After the user submits feedback
+    it is stored in ``st.session_state.page_feedback`` keyed by page name and the
+    user receives +5 XP.
+    """
+    page = st.session_state.get("current_page", "home")
+
+    # Already rated this page in this session — show a short thank-you instead
+    if page in st.session_state.get("page_feedback", {}):
+        return
+
+    # Inject CSS once per session
+    if not st.session_state.get("_feedback_css_injected"):
+        st.markdown(PAGE_FEEDBACK_CSS, unsafe_allow_html=True)
+        st.session_state._feedback_css_injected = True
+
+    # Collapsible container so it stays non-intrusive
+    st.markdown(
+        '<div class="page-feedback-section">',
+        unsafe_allow_html=True,
+    )
+    st.markdown(
+        '<div class="page-feedback-title">Bagaimana pengalaman Anda di halaman ini?</div>',
+        unsafe_allow_html=True,
+    )
+
+    star_options = ["1", "2", "3", "4", "5"]
+
+    rating = st.select_slider(
+        "Rating",
+        options=star_options,
+        value="3",
+        format_func=lambda x: "\u2b50" * int(x),
+        key=f"feedback_rating_{page}",
+        label_visibility="collapsed",
+    )
+
+    comment = st.text_input(
+        "Saran perbaikan (opsional)",
+        max_chars=200,
+        key=f"feedback_comment_{page}",
+        placeholder="Tulis saran Anda di sini...",
+    )
+
+    if st.button("Kirim Feedback", key=f"feedback_submit_{page}"):
+        st.session_state.page_feedback[page] = {
+            "rating": int(rating),
+            "comment": comment,
+            "timestamp": datetime.now().isoformat(),
+        }
+        add_xp(5, "Memberi feedback halaman")
+        st.markdown(
+            '<div class="feedback-thanks">Terima kasih atas feedback Anda!</div>',
+            unsafe_allow_html=True,
+        )
+        st.rerun()
+
+    st.markdown("</div>", unsafe_allow_html=True)
 
 
 # =============================================================================
@@ -1306,6 +1409,9 @@ def main():
 
     # Render main content
     render_page()
+
+    # Render page feedback widget (after page content, before footer)
+    render_page_feedback()
 
 
 # =============================================================================

@@ -7,6 +7,7 @@ Fitur: Checklist dokumen Umrah, cek validitas paspor, timeline, AI tips
 ================================================================================
 """
 
+import re
 import streamlit as st
 from datetime import datetime, date, timedelta
 from typing import Dict, List
@@ -384,6 +385,254 @@ DOC_CHECKER_CSS = """
     font-size: 0.82rem;
     line-height: 1.5;
 }
+
+/* ===== Departure-Aware Timeline ===== */
+.doc-timeline-container {
+    background: linear-gradient(145deg, #0f172a 0%, #1e293b 100%);
+    border-radius: 16px;
+    padding: 1.5rem;
+    border: 1px solid #334155;
+    margin-bottom: 1.5rem;
+}
+
+.doc-timeline-container h3 {
+    color: #e2e8f0;
+    font-size: 1.15rem;
+    margin: 0 0 1rem 0;
+}
+
+.doc-timeline-group-header {
+    font-size: 0.85rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    padding: 0.5rem 0.75rem;
+    border-radius: 8px;
+    margin: 1rem 0 0.5rem 0;
+}
+
+.doc-timeline-group-header.terlambat {
+    color: #fca5a5;
+    background: rgba(239, 68, 68, 0.12);
+    border-left: 4px solid #ef4444;
+}
+
+.doc-timeline-group-header.segera {
+    color: #fde68a;
+    background: rgba(245, 158, 11, 0.12);
+    border-left: 4px solid #f59e0b;
+}
+
+.doc-timeline-group-header.aman {
+    color: #86efac;
+    background: rgba(34, 197, 94, 0.12);
+    border-left: 4px solid #22c55e;
+}
+
+.doc-timeline-group-header.selesai-group {
+    color: #9ca3af;
+    background: rgba(107, 114, 128, 0.08);
+    border-left: 4px solid #6b7280;
+}
+
+.doc-tl-item {
+    background: linear-gradient(145deg, #0f172a 0%, #1a2332 100%);
+    border-radius: 12px;
+    padding: 1rem 1.25rem;
+    margin-bottom: 0.5rem;
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    border: 1px solid #1e293b;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.doc-tl-item:hover {
+    transform: translateX(3px);
+    box-shadow: 0 2px 12px rgba(0,0,0,0.25);
+}
+
+.doc-tl-item.border-red { border-left: 5px solid #ef4444; }
+.doc-tl-item.border-orange { border-left: 5px solid #f59e0b; }
+.doc-tl-item.border-green { border-left: 5px solid #22c55e; }
+.doc-tl-item.border-gray { border-left: 5px solid #6b7280; opacity: 0.6; }
+
+.doc-urgency-badge {
+    display: inline-block;
+    padding: 0.2rem 0.65rem;
+    border-radius: 20px;
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 0.3px;
+    text-transform: uppercase;
+    white-space: nowrap;
+}
+
+.doc-urgency-badge.badge-red {
+    background: rgba(239, 68, 68, 0.2);
+    color: #fca5a5;
+    border: 1px solid rgba(239, 68, 68, 0.4);
+}
+
+.doc-urgency-badge.badge-orange {
+    background: rgba(245, 158, 11, 0.2);
+    color: #fde68a;
+    border: 1px solid rgba(245, 158, 11, 0.4);
+}
+
+.doc-urgency-badge.badge-green {
+    background: rgba(34, 197, 94, 0.2);
+    color: #86efac;
+    border: 1px solid rgba(34, 197, 94, 0.4);
+}
+
+.doc-urgency-badge.badge-gray {
+    background: rgba(107, 114, 128, 0.15);
+    color: #9ca3af;
+    border: 1px solid rgba(107, 114, 128, 0.3);
+}
+
+.doc-countdown {
+    min-width: 85px;
+    text-align: center;
+}
+
+.doc-countdown-number {
+    font-size: 1.4rem;
+    font-weight: 700;
+    line-height: 1.2;
+}
+
+.doc-countdown-unit {
+    font-size: 0.7rem;
+    color: #64748b;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.doc-tl-info {
+    flex: 1;
+    min-width: 0;
+}
+
+.doc-tl-info-name {
+    color: #e2e8f0;
+    font-size: 0.95rem;
+    font-weight: 600;
+    margin: 0 0 0.25rem 0;
+}
+
+.doc-tl-info-meta {
+    color: #64748b;
+    font-size: 0.78rem;
+    margin: 0;
+}
+
+.doc-tl-progress-bar {
+    width: 100%;
+    height: 6px;
+    background: #1e293b;
+    border-radius: 3px;
+    overflow: hidden;
+    margin-top: 0.5rem;
+}
+
+.doc-tl-progress-fill {
+    height: 100%;
+    border-radius: 3px;
+    transition: width 0.4s ease;
+}
+
+/* Alert Banner */
+.doc-alert-banner {
+    border-radius: 14px;
+    padding: 1rem 1.5rem;
+    margin-bottom: 1rem;
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    font-size: 0.95rem;
+    font-weight: 600;
+}
+
+.doc-alert-banner.alert-danger {
+    background: linear-gradient(135deg, #450a0a 0%, #7f1d1d 100%);
+    border: 1px solid #ef4444;
+    color: #fecaca;
+}
+
+.doc-alert-banner.alert-warning {
+    background: linear-gradient(135deg, #451a03 0%, #78350f 100%);
+    border: 1px solid #f59e0b;
+    color: #fef3c7;
+}
+
+.doc-alert-banner-icon {
+    font-size: 1.5rem;
+    flex-shrink: 0;
+}
+
+.doc-alert-banner-text {
+    flex: 1;
+}
+
+.doc-alert-banner-count {
+    font-size: 1.8rem;
+    font-weight: 700;
+    line-height: 1;
+    flex-shrink: 0;
+}
+
+/* Responsive Timeline */
+@media (max-width: 768px) {
+    .doc-tl-item {
+        flex-wrap: wrap;
+        gap: 0.5rem;
+        padding: 0.85rem 1rem;
+    }
+    .doc-countdown {
+        min-width: 70px;
+    }
+    .doc-countdown-number {
+        font-size: 1.2rem;
+    }
+    .doc-urgency-badge {
+        font-size: 0.68rem;
+    }
+    .doc-alert-banner {
+        flex-wrap: wrap;
+        padding: 0.85rem 1rem;
+        font-size: 0.88rem;
+    }
+}
+
+@media (max-width: 480px) {
+    .doc-tl-item {
+        padding: 0.75rem;
+        gap: 0.4rem;
+    }
+    .doc-countdown {
+        min-width: 60px;
+    }
+    .doc-countdown-number {
+        font-size: 1rem;
+    }
+    .doc-tl-info-name {
+        font-size: 0.88rem;
+    }
+    .doc-timeline-container {
+        padding: 1rem;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .doc-tl-item {
+        transition: none;
+    }
+    .doc-tl-item:hover {
+        transform: none;
+    }
+}
 """
 
 # =============================================================================
@@ -398,6 +647,10 @@ def init_doc_checker_state():
         st.session_state.doc_details = {"paspor_expiry": None, "departure_date": None}
     if "doc_tips_cache" not in st.session_state:
         st.session_state.doc_tips_cache = {}
+    if "departure_date_doc" not in st.session_state:
+        st.session_state.departure_date_doc = None
+    if "departure_date_doc_xp_awarded" not in st.session_state:
+        st.session_state.departure_date_doc_xp_awarded = False
 
 
 # =============================================================================
@@ -435,6 +688,356 @@ def get_ai_tips(doc_name: str) -> str:
 def add_xp(amount: int, reason: str = ""):
     """Add XP — delegates to shared helper."""
     add_xp_safe(amount, reason)
+
+
+# =============================================================================
+# URGENCY CALCULATION HELPER
+# =============================================================================
+
+def _calculate_urgency(doc: Dict, departure_date: date) -> Dict:
+    """Calculate urgency level and days remaining for a document.
+
+    Returns a dict with:
+        - urgency: 'terlambat' | 'segera' | 'aman' | 'selesai'
+        - days_remaining: int (days until the recommended deadline)
+        - deadline_date: date (when the document should be ready)
+        - color: str (hex color for display)
+        - border_class: str (CSS class for border color)
+        - badge_class: str (CSS class for urgency badge)
+        - label: str (Indonesian display label)
+    """
+    today = date.today()
+    doc_id = doc["id"]
+    status = st.session_state.doc_checklist.get(doc_id, "belum")
+    deadline_date = departure_date - timedelta(days=doc["days_before"])
+    days_remaining = (deadline_date - today).days
+
+    if status == "selesai":
+        return {
+            "urgency": "selesai",
+            "days_remaining": days_remaining,
+            "deadline_date": deadline_date,
+            "color": "#6b7280",
+            "border_class": "border-gray",
+            "badge_class": "badge-gray",
+            "label": "Selesai",
+        }
+
+    # Extract numeric processing time estimate (take the max number from the string)
+    processing_days = 0
+    numbers = re.findall(r"(\d+)", doc["processing_time"])
+    if numbers:
+        processing_days = max(int(n) for n in numbers)
+
+    if days_remaining < processing_days:
+        # Not enough time left even to process the document
+        return {
+            "urgency": "terlambat",
+            "days_remaining": days_remaining,
+            "deadline_date": deadline_date,
+            "color": "#ef4444",
+            "border_class": "border-red",
+            "badge_class": "badge-red",
+            "label": "Terlambat!" if days_remaining < 0 else "Terlambat!",
+        }
+    elif days_remaining < doc["days_before"]:
+        # Within the recommended preparation window — act soon
+        return {
+            "urgency": "segera",
+            "days_remaining": days_remaining,
+            "deadline_date": deadline_date,
+            "color": "#f59e0b",
+            "border_class": "border-orange",
+            "badge_class": "badge-orange",
+            "label": "Segera!",
+        }
+    else:
+        # On track
+        return {
+            "urgency": "aman",
+            "days_remaining": days_remaining,
+            "deadline_date": deadline_date,
+            "color": "#22c55e",
+            "border_class": "border-green",
+            "badge_class": "badge-green",
+            "label": "Aman",
+        }
+
+
+# =============================================================================
+# UI: DEPARTURE DATE INPUT & ALERT BANNER
+# =============================================================================
+
+def render_departure_date_input():
+    """Render a departure date input at the top of the page and store in session state."""
+    today = date.today()
+    default_val = st.session_state.departure_date_doc or (today + timedelta(days=90))
+
+    dep_date = st.date_input(
+        "Tanggal Keberangkatan",
+        value=default_val,
+        min_value=today,
+        max_value=today + timedelta(days=730),
+        key="input_departure_date_doc",
+        help="Pilih tanggal keberangkatan Umrah untuk melihat timeline persiapan dokumen"
+    )
+
+    # Detect first-time setting of departure date for XP
+    if dep_date and not st.session_state.departure_date_doc_xp_awarded:
+        if st.session_state.departure_date_doc != dep_date:
+            st.session_state.departure_date_doc = dep_date
+            # Also sync to doc_details for existing validity checker
+            st.session_state.doc_details["departure_date"] = dep_date
+            st.session_state.departure_date_doc_xp_awarded = True
+            add_xp(15, "Mengatur tanggal keberangkatan & melihat timeline dokumen")
+    else:
+        st.session_state.departure_date_doc = dep_date
+        st.session_state.doc_details["departure_date"] = dep_date
+
+    return dep_date
+
+
+def render_alert_banner(departure_date: date):
+    """Render an alert banner if any documents are overdue or urgent.
+
+    Shows a prominent warning at the top when documents need immediate attention.
+    """
+    if not departure_date:
+        return
+
+    documents = REQUIRED_DOCUMENTS
+    terlambat_docs = []
+    segera_docs = []
+
+    for doc in documents:
+        info = _calculate_urgency(doc, departure_date)
+        if info["urgency"] == "terlambat":
+            terlambat_docs.append(doc)
+        elif info["urgency"] == "segera":
+            segera_docs.append(doc)
+
+    total_attention = len(terlambat_docs) + len(segera_docs)
+
+    if terlambat_docs:
+        names = ", ".join(d["name"] for d in terlambat_docs[:4])
+        overflow = f" (+{len(terlambat_docs) - 4} lainnya)" if len(terlambat_docs) > 4 else ""
+        st.markdown(f"""
+        <div class="doc-alert-banner alert-danger" role="alert">
+            <div class="doc-alert-banner-icon"><span aria-hidden="true">&#9888;&#65039;</span></div>
+            <div class="doc-alert-banner-text">
+                <strong>{len(terlambat_docs)} dokumen memerlukan perhatian segera!</strong><br>
+                <span style="font-weight:400;font-size:0.85rem;">{names}{overflow}</span>
+            </div>
+            <div class="doc-alert-banner-count" style="color:#ef4444;">{len(terlambat_docs)}</div>
+        </div>
+        """, unsafe_allow_html=True)
+
+    if segera_docs and not terlambat_docs:
+        names = ", ".join(d["name"] for d in segera_docs[:4])
+        overflow = f" (+{len(segera_docs) - 4} lainnya)" if len(segera_docs) > 4 else ""
+        st.markdown(f"""
+        <div class="doc-alert-banner alert-warning" role="alert">
+            <div class="doc-alert-banner-icon"><span aria-hidden="true">&#9888;&#65039;</span></div>
+            <div class="doc-alert-banner-text">
+                <strong>{len(segera_docs)} dokumen perlu segera diurus!</strong><br>
+                <span style="font-weight:400;font-size:0.85rem;">{names}{overflow}</span>
+            </div>
+            <div class="doc-alert-banner-count" style="color:#f59e0b;">{len(segera_docs)}</div>
+        </div>
+        """, unsafe_allow_html=True)
+
+
+# =============================================================================
+# UI: DEPARTURE-AWARE DOCUMENT TIMELINE
+# =============================================================================
+
+def render_doc_timeline(departure_date: date, documents: List[Dict]):
+    """Render a departure-date-aware document timeline with urgency grouping.
+
+    Documents are grouped by urgency (Terlambat, Segera, Aman, Selesai)
+    and displayed with color-coded visual indicators and countdown.
+
+    Args:
+        departure_date: The planned departure date.
+        documents: List of document dicts from REQUIRED_DOCUMENTS.
+    """
+    if not departure_date:
+        st.info("Masukkan tanggal keberangkatan di atas untuk melihat timeline persiapan dokumen.")
+        return
+
+    today = date.today()
+    days_until_departure = (departure_date - today).days
+
+    if days_until_departure < 0:
+        st.markdown("""
+        <div class="doc-alert-banner alert-danger" role="alert">
+            <div class="doc-alert-banner-icon"><span aria-hidden="true">&#9888;&#65039;</span></div>
+            <div class="doc-alert-banner-text">
+                <strong>Tanggal keberangkatan sudah lewat.</strong> Silakan perbarui tanggal keberangkatan Anda.
+            </div>
+        </div>
+        """, unsafe_allow_html=True)
+        return
+
+    # Calculate urgency for each document
+    doc_urgencies = []
+    for doc in documents:
+        info = _calculate_urgency(doc, departure_date)
+        doc_urgencies.append({"doc": doc, **info})
+
+    # Group by urgency
+    groups = {
+        "terlambat": [d for d in doc_urgencies if d["urgency"] == "terlambat"],
+        "segera": [d for d in doc_urgencies if d["urgency"] == "segera"],
+        "aman": [d for d in doc_urgencies if d["urgency"] == "aman"],
+        "selesai": [d for d in doc_urgencies if d["urgency"] == "selesai"],
+    }
+
+    # Sort within each group by days_remaining (most urgent first)
+    for key in groups:
+        groups[key].sort(key=lambda d: d["days_remaining"])
+
+    st.markdown("""
+    <div class="doc-timeline-container">
+        <h3>Timeline Persiapan Dokumen</h3>
+    """, unsafe_allow_html=True)
+
+    # Overall progress bar
+    total_days = max((departure_date - (today - timedelta(days=30))).days, 1)
+    elapsed = min(30 + (total_days - days_until_departure - 30), total_days)
+    progress_pct = min(max(int((elapsed / total_days) * 100), 0), 100)
+
+    bar_color = "#22c55e"
+    if groups["terlambat"]:
+        bar_color = "#ef4444"
+    elif groups["segera"]:
+        bar_color = "#f59e0b"
+
+    st.markdown(f"""
+        <div style="margin-bottom:1rem;">
+            <div style="display:flex;justify-content:space-between;font-size:0.8rem;color:#64748b;margin-bottom:0.25rem;">
+                <span>Hari ini</span>
+                <span>{days_until_departure} hari lagi &rarr; Keberangkatan</span>
+            </div>
+            <div class="doc-tl-progress-bar">
+                <div class="doc-tl-progress-fill" style="width:{progress_pct}%;background:{bar_color};"></div>
+            </div>
+        </div>
+    """, unsafe_allow_html=True)
+
+    # Render each group
+    group_config = [
+        ("terlambat", "Terlambat", "terlambat", "Dokumen yang sudah melewati tenggat waktu"),
+        ("segera", "Segera Diurus", "segera", "Dokumen yang perlu segera disiapkan"),
+        ("aman", "Dalam Jadwal", "aman", "Dokumen yang masih sesuai jadwal"),
+        ("selesai", "Sudah Selesai", "selesai-group", "Dokumen yang sudah siap"),
+    ]
+
+    any_rendered = False
+    for group_key, group_title, css_class, group_desc in group_config:
+        items = groups[group_key]
+        if not items:
+            continue
+
+        any_rendered = True
+        count = len(items)
+        st.markdown(f"""
+        <div class="doc-timeline-group-header {css_class}">
+            {group_title} ({count})
+            <span style="font-weight:400;font-size:0.75rem;text-transform:none;letter-spacing:0;margin-left:0.5rem;">
+                &mdash; {group_desc}
+            </span>
+        </div>
+        """, unsafe_allow_html=True)
+
+        for item in items:
+            doc = item["doc"]
+            days_rem = item["days_remaining"]
+            deadline = item["deadline_date"]
+            color = item["color"]
+            border_cls = item["border_class"]
+            badge_cls = item["badge_class"]
+            label = item["label"]
+            status = st.session_state.doc_checklist.get(doc["id"], "belum")
+            status_icon = STATUS_CONFIG[status]["icon"]
+
+            # Countdown display
+            if item["urgency"] == "selesai":
+                countdown_html = f"""
+                <div class="doc-countdown">
+                    <div class="doc-countdown-number" style="color:{color};">{status_icon}</div>
+                    <div class="doc-countdown-unit">Selesai</div>
+                </div>"""
+            elif days_rem < 0:
+                countdown_html = f"""
+                <div class="doc-countdown">
+                    <div class="doc-countdown-number" style="color:{color};">{abs(days_rem)}</div>
+                    <div class="doc-countdown-unit">Hari Terlambat</div>
+                </div>"""
+            else:
+                countdown_html = f"""
+                <div class="doc-countdown">
+                    <div class="doc-countdown-number" style="color:{color};">{days_rem}</div>
+                    <div class="doc-countdown-unit">Hari Lagi</div>
+                </div>"""
+
+            deadline_str = deadline.strftime("%d %b %Y")
+
+            st.markdown(f"""
+            <div class="doc-tl-item {border_cls}">
+                {countdown_html}
+                <div class="doc-tl-info">
+                    <p class="doc-tl-info-name">
+                        {doc["icon"]} {doc["name"]}
+                        <span class="doc-urgency-badge {badge_cls}">{label}</span>
+                    </p>
+                    <p class="doc-tl-info-meta">
+                        Target: {deadline_str} &bull; Proses: {doc["processing_time"]} &bull; {status_icon} {STATUS_CONFIG[status]["label"]}
+                    </p>
+                </div>
+            </div>
+            """, unsafe_allow_html=True)
+
+    if not any_rendered:
+        st.markdown("""
+        <p style="color:#94a3b8;text-align:center;padding:1rem;">
+            Tidak ada dokumen untuk ditampilkan.
+        </p>
+        """, unsafe_allow_html=True)
+
+    st.markdown("</div>", unsafe_allow_html=True)
+
+    # Summary statistics
+    n_terlambat = len(groups["terlambat"])
+    n_segera = len(groups["segera"])
+    n_aman = len(groups["aman"])
+    n_selesai = len(groups["selesai"])
+
+    col1, col2, col3, col4 = st.columns(4)
+    with col1:
+        st.markdown(f"""
+        <div class="doc-stat-card">
+            <p class="doc-stat-value" style="color:#ef4444;">{n_terlambat}</p>
+            <p class="doc-stat-label">Terlambat</p>
+        </div>""", unsafe_allow_html=True)
+    with col2:
+        st.markdown(f"""
+        <div class="doc-stat-card">
+            <p class="doc-stat-value" style="color:#f59e0b;">{n_segera}</p>
+            <p class="doc-stat-label">Segera</p>
+        </div>""", unsafe_allow_html=True)
+    with col3:
+        st.markdown(f"""
+        <div class="doc-stat-card">
+            <p class="doc-stat-value" style="color:#22c55e;">{n_aman}</p>
+            <p class="doc-stat-label">Aman</p>
+        </div>""", unsafe_allow_html=True)
+    with col4:
+        st.markdown(f"""
+        <div class="doc-stat-card">
+            <p class="doc-stat-value" style="color:#6b7280;">{n_selesai}</p>
+            <p class="doc-stat-label">Selesai</p>
+        </div>""", unsafe_allow_html=True)
 
 
 # =============================================================================
@@ -531,34 +1134,22 @@ def render_progress_summary():
 # =============================================================================
 
 def render_validity_checker():
-    """Render passport validity check and departure date input."""
-    st.markdown("### Tanggal & Validitas")
+    """Render passport validity check using departure date from session state."""
+    st.markdown("### Validitas Paspor")
 
-    col1, col2 = st.columns(2)
+    today = date.today()
+    # Use departure date from the top-level input (departure_date_doc)
+    departure_date = st.session_state.departure_date_doc or st.session_state.doc_details.get("departure_date")
 
-    with col1:
-        today = date.today()
-        default_departure = today + timedelta(days=90)
-        departure_date = st.date_input(
-            "Tanggal Keberangkatan",
-            value=st.session_state.doc_details.get("departure_date") or default_departure,
-            min_value=today,
-            max_value=today + timedelta(days=730),
-            key="input_departure_date",
-            help="Pilih perkiraan tanggal keberangkatan Umrah Anda"
-        )
-        st.session_state.doc_details["departure_date"] = departure_date
-
-    with col2:
-        paspor_expiry = st.date_input(
-            "Tanggal Kadaluarsa Paspor",
-            value=st.session_state.doc_details.get("paspor_expiry") or (today + timedelta(days=365)),
-            min_value=today - timedelta(days=365),
-            max_value=today + timedelta(days=3650),
-            key="input_paspor_expiry",
-            help="Masukkan tanggal kadaluarsa paspor Anda"
-        )
-        st.session_state.doc_details["paspor_expiry"] = paspor_expiry
+    paspor_expiry = st.date_input(
+        "Tanggal Kadaluarsa Paspor",
+        value=st.session_state.doc_details.get("paspor_expiry") or (today + timedelta(days=365)),
+        min_value=today - timedelta(days=365),
+        max_value=today + timedelta(days=3650),
+        key="input_paspor_expiry",
+        help="Masukkan tanggal kadaluarsa paspor Anda"
+    )
+    st.session_state.doc_details["paspor_expiry"] = paspor_expiry
 
     # Departure countdown
     if departure_date:
@@ -852,7 +1443,20 @@ def render_doc_checker_page():
     # Hero
     render_hero()
 
-    # Date inputs & validity
+    # Departure date input at the top
+    departure_date = render_departure_date_input()
+
+    # Alert banner (shows if any documents are overdue/urgent)
+    render_alert_banner(departure_date)
+
+    st.divider()
+
+    # Departure-aware document timeline
+    render_doc_timeline(departure_date, REQUIRED_DOCUMENTS)
+
+    st.divider()
+
+    # Date inputs & validity (passport check)
     render_validity_checker()
 
     st.divider()
@@ -867,7 +1471,7 @@ def render_doc_checker_page():
 
     st.divider()
 
-    # Timeline
+    # Legacy timeline (kept for compatibility)
     render_timeline()
 
     # Disclaimer

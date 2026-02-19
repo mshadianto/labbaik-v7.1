@@ -205,6 +205,246 @@ READINESS_CSS = """
 """
 
 # =============================================================================
+# COACHING PLAN CSS
+# =============================================================================
+
+COACHING_CSS = """
+/* Coaching Plan Timeline */
+.coaching-section-header {
+    background: linear-gradient(135deg, #1a2a3a 0%, #2d3a4a 100%);
+    border: 1px solid #d4af37;
+    border-radius: 15px;
+    padding: 1.5rem;
+    margin-bottom: 1.5rem;
+    text-align: center;
+}
+
+.coaching-section-header h3 {
+    color: #d4af37;
+    margin: 0 0 0.25rem 0;
+    font-size: 1.3rem;
+}
+
+.coaching-section-header p {
+    color: #b0b0b0;
+    margin: 0;
+    font-size: 0.9rem;
+}
+
+.coaching-track-header {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    margin-bottom: 1rem;
+    padding: 0.75rem 1rem;
+    background: linear-gradient(135deg, #1a1a2e 0%, #2d2d4a 100%);
+    border-radius: 12px;
+    border-left: 4px solid var(--track-color, #d4af37);
+}
+
+.coaching-track-header .track-icon {
+    font-size: 1.5rem;
+}
+
+.coaching-track-header .track-title {
+    color: white;
+    font-weight: 700;
+    font-size: 1.1rem;
+}
+
+.coaching-track-header .track-score {
+    margin-left: auto;
+    color: var(--track-color, #d4af37);
+    font-weight: 600;
+    font-size: 0.9rem;
+}
+
+.coaching-timeline {
+    position: relative;
+    padding-left: 2rem;
+    margin-left: 1rem;
+    margin-bottom: 1.5rem;
+}
+
+.coaching-timeline::before {
+    content: '';
+    position: absolute;
+    left: 0.5rem;
+    top: 0;
+    bottom: 0;
+    width: 3px;
+    background: linear-gradient(to bottom, #444, #333);
+    border-radius: 2px;
+}
+
+.coaching-step {
+    position: relative;
+    background: linear-gradient(145deg, #1a1a1a 0%, #2d2d2d 100%);
+    border-radius: 12px;
+    padding: 1.25rem;
+    margin-bottom: 1rem;
+    border: 1px solid #333;
+    transition: border-color 0.3s ease;
+}
+
+.coaching-step:hover {
+    border-color: #555;
+}
+
+.coaching-step::before {
+    content: '';
+    position: absolute;
+    left: -1.75rem;
+    top: 1.5rem;
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    border: 3px solid;
+    z-index: 1;
+}
+
+.coaching-step.step-pending::before {
+    background: #333;
+    border-color: #666;
+}
+
+.coaching-step.step-current::before {
+    background: #d4af37;
+    border-color: #f4d03f;
+    box-shadow: 0 0 8px rgba(212, 175, 55, 0.6);
+}
+
+.coaching-step.step-done::before {
+    background: #4ade80;
+    border-color: #22c55e;
+    box-shadow: 0 0 8px rgba(74, 222, 128, 0.4);
+}
+
+.coaching-step .step-timeframe {
+    display: inline-block;
+    background: rgba(212, 175, 55, 0.15);
+    color: #d4af37;
+    padding: 0.2rem 0.6rem;
+    border-radius: 6px;
+    font-size: 0.8rem;
+    font-weight: 600;
+    margin-bottom: 0.5rem;
+}
+
+.coaching-step .step-title {
+    color: white;
+    font-weight: 700;
+    font-size: 1rem;
+    margin-bottom: 0.4rem;
+}
+
+.coaching-step .step-desc {
+    color: #b8c5d4;
+    font-size: 0.9rem;
+    line-height: 1.5;
+    margin-bottom: 0.5rem;
+}
+
+.coaching-step .step-meta {
+    display: flex;
+    gap: 1rem;
+    align-items: center;
+    flex-wrap: wrap;
+}
+
+.coaching-step .step-priority {
+    display: inline-block;
+    padding: 0.15rem 0.5rem;
+    border-radius: 4px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    text-transform: uppercase;
+}
+
+.coaching-step .priority-tinggi {
+    background: rgba(239, 68, 68, 0.2);
+    color: #f87171;
+}
+
+.coaching-step .priority-sedang {
+    background: rgba(251, 191, 36, 0.2);
+    color: #fbbf24;
+}
+
+.coaching-step .step-effort {
+    color: #8e9fb3;
+    font-size: 0.8rem;
+}
+
+.coaching-ai-tip {
+    background: linear-gradient(135deg, #1a2a1a 0%, #2d4a2d 100%);
+    border: 1px solid #4ade80;
+    border-radius: 15px;
+    padding: 1.5rem;
+    margin-top: 1rem;
+}
+
+.coaching-ai-tip h4 {
+    color: #4ade80;
+    margin-top: 0;
+    margin-bottom: 0.75rem;
+}
+
+.coaching-ai-tip p {
+    color: #ccc;
+    line-height: 1.6;
+    margin: 0;
+}
+
+@media (max-width: 768px) {
+    .coaching-timeline {
+        padding-left: 1.5rem;
+        margin-left: 0.5rem;
+    }
+
+    .coaching-step {
+        padding: 1rem;
+    }
+
+    .coaching-step::before {
+        left: -1.35rem;
+        width: 12px;
+        height: 12px;
+    }
+
+    .coaching-step .step-meta {
+        gap: 0.5rem;
+    }
+
+    .coaching-track-header {
+        flex-wrap: wrap;
+    }
+
+    .coaching-track-header .track-score {
+        margin-left: 0;
+        width: 100%;
+        margin-top: 0.25rem;
+    }
+}
+
+@media (max-width: 480px) {
+    .coaching-step {
+        padding: 0.85rem;
+    }
+
+    .coaching-section-header {
+        padding: 1rem;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .coaching-step {
+        transition: none;
+    }
+}
+"""
+
+# =============================================================================
 # QUESTIONNAIRE DATA
 # =============================================================================
 
@@ -401,6 +641,234 @@ AI_SYSTEM_PROMPT = (
     "Gunakan prioritas: TINGGI, SEDANG, RENDAH. "
     "Jawab dalam Bahasa Indonesia."
 )
+
+# System prompt for coaching plan AI tip
+COACHING_AI_SYSTEM_PROMPT = (
+    "Anda adalah coach persiapan Umrah yang berpengalaman. "
+    "Berikan 1 tip motivasi dan actionable yang personal berdasarkan area lemah jamaah. "
+    "Singkat (2-3 kalimat), hangat, dan mendorong semangat. "
+    "Jawab dalam Bahasa Indonesia."
+)
+
+# =============================================================================
+# COACHING TRACKS DATA
+# =============================================================================
+
+COACHING_TRACKS = {
+    "dokumen": {
+        "title": "Dokumen",
+        "icon": "\U0001f4c4",
+        "color": "#60a5fa",
+        "steps": [
+            {
+                "title": "Cek paspor",
+                "description": (
+                    "Periksa masa berlaku paspor Anda. Pastikan masih berlaku minimal "
+                    "6 bulan dari tanggal keberangkatan. Jika belum ada atau sudah "
+                    "expired, segera urus pembuatan/perpanjangan di kantor imigrasi terdekat."
+                ),
+                "timeframe": "Minggu 1-2",
+                "priority": "tinggi",
+                "effort": "2-5 hari kerja",
+            },
+            {
+                "title": "Apply visa umrah",
+                "description": (
+                    "Pelajari persyaratan visa umrah terbaru. Siapkan dokumen pendukung: "
+                    "foto ukuran 4x6 latar putih, bukti vaksin meningitis, dan formulir "
+                    "aplikasi. Koordinasikan dengan travel agent untuk proses pengajuan."
+                ),
+                "timeframe": "Minggu 3-4",
+                "priority": "tinggi",
+                "effort": "3-7 hari kerja",
+            },
+            {
+                "title": "Vaksinasi meningitis",
+                "description": (
+                    "Lakukan vaksinasi meningitis di Kantor Kesehatan Pelabuhan (KKP) "
+                    "terdekat. Bawa paspor dan foto. Sertifikat ICV (International "
+                    "Certificate of Vaccination) berlaku 3 tahun dan wajib untuk masuk "
+                    "Arab Saudi."
+                ),
+                "timeframe": "Minggu 3-6",
+                "priority": "tinggi",
+                "effort": "1 hari",
+            },
+            {
+                "title": "Kumpulkan dokumen pendukung",
+                "description": (
+                    "Siapkan semua dokumen pelengkap: KTP, Kartu Keluarga, akta nikah "
+                    "(jika berpasangan), surat izin suami/wali (untuk wanita), dan "
+                    "dokumen lain yang diminta travel agent. Buat salinan fisik dan "
+                    "digital semua dokumen penting."
+                ),
+                "timeframe": "Minggu 5-8",
+                "priority": "sedang",
+                "effort": "2-3 hari",
+            },
+        ],
+    },
+    "budget": {
+        "title": "Budget",
+        "icon": "\U0001f4b0",
+        "color": "#fbbf24",
+        "steps": [
+            {
+                "title": "Hitung total biaya",
+                "description": (
+                    "Buat rincian lengkap biaya umrah: tiket pesawat, hotel Makkah & "
+                    "Madinah, transportasi lokal, makan, perlengkapan ibadah, oleh-oleh, "
+                    "dan biaya tak terduga. Gunakan fitur Simulasi Biaya LABBAIK untuk "
+                    "estimasi akurat."
+                ),
+                "timeframe": "Minggu 1-2",
+                "priority": "tinggi",
+                "effort": "2-3 jam",
+            },
+            {
+                "title": "Buat rencana tabungan",
+                "description": (
+                    "Tentukan target menabung bulanan berdasarkan total biaya dan waktu "
+                    "keberangkatan. Pertimbangkan tabungan umrah syariah atau deposito "
+                    "untuk menjaga konsistensi. Sisihkan minimal 20-30% penghasilan "
+                    "bulanan untuk dana umrah."
+                ),
+                "timeframe": "Minggu 3-4",
+                "priority": "tinggi",
+                "effort": "1-2 jam + konsisten",
+            },
+            {
+                "title": "Siapkan dana darurat",
+                "description": (
+                    "Alokasikan dana darurat minimal Rp 5-10 juta di luar biaya paket "
+                    "umrah. Dana ini untuk kebutuhan tak terduga selama di Tanah Suci: "
+                    "kesehatan, transportasi tambahan, atau perpanjangan penginapan."
+                ),
+                "timeframe": "Minggu 5-8",
+                "priority": "sedang",
+                "effort": "Bertahap",
+            },
+            {
+                "title": "Review & optimasi",
+                "description": (
+                    "Bandingkan harga paket dari beberapa travel agent. Cek promo tiket "
+                    "pesawat dan hotel. Gunakan fitur Price Hub LABBAIK untuk "
+                    "perbandingan harga. Pastikan semua pembayaran terjadwal dan "
+                    "terdokumentasi."
+                ),
+                "timeframe": "Minggu 9-12",
+                "priority": "sedang",
+                "effort": "3-5 jam",
+            },
+        ],
+    },
+    "kesehatan": {
+        "title": "Kesehatan",
+        "icon": "\U0001f3e5",
+        "color": "#f87171",
+        "steps": [
+            {
+                "title": "Medical checkup",
+                "description": (
+                    "Lakukan pemeriksaan kesehatan menyeluruh: tekanan darah, gula "
+                    "darah, kolesterol, fungsi jantung, dan paru-paru. Konsultasikan "
+                    "kemampuan fisik Anda untuk ibadah umrah yang membutuhkan stamina "
+                    "tinggi."
+                ),
+                "timeframe": "Minggu 1-2",
+                "priority": "tinggi",
+                "effort": "1 hari",
+            },
+            {
+                "title": "Mulai olahraga rutin",
+                "description": (
+                    "Tingkatkan stamina secara bertahap. Mulai dengan jalan kaki 2-3 "
+                    "km/hari, naikkan ke 5-10 km/hari. Latih juga naik-turun tangga "
+                    "dan berdiri lama. Thawaf dan Sa'i membutuhkan daya tahan yang baik."
+                ),
+                "timeframe": "Minggu 1-8",
+                "priority": "tinggi",
+                "effort": "30-60 menit/hari",
+            },
+            {
+                "title": "Vaksinasi lengkap",
+                "description": (
+                    "Selain meningitis (wajib), pertimbangkan vaksin influenza, COVID "
+                    "booster, dan pneumonia terutama untuk lansia. Konsultasikan dengan "
+                    "dokter vaksin apa saja yang direkomendasikan untuk perjalanan ke "
+                    "Arab Saudi."
+                ),
+                "timeframe": "Minggu 3-6",
+                "priority": "sedang",
+                "effort": "1-2 kunjungan",
+            },
+            {
+                "title": "Persiapan obat pribadi",
+                "description": (
+                    "Siapkan obat-obatan rutin dalam jumlah cukup plus cadangan. Bawa "
+                    "P3K: obat flu, diare, sakit kepala, plester, dan hand sanitizer. "
+                    "Minta surat keterangan dokter untuk obat resep yang dibawa."
+                ),
+                "timeframe": "Minggu 7-8",
+                "priority": "sedang",
+                "effort": "2-3 jam",
+            },
+        ],
+    },
+    "manasik": {
+        "title": "Pengetahuan Manasik",
+        "icon": "\U0001f4ff",
+        "color": "#c084fc",
+        "steps": [
+            {
+                "title": "Pelajari rukun umrah",
+                "description": (
+                    "Pahami secara mendalam 4 rukun umrah: Ihram (niat & miqat), "
+                    "Thawaf (mengelilingi Ka'bah 7 kali), Sa'i (berjalan antara Shafa "
+                    "dan Marwah 7 kali), dan Tahallul (mencukur/memotong rambut). "
+                    "Pelajari juga wajib dan sunnah umrah."
+                ),
+                "timeframe": "Minggu 1-4",
+                "priority": "tinggi",
+                "effort": "1-2 jam/hari",
+            },
+            {
+                "title": "Hafalan doa",
+                "description": (
+                    "Hafalkan doa-doa utama: niat ihram, doa thawaf setiap putaran, "
+                    "doa di Multazam, doa Sa'i, dan doa-doa harian di Tanah Suci. "
+                    "Gunakan fitur Doa Player LABBAIK untuk membantu hafalan dengan "
+                    "audio."
+                ),
+                "timeframe": "Minggu 3-8",
+                "priority": "tinggi",
+                "effort": "30 menit/hari",
+            },
+            {
+                "title": "Ikut bimbingan manasik",
+                "description": (
+                    "Ikuti bimbingan manasik tatap muka dari travel agent atau masjid. "
+                    "Praktik langsung gerakan thawaf, sa'i, dan tahallul. Bimbingan "
+                    "tatap muka lebih efektif daripada belajar online saja."
+                ),
+                "timeframe": "Minggu 5-10",
+                "priority": "tinggi",
+                "effort": "2-4 sesi",
+            },
+            {
+                "title": "Praktik mandiri",
+                "description": (
+                    "Lakukan simulasi mandiri: praktikkan urutan ibadah dari awal "
+                    "hingga akhir. Latih membaca doa sambil berjalan. Pelajari juga "
+                    "bahasa Arab dasar untuk komunikasi sederhana di Tanah Suci."
+                ),
+                "timeframe": "Minggu 9-12",
+                "priority": "sedang",
+                "effort": "1 jam/hari",
+            },
+        ],
+    },
+}
 
 
 # =============================================================================
@@ -896,6 +1364,326 @@ def render_export_section(score: Dict):
 
 
 # =============================================================================
+# COACHING PLAN
+# =============================================================================
+
+def render_coaching_plan(score: Dict, dimension_scores: Dict, answers: Dict):
+    """
+    Render a personalized coaching plan based on weak dimensions.
+
+    Generates timeline-based coaching tracks for dimensions scoring < 60% of max.
+    Includes AI-powered personalized tip with fallback.
+
+    Args:
+        score: Full score dict from calculate_readiness_score()
+        dimension_scores: The 'dimensions' sub-dict from the score
+        answers: Raw answers dict from session state
+    """
+    # Inject coaching CSS
+    st.markdown(f"<style>{COACHING_CSS}</style>", unsafe_allow_html=True)
+
+    # Identify weak dimensions (< 60% of max)
+    weak_dims = []
+    for dim_key, dim_info in dimension_scores.items():
+        if dim_info["percentage"] < 60:
+            weak_dims.append(dim_key)
+
+    # If no weak dimensions, show congratulations instead
+    if not weak_dims:
+        st.markdown(
+            '<div class="coaching-section-header">'
+            '<h3><span aria-hidden="true">\U0001f3af</span> Coaching Plan</h3>'
+            '<p>Semua dimensi kesiapan Anda sudah baik! Pertahankan persiapan '
+            'dan terus tingkatkan menjelang keberangkatan.</p>'
+            '</div>',
+            unsafe_allow_html=True,
+        )
+        return
+
+    # Section header
+    weak_count = len(weak_dims)
+    st.markdown(
+        '<div class="coaching-section-header">'
+        '<h3><span aria-hidden="true">\U0001f3af</span> Coaching Plan Personal</h3>'
+        f'<p>Rencana persiapan bertahap untuk {weak_count} area yang perlu ditingkatkan</p>'
+        '</div>',
+        unsafe_allow_html=True,
+    )
+
+    # Render coaching tracks for each weak dimension
+    for dim_key in weak_dims:
+        track = COACHING_TRACKS.get(dim_key)
+        if not track:
+            continue
+
+        dim_info = dimension_scores[dim_key]
+        pct = dim_info["percentage"]
+        track_color = track["color"]
+
+        # Track header
+        st.markdown(
+            f'<div class="coaching-track-header" style="--track-color: {track_color};">'
+            f'<span class="track-icon" aria-hidden="true">{track["icon"]}</span>'
+            f'<span class="track-title">{track["title"]}</span>'
+            f'<span class="track-score">{dim_info["score"]}/{dim_info["max"]} ({pct}%)</span>'
+            f'</div>',
+            unsafe_allow_html=True,
+        )
+
+        # Timeline with steps
+        steps_html_parts = []
+        for i, step in enumerate(track["steps"]):
+            # First step is "current", rest are "pending"
+            step_status = "step-current" if i == 0 else "step-pending"
+
+            # Priority badge
+            priority_class = f"priority-{step['priority']}"
+            priority_label = step["priority"].upper()
+
+            steps_html_parts.append(
+                f'<div class="coaching-step {step_status}">'
+                f'<div class="step-timeframe">{step["timeframe"]}</div>'
+                f'<div class="step-title">{step["title"]}</div>'
+                f'<div class="step-desc">{step["description"]}</div>'
+                f'<div class="step-meta">'
+                f'<span class="step-priority {priority_class}">{priority_label}</span>'
+                f'<span class="step-effort">\U0000231b {step["effort"]}</span>'
+                f'</div>'
+                f'</div>'
+            )
+
+        timeline_html = "\n".join(steps_html_parts)
+        st.markdown(
+            f'<div class="coaching-timeline">{timeline_html}</div>',
+            unsafe_allow_html=True,
+        )
+
+    # AI-powered personalized tip
+    _render_coaching_ai_tip(score, weak_dims, dimension_scores, answers)
+
+    # Gamification: award XP for generating coaching plan
+    if "coaching_plan_xp_awarded" not in st.session_state:
+        add_xp_safe(20, "Membuat Coaching Plan")
+        st.session_state.coaching_plan_xp_awarded = True
+
+
+def _render_coaching_ai_tip(
+    score: Dict,
+    weak_dims: List[str],
+    dimension_scores: Dict,
+    answers: Dict,
+):
+    """Generate and render an AI-powered coaching tip for weak dimensions."""
+    # Build context for AI
+    weak_info_lines = []
+    for dim_key in weak_dims:
+        dim_info = dimension_scores[dim_key]
+        weak_info_lines.append(
+            f"- {dim_info['title']}: {dim_info['score']}/{dim_info['max']} ({dim_info['percentage']}%)"
+        )
+
+    summary = score.get("answers_summary", {})
+    answer_lines = []
+    for dim_key in weak_dims:
+        dim_data = DIMENSIONS.get(dim_key, {})
+        for question in dim_data.get("questions", []):
+            qid = question["id"]
+            ans_text = summary.get(qid, "Tidak dijawab")
+            answer_lines.append(f"- {question['text']}: {ans_text}")
+
+    prompt = (
+        f"Skor kesiapan umrah: {score['total']}/100.\n"
+        f"Area lemah:\n" + "\n".join(weak_info_lines) + "\n\n"
+        f"Detail jawaban area lemah:\n" + "\n".join(answer_lines) + "\n\n"
+        "Berikan 1 tip coaching personal yang motivatif dan actionable "
+        "untuk membantu jamaah ini memulai persiapan."
+    )
+
+    with st.spinner("AI menyiapkan tip coaching personal..."):
+        ai_tip = ai_complete(
+            prompt,
+            system_prompt=COACHING_AI_SYSTEM_PROMPT,
+            max_tokens=512,
+        )
+
+    if ai_tip:
+        st.markdown(
+            f'<div class="coaching-ai-tip" role="status" aria-live="polite">'
+            f'<h4><span aria-hidden="true">\U0001f4a1</span> Tip Coach AI untuk Anda</h4>'
+            f'<p>{ai_tip.replace(chr(10), "<br>")}</p>'
+            f'</div>',
+            unsafe_allow_html=True,
+        )
+    else:
+        # Fallback static tip
+        fallback_tips = {
+            "dokumen": (
+                "Mulailah dari yang paling mendasar: pastikan paspor Anda masih berlaku. "
+                "Satu langkah kecil hari ini akan membuka jalan menuju Tanah Suci."
+            ),
+            "budget": (
+                "Mulai sisihkan dana secara rutin, sekecil apapun. Konsistensi menabung "
+                "lebih penting daripada jumlah besar di awal."
+            ),
+            "kesehatan": (
+                "Mulai jalan kaki 15-30 menit setiap hari mulai hari ini. Ibadah di "
+                "Tanah Suci membutuhkan stamina yang baik, dan tubuh sehat adalah modal utama."
+            ),
+            "manasik": (
+                "Pelajari satu rukun umrah setiap minggu. Dengan memahami makna setiap "
+                "ibadah, perjalanan Anda akan jauh lebih bermakna dan khusyuk."
+            ),
+        }
+        # Pick the tip for the first weak dimension
+        first_weak = weak_dims[0] if weak_dims else "dokumen"
+        tip_text = fallback_tips.get(first_weak, fallback_tips["dokumen"])
+
+        st.markdown(
+            f'<div class="coaching-ai-tip" role="status" aria-live="polite">'
+            f'<h4><span aria-hidden="true">\U0001f4a1</span> Tip untuk Anda</h4>'
+            f'<p>{tip_text}</p>'
+            f'</div>',
+            unsafe_allow_html=True,
+        )
+
+
+# =============================================================================
+# CROSS-PAGE NAVIGATION CSS
+# =============================================================================
+
+CROSS_NAV_CSS = """
+.cross-nav-card {
+    background: linear-gradient(145deg, #1a1a2e 0%, #1e293b 100%);
+    border: 1px solid #334155;
+    border-radius: 16px;
+    padding: 1.5rem;
+    margin: 1.5rem 0;
+}
+
+.cross-nav-card h3 {
+    color: #d4af37;
+    margin-top: 0;
+    margin-bottom: 0.25rem;
+    font-size: 1.1rem;
+}
+
+.cross-nav-card .cross-nav-subtitle {
+    color: #b0b0b0;
+    font-size: 0.85rem;
+    margin-bottom: 1rem;
+}
+
+.cross-nav-hint {
+    background: linear-gradient(135deg, #2d1a0a 0%, #3d2a1a 100%);
+    border: 1px solid #f59e0b;
+    border-left: 4px solid #f59e0b;
+    border-radius: 12px;
+    padding: 0.75rem 1rem;
+    margin-bottom: 0.75rem;
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+.cross-nav-hint .hint-icon {
+    font-size: 1.25rem;
+}
+
+.cross-nav-hint .hint-text {
+    color: #b8c5d4;
+    font-size: 0.85rem;
+}
+
+.cross-nav-hint .hint-text strong {
+    color: #f59e0b;
+}
+"""
+
+
+# =============================================================================
+# CROSS-PAGE NAVIGATION
+# =============================================================================
+
+def _render_contextual_nav(score: Dict):
+    """Render contextual cross-page navigation buttons based on low-scoring dimensions."""
+    st.markdown(CROSS_NAV_CSS, unsafe_allow_html=True)
+
+    dims = score.get("dimensions", {})
+
+    # Gather suggestions based on low scores
+    suggestions = []
+
+    dokumen_pct = dims.get("dokumen", {}).get("percentage", 100)
+    budget_pct = dims.get("budget", {}).get("percentage", 100)
+    manasik_pct = dims.get("manasik", {}).get("percentage", 100)
+
+    if dokumen_pct < 60:
+        suggestions.append({
+            "hint": "Skor <strong>Dokumen</strong> Anda masih rendah. Periksa kelengkapan dokumen umrah.",
+            "icon": "\U0001f4c4",
+            "label": "\U0001f4c4 Cek Dokumen Anda",
+            "key": "nav_to_doc_checker",
+            "target": "doc_checker",
+        })
+
+    if budget_pct < 60:
+        suggestions.append({
+            "hint": "Skor <strong>Budget</strong> Anda masih rendah. Hitung dan pantau biaya umrah.",
+            "icon": "\U0001f4b0",
+            "label": "\U0001f4b0 Hitung Budget",
+            "key": "nav_to_cost_tracker",
+            "target": "cost_tracker",
+        })
+
+    if manasik_pct < 60:
+        suggestions.append({
+            "hint": "Skor <strong>Manasik</strong> Anda masih rendah. Pelajari tata cara ibadah umrah.",
+            "icon": "\U0001f4ff",
+            "label": "\U0001f4ff Latihan Manasik",
+            "key": "nav_to_manasik",
+            "target": "manasik",
+        })
+
+    st.markdown(
+        '<div class="cross-nav-card">'
+        '<h3><span aria-hidden="true">\U0001f9ed</span> Tingkatkan Kesiapan Anda</h3>'
+        '<div class="cross-nav-subtitle">Berdasarkan hasil skor, berikut langkah yang disarankan</div>'
+        '</div>',
+        unsafe_allow_html=True,
+    )
+
+    # Render contextual hints and buttons
+    for suggestion in suggestions:
+        st.markdown(
+            f'<div class="cross-nav-hint">'
+            f'<span class="hint-icon" aria-hidden="true">{suggestion["icon"]}</span>'
+            f'<div class="hint-text">{suggestion["hint"]}</div>'
+            f'</div>',
+            unsafe_allow_html=True,
+        )
+
+    # Build button columns: contextual suggestions + always-present booking
+    button_items = suggestions + [
+        {
+            "label": "\U0001f54b Mulai Perencanaan",
+            "key": "nav_to_booking_from_readiness",
+            "target": "booking",
+        }
+    ]
+
+    cols = st.columns(len(button_items))
+    for i, item in enumerate(button_items):
+        with cols[i]:
+            if st.button(
+                item["label"],
+                key=item["key"],
+                use_container_width=True,
+            ):
+                st.session_state.nav = item["target"]
+                st.rerun()
+
+
+# =============================================================================
 # MAIN PAGE FUNCTION
 # =============================================================================
 
@@ -922,10 +1710,18 @@ def render_readiness_checker_page():
         # Score display
         render_score_display(score)
 
+        # Contextual cross-page navigation based on dimension scores
+        _render_contextual_nav(score)
+
         st.divider()
 
         # Recommendations
         render_recommendations(st.session_state.readiness_recommendations)
+
+        st.divider()
+
+        # Coaching Plan
+        render_coaching_plan(score, score["dimensions"], st.session_state.readiness_answers)
 
         st.divider()
 
@@ -947,6 +1743,7 @@ def render_readiness_checker_page():
             st.session_state.readiness_recommendations = None
             st.session_state.readiness_answers = {}
             st.session_state.readiness_timestamp = None
+            st.session_state.coaching_plan_xp_awarded = False
             st.rerun()
 
         # Disclaimer

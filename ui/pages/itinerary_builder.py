@@ -33,6 +33,24 @@ except ImportError:
 # STYLING
 # =============================================================================
 
+WA_SHARE_CSS = """
+.wa-share-btn {
+    display: inline-flex; align-items: center; gap: 8px;
+    background: #25D366; color: white; padding: 8px 16px;
+    border-radius: 8px; text-decoration: none; font-weight: 600;
+    font-size: 0.85rem; transition: background 0.2s;
+}
+.wa-share-btn:hover { background: #128C7E; color: white; }
+"""
+
+
+def _build_wa_share_url(text):
+    """Build WhatsApp share URL with encoded text."""
+    import urllib.parse
+    encoded = urllib.parse.quote(text)
+    return f"https://wa.me/?text={encoded}"
+
+
 ITINERARY_CSS = """
 .itinerary-hero {
     background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
@@ -188,6 +206,13 @@ ITINERARY_CSS = """
     font-weight: bold;
     border: 1px solid rgba(248, 113, 113, 0.3);
     margin-bottom: 0.5rem;
+}
+
+.print-export-note {
+    color: #b0b0b0;
+    font-size: 0.8rem;
+    margin-top: 0.25rem;
+    font-style: italic;
 }
 """
 
@@ -496,6 +521,7 @@ def init_itinerary_state():
         "itinerary_preferences": {},
         "itinerary_xp_generate": False,
         "itinerary_xp_ai": False,
+        "itinerary_xp_print_export": False,
     }
     for key, value in defaults.items():
         if key not in st.session_state:
@@ -956,6 +982,325 @@ def export_to_whatsapp(itinerary: List[dict], start_date: date) -> str:
     return "\n".join(output)
 
 
+def generate_printable_html(itinerary: List[dict], start_date: date) -> str:
+    """Generate a self-contained, print-optimized HTML document for the itinerary.
+
+    The output is A4-ready with @media print rules, page breaks between days,
+    and a professional LABBAIK header with gold accents.
+    """
+    end_date = start_date + timedelta(days=len(itinerary) - 1)
+    generated_at = datetime.now().strftime("%d %B %Y, %H:%M")
+
+    tag_labels = {
+        "ibadah": "Ibadah",
+        "transport": "Transport",
+        "rest": "Istirahat",
+        "food": "Makan",
+        "explore": "Ziarah",
+    }
+
+    # Build day sections
+    day_sections = []
+    for day in itinerary:
+        day_date = start_date + timedelta(days=day["day"] - 1)
+        day_date_str = day_date.strftime("%A, %d %B %Y")
+
+        rows = []
+        for item in day.get("schedule", []):
+            waktu = item.get("time", "")
+            aktivitas = item.get("title", "")
+            icon = item.get("icon", "")
+            lokasi = day.get("location", "")
+            dur_min = item.get("duration", 0)
+            if dur_min >= 60:
+                hours = dur_min // 60
+                mins = dur_min % 60
+                durasi = f"{hours}j {mins}m" if mins else f"{hours} jam"
+            else:
+                durasi = f"{dur_min} mnt" if dur_min > 0 else "-"
+            catatan = item.get("desc", "")
+            tag = item.get("tag", "")
+            tag_label = tag_labels.get(tag, "")
+            tag_html = (
+                f' <span class="tag tag-{tag}">{tag_label}</span>'
+                if tag_label else ""
+            )
+
+            rows.append(
+                f"<tr>"
+                f'<td class="col-waktu">{waktu}</td>'
+                f"<td>{icon} {aktivitas}{tag_html}</td>"
+                f"<td>{lokasi}</td>"
+                f'<td class="col-durasi">{durasi}</td>'
+                f'<td class="col-catatan">{catatan}</td>'
+                f"</tr>"
+            )
+
+        rows_html = "\n".join(rows)
+        day_sections.append(
+            f'<div class="day-card">'
+            f'<div class="day-header">{day["title"]} &mdash; {day_date_str}'
+            f'<span class="location-badge">{day["location"]}</span></div>'
+            f"<table>"
+            f"<thead><tr>"
+            f'<th class="col-waktu">Waktu</th>'
+            f"<th>Aktivitas</th>"
+            f"<th>Lokasi</th>"
+            f'<th class="col-durasi">Durasi</th>'
+            f'<th class="col-catatan">Catatan</th>'
+            f"</tr></thead>"
+            f"<tbody>{rows_html}</tbody>"
+            f"</table>"
+            f"</div>"
+        )
+
+    days_html = "\n".join(day_sections)
+
+    html = (
+        "<!DOCTYPE html>\n"
+        '<html lang="id">\n'
+        "<head>\n"
+        '<meta charset="utf-8">\n'
+        '<meta name="viewport" content="width=device-width, initial-scale=1.0">\n'
+        "<title>Itinerary Umrah - LABBAIK</title>\n"
+        "<style>\n"
+        "  /* === Base === */\n"
+        "  * { margin: 0; padding: 0; box-sizing: border-box; }\n"
+        "  body {\n"
+        "    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;\n"
+        "    max-width: 800px;\n"
+        "    margin: 0 auto;\n"
+        "    padding: 20px;\n"
+        "    color: #222;\n"
+        "    background: #fff;\n"
+        "    font-size: 11pt;\n"
+        "    line-height: 1.5;\n"
+        "  }\n"
+        "\n"
+        "  /* === Header === */\n"
+        "  .header {\n"
+        "    background: #1a1a2e;\n"
+        "    color: #d4af37;\n"
+        "    padding: 24px 20px;\n"
+        "    text-align: center;\n"
+        "    border-radius: 8px;\n"
+        "    margin-bottom: 20px;\n"
+        "  }\n"
+        "  .header h1 {\n"
+        "    font-size: 1.8rem;\n"
+        "    margin-bottom: 4px;\n"
+        "    letter-spacing: 0.5px;\n"
+        "  }\n"
+        "  .header .subtitle {\n"
+        "    color: #ccc;\n"
+        "    font-size: 0.95rem;\n"
+        "  }\n"
+        "  .header .date-range {\n"
+        "    color: #d4af37;\n"
+        "    font-size: 0.9rem;\n"
+        "    margin-top: 8px;\n"
+        "    font-weight: 600;\n"
+        "  }\n"
+        "\n"
+        "  /* === Day Cards === */\n"
+        "  .day-card {\n"
+        "    page-break-inside: avoid;\n"
+        "    margin: 15px 0;\n"
+        "    border: 1px solid #ddd;\n"
+        "    border-radius: 6px;\n"
+        "    overflow: hidden;\n"
+        "  }\n"
+        "  .day-header {\n"
+        "    background: #16213e;\n"
+        "    color: #fff;\n"
+        "    padding: 10px 15px;\n"
+        "    font-weight: bold;\n"
+        "    font-size: 1rem;\n"
+        "    display: flex;\n"
+        "    justify-content: space-between;\n"
+        "    align-items: center;\n"
+        "    flex-wrap: wrap;\n"
+        "    gap: 6px;\n"
+        "  }\n"
+        "  .location-badge {\n"
+        "    background: rgba(212, 175, 55, 0.2);\n"
+        "    color: #d4af37;\n"
+        "    padding: 2px 10px;\n"
+        "    border-radius: 12px;\n"
+        "    font-size: 0.8rem;\n"
+        "    font-weight: normal;\n"
+        "  }\n"
+        "\n"
+        "  /* === Table === */\n"
+        "  table {\n"
+        "    width: 100%;\n"
+        "    border-collapse: collapse;\n"
+        "  }\n"
+        "  th {\n"
+        "    background: #f5f5f5;\n"
+        "    color: #333;\n"
+        "    font-weight: 600;\n"
+        "    font-size: 0.85rem;\n"
+        "    text-transform: uppercase;\n"
+        "    letter-spacing: 0.3px;\n"
+        "  }\n"
+        "  td, th {\n"
+        "    padding: 8px 10px;\n"
+        "    border-bottom: 1px solid #eee;\n"
+        "    text-align: left;\n"
+        "    vertical-align: top;\n"
+        "  }\n"
+        "  tr:last-child td {\n"
+        "    border-bottom: none;\n"
+        "  }\n"
+        "  .col-waktu {\n"
+        "    width: 65px;\n"
+        "    font-weight: 600;\n"
+        "    color: #16213e;\n"
+        "    white-space: nowrap;\n"
+        "  }\n"
+        "  .col-durasi {\n"
+        "    width: 70px;\n"
+        "    white-space: nowrap;\n"
+        "    text-align: center;\n"
+        "  }\n"
+        "  .col-catatan {\n"
+        "    width: 200px;\n"
+        "    font-size: 0.85rem;\n"
+        "    color: #555;\n"
+        "  }\n"
+        "\n"
+        "  /* === Tags === */\n"
+        "  .tag {\n"
+        "    display: inline-block;\n"
+        "    padding: 1px 7px;\n"
+        "    border-radius: 8px;\n"
+        "    font-size: 0.7rem;\n"
+        "    font-weight: 600;\n"
+        "    margin-left: 4px;\n"
+        "    vertical-align: middle;\n"
+        "  }\n"
+        "  .tag-ibadah { background: #d4edda; color: #155724; }\n"
+        "  .tag-transport { background: #d1ecf1; color: #0c5460; }\n"
+        "  .tag-rest { background: #fff3cd; color: #856404; }\n"
+        "  .tag-food { background: #f8d7da; color: #721c24; }\n"
+        "  .tag-explore { background: #e2d5f1; color: #4a235a; }\n"
+        "\n"
+        "  /* === Footer === */\n"
+        "  .footer {\n"
+        "    margin-top: 30px;\n"
+        "    padding-top: 15px;\n"
+        "    border-top: 2px solid #d4af37;\n"
+        "    text-align: center;\n"
+        "    font-size: 0.85rem;\n"
+        "    color: #666;\n"
+        "  }\n"
+        "  .footer .brand {\n"
+        "    color: #1a1a2e;\n"
+        "    font-weight: bold;\n"
+        "    font-size: 0.95rem;\n"
+        "  }\n"
+        "  .footer .generated {\n"
+        "    color: #999;\n"
+        "    font-size: 0.8rem;\n"
+        "    margin-top: 4px;\n"
+        "  }\n"
+        "  .disclaimer {\n"
+        "    margin-top: 10px;\n"
+        "    font-size: 0.75rem;\n"
+        "    color: #999;\n"
+        "    font-style: italic;\n"
+        "  }\n"
+        "\n"
+        "  /* === Print button (hidden in print) === */\n"
+        "  .no-print {\n"
+        "    text-align: center;\n"
+        "    margin: 20px 0;\n"
+        "  }\n"
+        "  .no-print button {\n"
+        "    background: #1a1a2e;\n"
+        "    color: #d4af37;\n"
+        "    border: 2px solid #d4af37;\n"
+        "    padding: 10px 30px;\n"
+        "    font-size: 1rem;\n"
+        "    border-radius: 6px;\n"
+        "    cursor: pointer;\n"
+        "    font-weight: bold;\n"
+        "  }\n"
+        "  .no-print button:hover {\n"
+        "    background: #d4af37;\n"
+        "    color: #1a1a2e;\n"
+        "  }\n"
+        "\n"
+        "  /* === Print Media === */\n"
+        "  @media print {\n"
+        "    body {\n"
+        "      padding: 0;\n"
+        "      font-size: 10pt;\n"
+        "    }\n"
+        "    .no-print {\n"
+        "      display: none !important;\n"
+        "    }\n"
+        "    .header {\n"
+        "      border-radius: 0;\n"
+        "      -webkit-print-color-adjust: exact;\n"
+        "      print-color-adjust: exact;\n"
+        "    }\n"
+        "    .day-header {\n"
+        "      -webkit-print-color-adjust: exact;\n"
+        "      print-color-adjust: exact;\n"
+        "    }\n"
+        "    .day-card {\n"
+        "      page-break-inside: avoid;\n"
+        "      break-inside: avoid;\n"
+        "    }\n"
+        "    th {\n"
+        "      -webkit-print-color-adjust: exact;\n"
+        "      print-color-adjust: exact;\n"
+        "    }\n"
+        "    .tag {\n"
+        "      -webkit-print-color-adjust: exact;\n"
+        "      print-color-adjust: exact;\n"
+        "    }\n"
+        "    @page {\n"
+        "      size: A4;\n"
+        "      margin: 15mm;\n"
+        "    }\n"
+        "  }\n"
+        "</style>\n"
+        "</head>\n"
+        "<body>\n"
+        "\n"
+        '<div class="header">\n'
+        "  <h1>LABBAIK Smart Planner</h1>\n"
+        '  <div class="subtitle">Jadwal Umrah Anda</div>\n'
+        f'  <div class="date-range">\n'
+        f"    {start_date.strftime('%d %B %Y')} &mdash; {end_date.strftime('%d %B %Y')}\n"
+        f"    ({len(itinerary)} hari)\n"
+        f"  </div>\n"
+        "</div>\n"
+        "\n"
+        '<div class="no-print">\n'
+        '  <button onclick="window.print()">Cetak / Save as PDF (Ctrl+P)</button>\n'
+        "</div>\n"
+        "\n"
+        f"{days_html}\n"
+        "\n"
+        '<div class="footer">\n'
+        '  <div class="brand">Dibuat dengan LABBAIK Smart Planner</div>\n'
+        f'  <div class="generated">Digenerate pada {generated_at}</div>\n'
+        '  <div class="disclaimer">\n'
+        "    Jadwal bersifat estimasi. Waktu sholat dan durasi aktivitas dapat berbeda\n"
+        "    sesuai kondisi di lapangan. Selalu sesuaikan dengan kondisi aktual.\n"
+        "  </div>\n"
+        "</div>\n"
+        "\n"
+        "</body>\n"
+        "</html>"
+    )
+    return html
+
+
 def _markdown_to_html_simple(text: str) -> str:
     """Simple markdown to HTML for AI response display."""
     lines = text.split("\n")
@@ -1036,7 +1381,7 @@ def get_season_info(start_date, duration):
 
 def render_hero():
     """Render hero section."""
-    inject_css(HERO_CSS, CARD_CSS, AI_CARD_CSS, BADGE_CSS, ITINERARY_CSS)
+    inject_css(HERO_CSS, CARD_CSS, AI_CARD_CSS, BADGE_CSS, ITINERARY_CSS, WA_SHARE_CSS)
     st.markdown(
         '<div class="itinerary-hero">'
         '<h1>\U0001f5d3\ufe0f Smart Itinerary Builder</h1>'
@@ -1503,7 +1848,7 @@ def render_itinerary_builder_page():
         with tab_jadwal:
             # Export
             st.markdown("#### <span aria-hidden=\"true\">\U0001f4e4</span> Export Jadwal", unsafe_allow_html=True)
-            exp1, exp2, exp3, exp4 = st.columns(4)
+            exp1, exp2, exp3, exp4, exp5 = st.columns(5)
             with exp1:
                 st.download_button(
                     "\U0001f4c4 Download TXT",
@@ -1541,11 +1886,53 @@ def render_itinerary_builder_page():
                     st.caption("Buka di Google Calendar, Outlook, atau Apple Calendar")
                 except Exception:
                     st.warning("Gagal membuat file kalender. Silakan coba lagi.")
+            with exp5:
+                _print_html = generate_printable_html(itinerary, start_date)
+                _date_str = start_date.strftime('%Y%m%d')
+                st.download_button(
+                    "\U0001f5a8\ufe0f Download PDF (HTML)",
+                    data=_print_html,
+                    file_name=f"itinerary_labbaik_{_date_str}.html",
+                    mime="text/html",
+                    key="btn_download_pdf_html",
+                    use_container_width=True,
+                )
+                st.markdown(
+                    '<p class="print-export-note">'
+                    'Buka file HTML di browser, lalu Ctrl+P untuk cetak/save PDF'
+                    '</p>',
+                    unsafe_allow_html=True,
+                )
+                if not st.session_state.itinerary_xp_print_export:
+                    st.session_state.itinerary_xp_print_export = True
+                    add_xp_safe(10, "Export printable itinerary Umrah")
 
             if st.button("\U0001f4cb Salin ke Clipboard", key="copy_itinerary", use_container_width=True):
                 wa_text = export_to_whatsapp(itinerary, start_date)
                 st.code(wa_text, language=None)
                 st.caption("Salin teks di atas dan tempel ke WhatsApp atau media lain.")
+
+            # WhatsApp direct share button
+            _share_lines = []
+            _share_lines.append("\U0001f54b *JADWAL UMRAH*\n")
+            for _day in itinerary:
+                _day_date = start_date + timedelta(days=_day["day"] - 1)
+                _loc = _day["location"]
+                _highlights = [item["title"] for item in _day["schedule"][:3]]
+                _share_lines.append(
+                    f"*Hari {_day['day']}* ({_day_date.strftime('%d/%m')}) - {_loc}: "
+                    + ", ".join(_highlights)
+                )
+            _share_lines.append("\n\U0001f310 Dibuat dengan LABBAIK Smart Planner")
+            _share_lines.append("https://app.labbaik.io")
+            _wa_share_text = "\n".join(_share_lines)
+            _wa_share_url = _build_wa_share_url(_wa_share_text)
+            st.markdown(
+                f'<a href="{_wa_share_url}" target="_blank" rel="noopener noreferrer" '
+                f'class="wa-share-btn" style="margin-top:0.5rem;">'
+                f'<span aria-hidden="true">&#128172;</span> Bagikan via WhatsApp</a>',
+                unsafe_allow_html=True,
+            )
 
             st.divider()
             view_mode = st.radio("Tampilan:", ["\U0001f4d1 Semua Hari", "\U0001f50d Per Hari"], horizontal=True)

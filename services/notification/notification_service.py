@@ -252,15 +252,475 @@ class EmailTemplates:
     <h2>Reset Password</h2>
     <p>Halo {name},</p>
     <p>Kami menerima permintaan untuk reset password akun LABBAIK AI Anda.</p>
-    
+
     <p style="text-align: center;">
         <a href="{reset_url}" class="button">Reset Password</a>
     </p>
-    
+
     <p><small>Link ini akan kedaluwarsa dalam 1 jam.</small></p>
-    
+
     <p>Jika Anda tidak meminta reset password, abaikan email ini.</p>
     """
+
+
+# =============================================================================
+# NOTIFICATION TEMPLATES (Multi-Channel)
+# =============================================================================
+
+NOTIFICATION_TEMPLATES: Dict[str, Dict[str, Any]] = {
+    "welcome": {
+        "subject": "Selamat Datang di LABBAIK AI!",
+        "body_template": (
+            "Assalamu'alaikum {name}! Selamat datang di LABBAIK AI - "
+            "platform cerdas untuk merencanakan perjalanan Umrah Anda. "
+            "Mulai eksplorasi fitur simulasi biaya, perbandingan harga hotel, "
+            "dan panduan ibadah lengkap. Semoga Allah SWT memudahkan perjalanan "
+            "ibadah Anda. Aamiin."
+        ),
+        "channel": NotificationChannel.IN_APP,
+        "priority": NotificationPriority.NORMAL,
+        "type": NotificationType.WELCOME,
+    },
+    "booking_confirmation": {
+        "subject": "Simulasi Booking Anda Tersimpan",
+        "body_template": (
+            "Halo {name}, simulasi booking Anda dengan nomor {booking_number} "
+            "telah berhasil disimpan. Detail: berangkat dari {departure_city} "
+            "pada {departure_date}, jumlah jamaah {traveler_count} orang, "
+            "estimasi total Rp {total_price}. Silakan lanjutkan ke tahap "
+            "pembayaran atau hubungi travel agent partner kami."
+        ),
+        "channel": NotificationChannel.EMAIL,
+        "priority": NotificationPriority.HIGH,
+        "type": NotificationType.BOOKING,
+    },
+    "payment_reminder": {
+        "subject": "Pengingat Pembayaran Cicilan Umrah",
+        "body_template": (
+            "Halo {name}, ini adalah pengingat untuk pembayaran cicilan "
+            "booking {booking_number}. Jumlah yang harus dibayar: "
+            "Rp {amount}. Batas waktu pembayaran: {due_date}. "
+            "Mohon segera lakukan pembayaran agar booking Anda tetap aktif."
+        ),
+        "channel": NotificationChannel.EMAIL,
+        "priority": NotificationPriority.URGENT,
+        "type": NotificationType.PAYMENT,
+    },
+    "doc_deadline": {
+        "subject": "Batas Waktu Dokumen Mendekat",
+        "body_template": (
+            "Halo {name}, dokumen {document_type} Anda harus diserahkan "
+            "paling lambat {deadline_date}. Sisa waktu: {days_remaining} hari. "
+            "Pastikan dokumen sudah lengkap dan sesuai persyaratan. "
+            "Buka halaman Cek Dokumen untuk panduan lengkap."
+        ),
+        "channel": NotificationChannel.IN_APP,
+        "priority": NotificationPriority.HIGH,
+        "type": NotificationType.REMINDER,
+    },
+    "departure_reminder": {
+        "subject": "Persiapan Keberangkatan Umrah",
+        "body_template": (
+            "Halo {name}, keberangkatan Umrah Anda tinggal {days_remaining} "
+            "hari lagi! Pastikan semua dokumen (paspor, visa, tiket) sudah "
+            "lengkap. Cek kesiapan Anda di halaman Readiness Check. "
+            "Jangan lupa ikuti manasik terakhir sebelum berangkat. "
+            "Semoga perjalanan Anda lancar dan penuh berkah."
+        ),
+        "channel": NotificationChannel.WHATSAPP,
+        "priority": NotificationPriority.HIGH,
+        "type": NotificationType.REMINDER,
+    },
+    "group_invite": {
+        "subject": "Undangan Bergabung Grup Umrah",
+        "body_template": (
+            "Assalamu'alaikum {name}, Anda diundang oleh {inviter_name} "
+            "untuk bergabung ke grup Umrah \"{group_name}\". "
+            "Bergabunglah untuk merencanakan perjalanan bersama, "
+            "berbagi biaya, dan saling mendukung. "
+            "Klik link berikut untuk bergabung: {join_link}"
+        ),
+        "channel": NotificationChannel.IN_APP,
+        "priority": NotificationPriority.NORMAL,
+        "type": NotificationType.INFO,
+    },
+    "referral_reward": {
+        "subject": "Bonus Referral Anda Telah Diterima!",
+        "body_template": (
+            "Alhamdulillah {name}! Referral Anda berhasil. "
+            "{referred_name} telah mendaftar menggunakan kode referral Anda. "
+            "Anda mendapatkan bonus {reward_amount} poin yang bisa "
+            "digunakan untuk diskon layanan premium. "
+            "Total poin Anda saat ini: {total_points} poin."
+        ),
+        "channel": NotificationChannel.IN_APP,
+        "priority": NotificationPriority.NORMAL,
+        "type": NotificationType.SUCCESS,
+    },
+    "readiness_update": {
+        "subject": "Skor Kesiapan Umrah Anda Meningkat",
+        "body_template": (
+            "Halo {name}, skor kesiapan Umrah Anda meningkat menjadi "
+            "{readiness_score}%! {completion_message} "
+            "Lanjutkan persiapan Anda untuk mencapai skor 100%. "
+            "Buka halaman Readiness Check untuk melihat detail lengkap."
+        ),
+        "channel": NotificationChannel.IN_APP,
+        "priority": NotificationPriority.LOW,
+        "type": NotificationType.SUCCESS,
+    },
+    "price_alert": {
+        "subject": "Harga Paket Umrah Turun!",
+        "body_template": (
+            "Kabar baik {name}! Harga paket \"{package_name}\" turun dari "
+            "Rp {old_price} menjadi Rp {new_price} (hemat {discount_percent}%). "
+            "Promo ini berlaku hingga {valid_until}. "
+            "Segera cek dan booking sebelum harga naik kembali."
+        ),
+        "channel": NotificationChannel.WHATSAPP,
+        "priority": NotificationPriority.HIGH,
+        "type": NotificationType.PROMOTION,
+    },
+    "manasik_reminder": {
+        "subject": "Pengingat Jadwal Manasik Umrah",
+        "body_template": (
+            "Halo {name}, jadwal manasik Umrah Anda akan dimulai pada "
+            "{manasik_date} pukul {manasik_time} di {manasik_location}. "
+            "Materi yang akan dibahas: {manasik_topic}. "
+            "Harap hadir tepat waktu dan bawa catatan. "
+            "Semoga manasik kali ini bermanfaat untuk persiapan ibadah Anda."
+        ),
+        "channel": NotificationChannel.WHATSAPP,
+        "priority": NotificationPriority.NORMAL,
+        "type": NotificationType.REMINDER,
+    },
+}
+
+
+# =============================================================================
+# WHATSAPP TEMPLATES
+# =============================================================================
+
+class WhatsAppTemplates:
+    """Template pesan WhatsApp untuk berbagai notifikasi Umrah."""
+
+    @staticmethod
+    def booking_summary(booking_data: Dict[str, Any]) -> str:
+        """
+        Format ringkasan booking untuk WhatsApp.
+
+        Args:
+            booking_data: Dict berisi booking_number, name, departure_city,
+                          departure_date, traveler_count, total_price, hotel_name,
+                          flight_info (semua opsional kecuali booking_number).
+
+        Returns:
+            Pesan WhatsApp terformat.
+        """
+        booking_number = booking_data.get("booking_number", "-")
+        name = booking_data.get("name", "Jamaah")
+        departure_city = booking_data.get("departure_city", "-")
+        departure_date = booking_data.get("departure_date", "-")
+        traveler_count = booking_data.get("traveler_count", 1)
+        total_price = booking_data.get("total_price", "-")
+        hotel_name = booking_data.get("hotel_name", "-")
+        flight_info = booking_data.get("flight_info", "-")
+
+        return (
+            f"Assalamu'alaikum {name},\n\n"
+            f"Berikut ringkasan booking Umrah Anda:\n\n"
+            f"No. Booking: {booking_number}\n"
+            f"Kota Keberangkatan: {departure_city}\n"
+            f"Tanggal Berangkat: {departure_date}\n"
+            f"Jumlah Jamaah: {traveler_count} orang\n"
+            f"Hotel: {hotel_name}\n"
+            f"Penerbangan: {flight_info}\n"
+            f"Total Biaya: Rp {total_price}\n\n"
+            f"Untuk detail selengkapnya, silakan buka aplikasi LABBAIK AI.\n\n"
+            f"Jazakallahu khairan."
+        )
+
+    @staticmethod
+    def price_alert(package_name: str, old_price: str, new_price: str) -> str:
+        """
+        Format notifikasi penurunan harga untuk WhatsApp.
+
+        Args:
+            package_name: Nama paket Umrah.
+            old_price: Harga lama (sudah diformat, misal "25.000.000").
+            new_price: Harga baru (sudah diformat, misal "22.000.000").
+
+        Returns:
+            Pesan WhatsApp terformat.
+        """
+        return (
+            f"Kabar baik! Harga paket Umrah turun.\n\n"
+            f"Paket: {package_name}\n"
+            f"Harga Lama: Rp {old_price}\n"
+            f"Harga Baru: Rp {new_price}\n\n"
+            f"Segera cek dan booking sebelum harga naik kembali.\n"
+            f"Buka aplikasi LABBAIK AI untuk detail lengkap.\n\n"
+            f"Jazakallahu khairan."
+        )
+
+    @staticmethod
+    def group_invite(group_name: str, inviter_name: str, join_link: str) -> str:
+        """
+        Format undangan grup Umrah untuk WhatsApp.
+
+        Args:
+            group_name: Nama grup Umrah.
+            inviter_name: Nama orang yang mengundang.
+            join_link: Link untuk bergabung ke grup.
+
+        Returns:
+            Pesan WhatsApp terformat.
+        """
+        return (
+            f"Assalamu'alaikum,\n\n"
+            f"{inviter_name} mengundang Anda untuk bergabung ke grup Umrah "
+            f"\"{group_name}\" di LABBAIK AI.\n\n"
+            f"Bergabunglah untuk:\n"
+            f"- Merencanakan perjalanan bersama\n"
+            f"- Berbagi estimasi biaya\n"
+            f"- Koordinasi jadwal keberangkatan\n"
+            f"- Saling mendukung persiapan ibadah\n\n"
+            f"Klik link berikut untuk bergabung:\n"
+            f"{join_link}\n\n"
+            f"Jazakallahu khairan."
+        )
+
+    @staticmethod
+    def departure_countdown(
+        name: str, days: int, checklist_items: List[str]
+    ) -> str:
+        """
+        Format pesan hitung mundur keberangkatan untuk WhatsApp.
+
+        Args:
+            name: Nama jamaah.
+            days: Jumlah hari sebelum keberangkatan.
+            checklist_items: Daftar item checklist yang perlu disiapkan.
+
+        Returns:
+            Pesan WhatsApp terformat.
+        """
+        checklist_text = ""
+        for item in checklist_items:
+            checklist_text += f"- {item}\n"
+
+        if not checklist_items:
+            checklist_text = "- Semua persiapan sudah lengkap!\n"
+
+        return (
+            f"Assalamu'alaikum {name},\n\n"
+            f"Keberangkatan Umrah Anda tinggal *{days} hari* lagi!\n\n"
+            f"Checklist persiapan:\n"
+            f"{checklist_text}\n"
+            f"Pastikan semua dokumen dan perlengkapan sudah siap.\n"
+            f"Buka aplikasi LABBAIK AI untuk cek kesiapan lengkap.\n\n"
+            f"Semoga Allah SWT memudahkan dan memberkahi perjalanan ibadah Anda.\n"
+            f"Aamiin ya Rabbal Alamin."
+        )
+
+
+# =============================================================================
+# IN-APP TEMPLATES
+# =============================================================================
+
+class InAppTemplates:
+    """Template notifikasi in-app dengan format HTML."""
+
+    # Mapping tipe notifikasi ke ikon dan warna
+    _TYPE_STYLES: Dict[str, Dict[str, str]] = {
+        "info": {"icon": "info", "color": "#2196F3", "bg": "#E3F2FD"},
+        "success": {"icon": "check_circle", "color": "#4CAF50", "bg": "#E8F5E9"},
+        "warning": {"icon": "warning", "color": "#FF9800", "bg": "#FFF3E0"},
+        "error": {"icon": "error", "color": "#F44336", "bg": "#FFEBEE"},
+        "booking": {"icon": "flight_takeoff", "color": "#1B4D3E", "bg": "#E8F5E9"},
+        "payment": {"icon": "payments", "color": "#FF9800", "bg": "#FFF3E0"},
+        "reminder": {"icon": "notifications_active", "color": "#9C27B0", "bg": "#F3E5F5"},
+        "promotion": {"icon": "local_offer", "color": "#E91E63", "bg": "#FCE4EC"},
+        "welcome": {"icon": "celebration", "color": "#1B4D3E", "bg": "#E8F5E9"},
+        "verification": {"icon": "verified", "color": "#2196F3", "bg": "#E3F2FD"},
+    }
+
+    @staticmethod
+    def render_notification_html(template_id: str, context: Dict[str, Any]) -> str:
+        """
+        Render notifikasi HTML dari template yang terdaftar.
+
+        Args:
+            template_id: ID template dari NOTIFICATION_TEMPLATES.
+            context: Dict variabel untuk substitusi placeholder.
+
+        Returns:
+            String HTML untuk ditampilkan di dalam aplikasi.
+        """
+        template = NOTIFICATION_TEMPLATES.get(template_id)
+        if not template:
+            return (
+                '<div style="padding:12px;color:#F44336;">'
+                f"Template tidak ditemukan: {template_id}</div>"
+            )
+
+        # Substitusi placeholder di body
+        try:
+            body = template["body_template"].format(**context)
+        except KeyError as e:
+            body = (
+                f"Gagal memformat template: variabel {e} tidak tersedia."
+            )
+
+        subject = template["subject"]
+        notif_type = template["type"].value if isinstance(
+            template["type"], NotificationType
+        ) else str(template["type"])
+
+        style = InAppTemplates._TYPE_STYLES.get(
+            notif_type, InAppTemplates._TYPE_STYLES["info"]
+        )
+
+        return (
+            f'<div style="border-left:4px solid {style["color"]};'
+            f'background:{style["bg"]};padding:16px;border-radius:8px;'
+            f'margin-bottom:12px;font-family:sans-serif;" '
+            f'role="status" aria-live="polite">'
+            f'<div style="display:flex;align-items:center;margin-bottom:8px;">'
+            f'<span style="font-size:20px;margin-right:8px;color:{style["color"]};"'
+            f' aria-hidden="true">'
+            f'<span class="material-icons">{style["icon"]}</span></span>'
+            f'<strong style="font-size:15px;color:#333;">{subject}</strong>'
+            f"</div>"
+            f'<p style="margin:0;color:#555;font-size:14px;line-height:1.6;">'
+            f"{body}</p>"
+            f"</div>"
+        )
+
+    @staticmethod
+    def render_notification_toast(
+        title: str, message: str, type: str = "info"
+    ) -> str:
+        """
+        Render notifikasi gaya toast untuk tampilan singkat.
+
+        Args:
+            title: Judul notifikasi.
+            message: Pesan notifikasi.
+            type: Tipe notifikasi (info/success/warning/error).
+
+        Returns:
+            String HTML bergaya toast.
+        """
+        style = InAppTemplates._TYPE_STYLES.get(
+            type, InAppTemplates._TYPE_STYLES["info"]
+        )
+
+        return (
+            f'<div style="position:fixed;top:20px;right:20px;z-index:9999;'
+            f"min-width:320px;max-width:420px;padding:16px 20px;"
+            f"border-radius:10px;box-shadow:0 4px 20px rgba(0,0,0,0.15);"
+            f'background:{style["bg"]};border-left:4px solid {style["color"]};" '
+            f'role="alert" aria-live="assertive">'
+            f'<div style="display:flex;align-items:center;margin-bottom:6px;">'
+            f'<span style="font-size:18px;margin-right:8px;color:{style["color"]};"'
+            f' aria-hidden="true">'
+            f'<span class="material-icons">{style["icon"]}</span></span>'
+            f'<strong style="font-size:14px;color:#333;">{title}</strong>'
+            f"</div>"
+            f'<p style="margin:0;color:#555;font-size:13px;line-height:1.5;">'
+            f"{message}</p>"
+            f"</div>"
+        )
+
+
+# =============================================================================
+# TEMPLATE RENDERING FUNCTIONS
+# =============================================================================
+
+def render_template(
+    template_id: str, context: Dict[str, Any]
+) -> Optional[NotificationMessage]:
+    """
+    Render template notifikasi menjadi NotificationMessage siap kirim.
+
+    Mencari template berdasarkan template_id di NOTIFICATION_TEMPLATES,
+    lalu melakukan substitusi placeholder dengan nilai dari context dict.
+
+    Args:
+        template_id: ID template (misal 'welcome', 'price_alert').
+        context: Dict berisi nilai untuk placeholder. Harus menyertakan
+                 'recipient_id' dan opsional 'recipient_email', 'recipient_phone'.
+
+    Returns:
+        NotificationMessage yang siap dikirim, atau None jika template
+        tidak ditemukan.
+    """
+    template = NOTIFICATION_TEMPLATES.get(template_id)
+    if not template:
+        logger.warning(f"Template notifikasi tidak ditemukan: {template_id}")
+        return None
+
+    # Substitusi placeholder di body_template
+    try:
+        body = template["body_template"].format(**context)
+    except KeyError as e:
+        logger.error(
+            f"Gagal render template '{template_id}': variabel {e} tidak tersedia"
+        )
+        return None
+
+    subject = template["subject"]
+
+    return NotificationMessage(
+        recipient_id=context.get("recipient_id", ""),
+        recipient_email=context.get("recipient_email"),
+        recipient_phone=context.get("recipient_phone"),
+        channel=template["channel"],
+        type=template["type"],
+        priority=template["priority"],
+        subject=subject,
+        title=subject,
+        body=body,
+        template_id=template_id,
+        data=context,
+    )
+
+
+def get_template_list() -> List[Dict[str, str]]:
+    """
+    Mengembalikan daftar template yang tersedia beserta deskripsinya.
+
+    Returns:
+        List of dicts dengan keys: 'id', 'subject', 'channel', 'priority', 'type'.
+    """
+    _DESCRIPTIONS: Dict[str, str] = {
+        "welcome": "Pesan selamat datang untuk pengguna baru",
+        "booking_confirmation": "Konfirmasi simulasi booking tersimpan",
+        "payment_reminder": "Pengingat cicilan pembayaran Umrah",
+        "doc_deadline": "Peringatan batas waktu penyerahan dokumen",
+        "departure_reminder": "Hitung mundur hari keberangkatan",
+        "group_invite": "Undangan bergabung ke grup Umrah",
+        "referral_reward": "Notifikasi bonus referral diterima",
+        "readiness_update": "Pembaruan skor kesiapan Umrah",
+        "price_alert": "Notifikasi penurunan harga paket",
+        "manasik_reminder": "Pengingat jadwal pelatihan manasik",
+    }
+
+    result = []
+    for tid, tpl in NOTIFICATION_TEMPLATES.items():
+        channel = tpl["channel"]
+        priority = tpl["priority"]
+        ntype = tpl["type"]
+        result.append({
+            "id": tid,
+            "subject": tpl["subject"],
+            "description": _DESCRIPTIONS.get(tid, tpl["subject"]),
+            "channel": channel.value if isinstance(channel, NotificationChannel) else str(channel),
+            "priority": priority.value if isinstance(priority, NotificationPriority) else str(priority),
+            "type": ntype.value if isinstance(ntype, NotificationType) else str(ntype),
+        })
+    return result
 
 
 # =============================================================================

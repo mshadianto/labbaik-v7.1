@@ -16,6 +16,15 @@ from ui.components.shared_styles import inject_css, HERO_CSS, CARD_CSS, AI_CARD_
 
 logger = logging.getLogger(__name__)
 
+# =============================================================================
+# PARTNER API INTEGRATION (lazy import with feature flag)
+# =============================================================================
+try:
+    from services.partner_api import PartnerAPI, get_partner_api
+    HAS_PARTNER_API = True
+except ImportError:
+    HAS_PARTNER_API = False
+
 
 # =============================================================================
 # PAGE-SPECIFIC CSS
@@ -102,6 +111,59 @@ CRM_LEADS_CSS = """
     font-size: 0.9rem;
     line-height: 1.6;
 }
+
+.partner-badge {
+    display: inline-block;
+    padding: 0.15rem 0.6rem;
+    border-radius: 10px;
+    font-size: 0.75rem;
+    font-weight: 700;
+    background: #1e3a5f;
+    color: #60a5fa;
+    border: 1px solid #3b82f6;
+    margin-left: 0.4rem;
+    vertical-align: middle;
+    letter-spacing: 0.02em;
+}
+
+.partner-stats-card {
+    background: linear-gradient(145deg, #0f172a 0%, #1e293b 100%);
+    border: 1px solid #1e3a5f;
+    border-radius: 12px;
+    padding: 1rem;
+    text-align: center;
+}
+
+.partner-stats-card .stat-value {
+    font-size: 1.6rem;
+    font-weight: 700;
+    color: #60a5fa;
+    margin-bottom: 0.2rem;
+}
+
+.partner-stats-card .stat-label {
+    font-size: 0.82rem;
+    color: #94a3b8;
+}
+
+.partner-lead-row {
+    padding: 0.75rem;
+    margin: 0.5rem 0;
+    background: linear-gradient(145deg, #0f172a 0%, #162032 100%);
+    border-radius: 10px;
+    border-left: 4px solid #3b82f6;
+}
+
+.partner-lead-row .partner-lead-name {
+    font-weight: 600;
+    color: #e2e8f0;
+}
+
+.partner-lead-row .partner-lead-detail {
+    font-size: 0.85rem;
+    color: #94a3b8;
+    margin-top: 0.15rem;
+}
 """
 
 
@@ -117,6 +179,24 @@ def escape_html(text: str) -> str:
 
 
 from ui.components.crm_helpers import format_rupiah, format_date
+
+
+def _render_partner_badge(partner_name: str) -> str:
+    """Render an HTML badge for partner-sourced leads.
+
+    Args:
+        partner_name: Name of the partner to display in the badge.
+
+    Returns:
+        HTML string for the partner badge, WCAG-compliant (#3b82f6 blue).
+    """
+    safe_name = escape_html(partner_name)
+    return (
+        '<span class="partner-badge" aria-label="Lead dari partner '
+        + safe_name + '">'
+        + safe_name
+        + '</span>'
+    )
 
 
 def get_status_color(status: str) -> str:
@@ -155,6 +235,8 @@ def init_session_state():
         st.session_state.crm_lead_add_xp_awarded = False
     if "crm_lead_ai_xp_awarded" not in st.session_state:
         st.session_state.crm_lead_ai_xp_awarded = False
+    if "crm_partner_import_xp_awarded" not in st.session_state:
+        st.session_state.crm_partner_import_xp_awarded = set()
 
 
 # =============================================================================
@@ -285,7 +367,7 @@ def render_lead_list():
     with col3:
         source_filter = st.selectbox(
             "Sumber",
-            options=["Semua", "direct", "referral", "social", "ads", "website", "whatsapp"],
+            options=["Semua", "direct", "referral", "social", "ads", "website", "whatsapp", "partner"],
             format_func=lambda x: {
                 "Semua": "Semua Sumber",
                 "direct": "Langsung",
@@ -293,7 +375,8 @@ def render_lead_list():
                 "social": "Media Sosial",
                 "ads": "Iklan",
                 "website": "Website",
-                "whatsapp": "WhatsApp"
+                "whatsapp": "WhatsApp",
+                "partner": "Partner"
             }.get(x, x)
         )
 
@@ -328,7 +411,13 @@ def render_lead_list():
                     col1, col2, col3, col4, col5 = st.columns([3, 2, 2, 2, 1])
 
                     with col1:
-                        st.markdown(f"**{get_priority_emoji(lead.priority)} {lead.name}**")
+                        name_display = f"**{get_priority_emoji(lead.priority)} {lead.name}**"
+                        if lead.source == "partner":
+                            partner_label = lead.notes.split("[partner:")[1].split("]")[0] if lead.notes and "[partner:" in lead.notes else "Partner"
+                            name_display += " " + _render_partner_badge(partner_label)
+                            st.markdown(name_display, unsafe_allow_html=True)
+                        else:
+                            st.markdown(name_display)
                         st.caption(lead.phone)
 
                     with col2:
@@ -748,6 +837,306 @@ def render_lead_detail(lead_id: str):
 
 
 # =============================================================================
+# PARTNER LEADS INTEGRATION
+# =============================================================================
+
+def _get_partner_bookings():
+    """Fetch partner bookings from the partner API SQLite database.
+
+    Returns a list of dicts with partner booking data suitable for
+    display and CRM import, or an empty list on failure.
+    """
+    if not HAS_PARTNER_API:
+        return []
+
+    try:
+        api = get_partner_api()
+        results = []
+        with api._get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute("""
+                SELECT
+                    b.id,
+                    b.booking_code,
+                    b.partner_id,
+                    b.customer_name,
+                    b.customer_email,
+                    b.customer_phone,
+                    b.num_pax,
+                    b.total_price,
+                    b.status,
+                    b.created_at,
+                    b.notes,
+                    p.name as package_name,
+                    p.departure_city,
+                    u.name as partner_name
+                FROM partner_bookings b
+                LEFT JOIN partner_packages p ON b.package_id = p.id
+                LEFT JOIN users u ON b.partner_id = u.id
+                ORDER BY b.created_at DESC
+                LIMIT 100
+            """)
+            rows = cursor.fetchall()
+            for row in rows:
+                results.append(dict(row))
+        return results
+    except Exception as e:
+        logger.warning(f"Failed to fetch partner bookings: {e}")
+        # Fallback: try without the users join (table may not exist in SQLite)
+        try:
+            api = get_partner_api()
+            results = []
+            with api._get_connection() as conn:
+                cursor = conn.cursor()
+                cursor.execute("""
+                    SELECT
+                        b.id,
+                        b.booking_code,
+                        b.partner_id,
+                        b.customer_name,
+                        b.customer_email,
+                        b.customer_phone,
+                        b.num_pax,
+                        b.total_price,
+                        b.status,
+                        b.created_at,
+                        b.notes,
+                        p.name as package_name,
+                        p.departure_city
+                    FROM partner_bookings b
+                    LEFT JOIN partner_packages p ON b.package_id = p.id
+                    ORDER BY b.created_at DESC
+                    LIMIT 100
+                """)
+                rows = cursor.fetchall()
+                for row in rows:
+                    d = dict(row)
+                    d["partner_name"] = f"Partner #{d.get('partner_id', '?')}"
+                    results.append(d)
+            return results
+        except Exception as e2:
+            logger.error(f"Failed to fetch partner bookings (fallback): {e2}")
+            return []
+
+
+def _import_partner_lead_to_crm(booking: dict) -> bool:
+    """Convert a partner booking into a CRM lead.
+
+    Creates a new Lead with source='partner' and embeds the partner
+    name in the notes for traceability.
+
+    Args:
+        booking: Dict with partner booking data.
+
+    Returns:
+        True if lead was created successfully, False otherwise.
+    """
+    try:
+        from services.crm import CRMRepository, Lead
+
+        repo = CRMRepository()
+
+        partner_name = booking.get("partner_name", f"Partner #{booking.get('partner_id', '?')}")
+        package_name = booking.get("package_name", "")
+        departure_city = booking.get("departure_city", "")
+        total_price = booking.get("total_price", 0)
+
+        notes_parts = []
+        if booking.get("booking_code"):
+            notes_parts.append(f"Kode booking partner: {booking['booking_code']}")
+        if booking.get("notes"):
+            notes_parts.append(booking["notes"])
+        notes_parts.append(f"[partner:{partner_name}]")
+        if departure_city:
+            notes_parts.append(f"Kota keberangkatan: {departure_city}")
+        notes_text = " | ".join(notes_parts)
+
+        lead = Lead(
+            name=booking.get("customer_name", "").strip(),
+            phone=booking.get("customer_phone", "").strip(),
+            email=booking.get("customer_email") or None,
+            whatsapp=booking.get("customer_phone", "").strip(),
+            source="partner",
+            status="new",
+            priority="medium",
+            interested_package=package_name if package_name else None,
+            group_size=booking.get("num_pax", 1) or 1,
+            budget_min=int(total_price * 0.8) if total_price else None,
+            budget_max=int(total_price * 1.2) if total_price else None,
+            notes=notes_text,
+            next_followup_date=datetime.now() + timedelta(days=1)
+        )
+
+        lead_id = repo.create_lead(lead)
+        return lead_id is not None
+
+    except Exception as e:
+        logger.error(f"Failed to import partner lead: {e}")
+        return False
+
+
+def render_partner_leads():
+    """Render the Partner Leads integration tab.
+
+    Shows partner-sourced bookings from the partner API, allows importing
+    them as CRM leads, and displays partner lead statistics.
+    """
+    if not HAS_PARTNER_API:
+        st.info("Modul Partner API belum tersedia. Pastikan services/partner_api terinstal.")
+        return
+
+    st.markdown("### Partner Leads")
+
+    # --- Stats cards ---
+    partner_bookings = _get_partner_bookings()
+
+    # Also count how many CRM leads have source='partner'
+    partner_crm_count = 0
+    partner_won_count = 0
+    top_partners = {}
+    try:
+        from services.crm import CRMRepository
+        repo = CRMRepository()
+        partner_leads = repo.get_leads(source="partner", limit=500)
+        partner_crm_count = len(partner_leads)
+        for pl in partner_leads:
+            if pl.status == "won":
+                partner_won_count += 1
+            # Extract partner name from notes
+            if pl.notes and "[partner:" in pl.notes:
+                try:
+                    pname = pl.notes.split("[partner:")[1].split("]")[0]
+                    top_partners[pname] = top_partners.get(pname, 0) + 1
+                except (IndexError, ValueError):
+                    pass
+    except Exception:
+        pass
+
+    conversion_rate = (partner_won_count / partner_crm_count * 100) if partner_crm_count > 0 else 0.0
+
+    # Stats row
+    col1, col2, col3, col4 = st.columns(4)
+    with col1:
+        st.markdown(
+            '<div class="partner-stats-card">'
+            '<div class="stat-value">' + str(len(partner_bookings)) + '</div>'
+            '<div class="stat-label">Lead dari Partner</div>'
+            '</div>',
+            unsafe_allow_html=True
+        )
+    with col2:
+        st.markdown(
+            '<div class="partner-stats-card">'
+            '<div class="stat-value">' + str(partner_crm_count) + '</div>'
+            '<div class="stat-label">Sudah Diimpor ke CRM</div>'
+            '</div>',
+            unsafe_allow_html=True
+        )
+    with col3:
+        st.markdown(
+            '<div class="partner-stats-card">'
+            '<div class="stat-value">' + f"{conversion_rate:.1f}%" + '</div>'
+            '<div class="stat-label">Conversion Rate</div>'
+            '</div>',
+            unsafe_allow_html=True
+        )
+    with col4:
+        top_partner_name = max(top_partners, key=top_partners.get) if top_partners else "-"
+        top_partner_count = top_partners.get(top_partner_name, 0) if top_partners else 0
+        display_top = escape_html(top_partner_name)
+        if top_partner_count > 0:
+            display_top += f" ({top_partner_count})"
+        st.markdown(
+            '<div class="partner-stats-card">'
+            '<div class="stat-value" style="font-size:1.1rem;">' + display_top + '</div>'
+            '<div class="stat-label">Top Partner</div>'
+            '</div>',
+            unsafe_allow_html=True
+        )
+
+    st.markdown("---")
+
+    # --- Partner bookings list ---
+    if not partner_bookings:
+        st.info("Belum ada data booking dari partner. Partner dapat mengirim data melalui Partner API.")
+        return
+
+    st.markdown(f"Menampilkan **{len(partner_bookings)}** booking dari partner yang dapat diimpor sebagai lead CRM.")
+
+    for booking in partner_bookings:
+        booking_id = booking.get("id", "")
+        customer_name = escape_html(booking.get("customer_name", "-"))
+        customer_phone = escape_html(booking.get("customer_phone", "-"))
+        customer_email = escape_html(booking.get("customer_email", "") or "")
+        partner_name = escape_html(booking.get("partner_name", f"Partner #{booking.get('partner_id', '?')}"))
+        package_name = escape_html(booking.get("package_name", "-"))
+        total_price = booking.get("total_price", 0)
+        num_pax = booking.get("num_pax", 1)
+        booking_code = escape_html(booking.get("booking_code", "-"))
+        booking_status = booking.get("status", "pending")
+
+        with st.container():
+            col1, col2, col3, col4 = st.columns([3, 2, 2, 2])
+
+            with col1:
+                name_html = (
+                    '<div class="partner-lead-row">'
+                    '<div class="partner-lead-name">'
+                    + customer_name + ' ' + _render_partner_badge(partner_name)
+                    + '</div>'
+                    '<div class="partner-lead-detail">'
+                    + customer_phone
+                    + (' | ' + customer_email if customer_email else '')
+                    + '</div>'
+                    '</div>'
+                )
+                st.markdown(name_html, unsafe_allow_html=True)
+
+            with col2:
+                st.caption(f"Paket: {package_name}")
+                if total_price:
+                    st.caption(f"Harga: {format_rupiah(total_price)}")
+                st.caption(f"Jamaah: {num_pax}")
+
+            with col3:
+                st.caption(f"Kode: {booking_code}")
+                status_color = {
+                    "pending": "orange",
+                    "confirmed": "green",
+                    "completed": "green",
+                    "cancelled": "red"
+                }.get(booking_status, "gray")
+                st.markdown(f":{status_color}[{booking_status.upper()}]")
+
+            with col4:
+                btn_key = f"import_partner_{booking_id}"
+                if st.button(
+                    "Import ke CRM",
+                    key=btn_key,
+                    use_container_width=True,
+                    help="Konversi booking partner ini menjadi lead CRM"
+                ):
+                    if not booking.get("customer_name") or not booking.get("customer_phone"):
+                        st.error("Data customer tidak lengkap (nama/telepon kosong).")
+                    else:
+                        success = _import_partner_lead_to_crm(booking)
+                        if success:
+                            st.success(f"Lead '{customer_name}' berhasil diimpor ke CRM!")
+
+                            # Gamification: +10 XP per partner lead import
+                            bid_str = str(booking_id)
+                            if bid_str not in st.session_state.crm_partner_import_xp_awarded:
+                                add_xp_safe(10, "Mengimpor lead partner ke CRM")
+                                st.session_state.crm_partner_import_xp_awarded.add(bid_str)
+
+                            st.rerun()
+                        else:
+                            st.error("Gagal mengimpor lead. Silakan coba lagi.")
+
+            st.divider()
+
+
+# =============================================================================
 # MAIN RENDER
 # =============================================================================
 
@@ -786,14 +1175,26 @@ def render_crm_leads_page():
     elif st.session_state.crm_view == "detail" and st.session_state.crm_selected_lead:
         render_lead_detail(st.session_state.crm_selected_lead)
     else:
-        # View tabs
-        tab1, tab2 = st.tabs(["\U0001f4cb List View", "\U0001f4ca Pipeline"])
+        # View tabs (include Partner tab if partner API is available)
+        if HAS_PARTNER_API:
+            tab1, tab2, tab3 = st.tabs([
+                "\U0001f4cb List View",
+                "\U0001f4ca Pipeline",
+                "\U0001f91d Partner Leads"
+            ])
+        else:
+            tab1, tab2 = st.tabs(["\U0001f4cb List View", "\U0001f4ca Pipeline"])
+            tab3 = None
 
         with tab1:
             render_lead_list()
 
         with tab2:
             render_pipeline_view()
+
+        if tab3 is not None:
+            with tab3:
+                render_partner_leads()
 
 
 __all__ = ["render_crm_leads_page"]

@@ -9,6 +9,7 @@ Features:
 - Price trend indicators
 - Best price highlighting
 - Filtering by city, stars, price range, source
+- Composite scoring system (price, rating, reliability, value)
 - AI price trend analysis
 - Gamification XP rewards
 """
@@ -88,9 +89,42 @@ OFFER_TYPES = {
 SORT_OPTIONS = {
     "Harga Terendah": "price",
     "Harga Tertinggi": "price_desc",
+    "Skor Tertinggi": "score",
     "Bintang Tertinggi": "stars",
     "Jarak Terdekat": "distance",
     "Terbaru": "updated",
+}
+
+# Composite scoring weights
+SCORE_WEIGHTS = {
+    "price": 0.40,       # Harga (lower is better)
+    "rating": 0.25,      # Rating/bintang
+    "reliability": 0.20, # Keandalan sumber
+    "value": 0.15,       # Nilai keseluruhan (features per price)
+}
+
+# Source reliability scores (0-100)
+SOURCE_RELIABILITY = {
+    # API Sources
+    "amadeus": 95,
+    "makcorps": 90,
+    "xotelo": 85,
+    # OTA Sources
+    "traveloka": 88,
+    "tiket": 85,
+    "pegipegi": 80,
+    # Travel Agent Sources
+    "cheria-travel": 92,
+    "alhijaz": 90,
+    "patuna": 88,
+    "maktour": 87,
+    "arminareka": 85,
+    # n8n / Aggregator Sources
+    "booking": 90,
+    "aviationstack": 85,
+    # Other
+    "partner": 75,
+    "demo": 50,
 }
 
 
@@ -165,6 +199,100 @@ PRICE_COMPARISON_CSS = """
     font-size: 0.8rem;
     margin-top: 0.25rem;
 }
+
+/* Composite Score System */
+.score-breakdown-card {
+    background: linear-gradient(145deg, #1a1a2e 0%, #1e293b 100%);
+    border-radius: 12px;
+    padding: 1rem;
+    border: 1px solid #333;
+    margin-top: 0.5rem;
+}
+
+.score-composite-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    font-size: 1.1rem;
+    font-weight: bold;
+    color: #fff;
+    border: 2px solid rgba(255, 255, 255, 0.15);
+    flex-shrink: 0;
+}
+
+.score-dimension {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 6px;
+}
+
+.score-dimension .dim-label {
+    color: #b0b0b0;
+    font-size: 0.75rem;
+    min-width: 72px;
+    flex-shrink: 0;
+}
+
+.score-dimension .dim-bar-bg {
+    flex: 1;
+    height: 8px;
+    background: #2a2a3e;
+    border-radius: 4px;
+    overflow: hidden;
+}
+
+.score-bar {
+    height: 100%;
+    border-radius: 4px;
+    background: linear-gradient(90deg, #d4af37 0%, #f0d060 100%);
+    transition: width 0.4s ease;
+}
+
+.score-dimension .dim-value {
+    color: #e0e0e0;
+    font-size: 0.75rem;
+    min-width: 32px;
+    text-align: right;
+    flex-shrink: 0;
+}
+
+.score-inline-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 2px 8px;
+    border-radius: 6px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: #fff;
+    vertical-align: middle;
+}
+
+.score-legend-card {
+    background: linear-gradient(145deg, #1a1a2e 0%, #1e293b 100%);
+    border-radius: 12px;
+    padding: 1rem 1.25rem;
+    border: 1px solid #333;
+}
+
+.score-legend-card .legend-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 4px;
+    font-size: 0.8rem;
+    color: #b0b0b0;
+}
+
+.score-legend-card .legend-weight {
+    color: #d4af37;
+    font-weight: 600;
+    min-width: 36px;
+}
 """
 
 
@@ -236,6 +364,189 @@ def _build_source_badge_html(source_name: str, size: str = "small") -> str:
         + badge_label
         + '</span>'
     )
+
+
+# =============================================================================
+# COMPOSITE SCORING SYSTEM
+# =============================================================================
+
+def calculate_composite_score(item, all_items):
+    """Calculate composite score for an offer based on multiple dimensions.
+
+    Args:
+        item: An AggregatedOffer instance.
+        all_items: List of all AggregatedOffer instances (for relative scoring).
+
+    Returns:
+        Dict with individual dimension scores and the composite score.
+    """
+    # Gather valid prices for normalization
+    valid_prices = [o.price_idr for o in all_items if o.price_idr > 0]
+
+    # --- Price Score (lower is better) ---
+    if valid_prices and item.price_idr > 0:
+        min_p = min(valid_prices)
+        max_p = max(valid_prices)
+        price_range = max_p - min_p
+        if price_range > 0:
+            price_score = 100.0 * (1.0 - (item.price_idr - min_p) / price_range)
+        else:
+            # All prices are the same
+            price_score = 100.0
+    else:
+        price_score = 50.0  # Fallback when price is missing or zero
+
+    # Clamp to 0-100
+    price_score = max(0.0, min(100.0, price_score))
+
+    # --- Rating Score ---
+    stars = item.stars if item.stars else 3  # Default to 3 stars if missing
+    rating_score = (stars / 5.0) * 100.0
+
+    # --- Reliability Score ---
+    source = (item.source_name or "").lower().strip()
+    reliability_score = float(SOURCE_RELIABILITY.get(source, 60))
+
+    # --- Value Score (features per rupiah) ---
+    # Combines rating with price efficiency
+    if price_score > 0:
+        value_score = rating_score * (price_score / 100.0)
+    else:
+        value_score = 0.0
+
+    # --- Composite (weighted sum) ---
+    composite = (
+        SCORE_WEIGHTS["price"] * price_score
+        + SCORE_WEIGHTS["rating"] * rating_score
+        + SCORE_WEIGHTS["reliability"] * reliability_score
+        + SCORE_WEIGHTS["value"] * value_score
+    )
+
+    # Clamp composite to 0-100
+    composite = max(0.0, min(100.0, composite))
+
+    return {
+        "price": round(price_score, 1),
+        "rating": round(rating_score, 1),
+        "reliability": round(reliability_score, 1),
+        "value": round(value_score, 1),
+        "composite": round(composite, 1),
+    }
+
+
+def _score_color(score: float) -> str:
+    """Return a color hex for the given score value."""
+    if score > 75:
+        return "#4CAF50"  # Green
+    elif score > 50:
+        return "#d4af37"  # Gold
+    elif score > 25:
+        return "#FF9800"  # Orange
+    else:
+        return "#f44336"  # Red
+
+
+def render_score_breakdown(score_data: dict):
+    """Render the composite score breakdown as HTML in Streamlit.
+
+    Shows a circular badge for the composite score and bar charts for
+    each dimension (price, rating, reliability, value).
+    """
+    composite = score_data["composite"]
+    color = _score_color(composite)
+
+    dimensions = [
+        ("Harga", "price", SCORE_WEIGHTS["price"]),
+        ("Rating", "rating", SCORE_WEIGHTS["rating"]),
+        ("Keandalan", "reliability", SCORE_WEIGHTS["reliability"]),
+        ("Nilai", "value", SCORE_WEIGHTS["value"]),
+    ]
+
+    # Build dimension bars HTML
+    dim_html = ""
+    for label, key, weight in dimensions:
+        val = score_data[key]
+        bar_color = _score_color(val)
+        weight_pct = int(weight * 100)
+        dim_html += (
+            '<div class="score-dimension">'
+            '  <span class="dim-label" title="Bobot: '
+            + str(weight_pct) + '%">'
+            + label + ' <span style="color:#666;font-size:0.65rem;">('
+            + str(weight_pct) + '%)</span></span>'
+            '  <div class="dim-bar-bg">'
+            '    <div class="score-bar" style="width:'
+            + str(val) + '%;background:linear-gradient(90deg,'
+            + bar_color + ' 0%,' + bar_color + '88 100%);"></div>'
+            '  </div>'
+            '  <span class="dim-value">' + str(val) + '</span>'
+            '</div>'
+        )
+
+    html = (
+        '<div class="score-breakdown-card">'
+        '  <div style="display:flex;align-items:center;gap:12px;margin-bottom:10px;">'
+        '    <div class="score-composite-badge" style="background:'
+        + color + ';">'
+        + str(composite) + '</div>'
+        '    <div>'
+        '      <div style="color:#e0e0e0;font-weight:600;font-size:0.9rem;">'
+        'Skor Komposit</div>'
+        '      <div style="color:#b0b0b0;font-size:0.7rem;">'
+        'Gabungan harga, rating, keandalan & nilai</div>'
+        '    </div>'
+        '  </div>'
+        + dim_html
+        + '</div>'
+    )
+    st.markdown(html, unsafe_allow_html=True)
+
+
+def _build_score_inline_badge(score_data: dict) -> str:
+    """Build a small inline HTML badge showing the composite score."""
+    composite = score_data["composite"]
+    color = _score_color(composite)
+    return (
+        '<span class="score-inline-badge" style="background:'
+        + color + ';" title="Skor Komposit: harga('
+        + str(score_data["price"]) + ') + rating('
+        + str(score_data["rating"]) + ') + keandalan('
+        + str(score_data["reliability"]) + ') + nilai('
+        + str(score_data["value"]) + ')">'
+        + str(composite) + ' <span style="font-size:0.6rem;opacity:0.8;">/100</span>'
+        '</span>'
+    )
+
+
+def render_score_legend():
+    """Render an explanation card for the composite scoring system."""
+    rows_html = ""
+    dim_info = [
+        ("Harga", SCORE_WEIGHTS["price"], "Skor relatif (harga terendah = 100)"),
+        ("Rating", SCORE_WEIGHTS["rating"], "Berdasarkan bintang hotel (5 bintang = 100)"),
+        ("Keandalan", SCORE_WEIGHTS["reliability"], "Tingkat kepercayaan sumber data"),
+        ("Nilai", SCORE_WEIGHTS["value"], "Kualitas dibandingkan harga"),
+    ]
+    for label, weight, desc in dim_info:
+        weight_pct = int(weight * 100)
+        rows_html += (
+            '<div class="legend-row">'
+            '<span class="legend-weight">' + str(weight_pct) + '%</span>'
+            '<strong style="color:#e0e0e0;min-width:72px;">' + label + '</strong>'
+            '<span>' + desc + '</span>'
+            '</div>'
+        )
+
+    html = (
+        '<div class="score-legend-card">'
+        '<div style="color:#d4af37;font-weight:600;margin-bottom:8px;">'
+        'Cara Penilaian Skor</div>'
+        + rows_html
+        + '<div style="color:#666;font-size:0.7rem;margin-top:8px;">'
+        'Skor 0-100. Semakin tinggi semakin baik.'
+        '</div></div>'
+    )
+    st.markdown(html, unsafe_allow_html=True)
 
 
 # =============================================================================
@@ -409,6 +720,15 @@ def render_price_comparison_page():
             st.info("🔍 Tidak ada hasil yang cocok dengan filter Anda.")
             return
 
+        # Sort by composite score if requested (client-side sort)
+        if sort_by == "score" and offers:
+            scored = [
+                (o, calculate_composite_score(o, offers)["composite"])
+                for o in offers
+            ]
+            scored.sort(key=lambda x: x[1], reverse=True)
+            offers = [o for o, _ in scored]
+
         # Render offers
         render_offers_table(offers, offer_type)
 
@@ -422,41 +742,61 @@ def render_price_comparison_page():
 
 
 def render_offers_table(offers: List[AggregatedOffer], offer_type: str = None):
-    """Render offers as a comparison table."""
+    """Render offers as a comparison table with composite scores."""
 
     # Find best price for highlighting
     best_price = min(o.price_idr for o in offers if o.price_idr > 0) if offers else 0
 
+    # Pre-compute composite scores for all offers
+    scores_map: Dict[int, dict] = {}
+    for i, offer in enumerate(offers):
+        scores_map[i] = calculate_composite_score(offer, offers)
+
+    # Score legend (collapsible)
+    with st.expander("ℹ️ Cara Penilaian Skor Komposit"):
+        render_score_legend()
+
     # Group by type if showing all
     if offer_type is None:
         # Use string comparison for safety
-        hotels = [o for o in offers if getattr(o.offer_type, 'value', o.offer_type) == "hotel"]
-        flights = [o for o in offers if getattr(o.offer_type, 'value', o.offer_type) == "flight"]
-        packages = [o for o in offers if getattr(o.offer_type, 'value', o.offer_type) == "package"]
+        hotels = [(o, i) for i, o in enumerate(offers) if getattr(o.offer_type, 'value', o.offer_type) == "hotel"]
+        flights = [(o, i) for i, o in enumerate(offers) if getattr(o.offer_type, 'value', o.offer_type) == "flight"]
+        packages = [(o, i) for i, o in enumerate(offers) if getattr(o.offer_type, 'value', o.offer_type) == "package"]
 
         if hotels:
             st.subheader("🏨 Hotel")
-            render_hotel_cards(hotels, best_price)
+            render_hotel_cards(
+                [o for o, _ in hotels], best_price,
+                scores={idx: scores_map[orig_i] for idx, (_, orig_i) in enumerate(hotels)},
+            )
 
         if flights:
             st.subheader("✈️ Penerbangan")
-            render_flight_cards(flights, best_price)
+            render_flight_cards(
+                [o for o, _ in flights], best_price,
+                scores={idx: scores_map[orig_i] for idx, (_, orig_i) in enumerate(flights)},
+            )
 
         if packages:
             st.subheader("📦 Paket Umrah")
-            render_package_cards(packages, best_price)
+            render_package_cards(
+                [o for o, _ in packages], best_price,
+                scores={idx: scores_map[orig_i] for idx, (_, orig_i) in enumerate(packages)},
+            )
     elif offer_type == "hotel":
-        render_hotel_cards(offers, best_price)
+        render_hotel_cards(offers, best_price, scores=scores_map)
     elif offer_type == "flight":
-        render_flight_cards(offers, best_price)
+        render_flight_cards(offers, best_price, scores=scores_map)
     else:
-        render_package_cards(offers, best_price)
+        render_package_cards(offers, best_price, scores=scores_map)
 
 
-def render_hotel_cards(hotels: List[AggregatedOffer], best_price: float):
-    """Render hotel offer cards."""
+def render_hotel_cards(hotels: List[AggregatedOffer], best_price: float,
+                       scores: Optional[Dict[int, dict]] = None):
+    """Render hotel offer cards with composite scores."""
     for idx, hotel in enumerate(hotels):
         is_best = hotel.price_idr == best_price and best_price > 0
+        score_data = scores.get(idx) if scores else None
 
         with st.container():
             # Card styling
@@ -465,9 +805,19 @@ def render_hotel_cards(hotels: List[AggregatedOffer], best_price: float):
             col1, col2, col3 = st.columns([3, 2, 2])
 
             with col1:
-                # Hotel name and stars
+                # Hotel name, stars, and score badge
                 stars_display = get_star_display(hotel.stars)
-                st.markdown(f"**{hotel.name}** {stars_display}")
+                name_line = f"**{hotel.name}** {stars_display}"
+                if score_data:
+                    badge_html = _build_score_inline_badge(score_data)
+                    name_line_html = (
+                        '<span style="font-weight:600;">'
+                        + hotel.name + '</span> '
+                        + stars_display + ' ' + badge_html
+                    )
+                    st.markdown(name_line_html, unsafe_allow_html=True)
+                else:
+                    st.markdown(name_line)
 
                 # City and distance
                 distance_text = ""
@@ -503,20 +853,39 @@ def render_hotel_cards(hotels: List[AggregatedOffer], best_price: float):
                 elif hotel.rooms_left and hotel.rooms_left < 5:
                     st.warning(f"Sisa {hotel.rooms_left} kamar!")
 
+            # Score breakdown expander
+            if score_data:
+                with st.expander(f"📊 Detail Skor — {hotel.name[:30]}", expanded=False):
+                    render_score_breakdown(score_data)
+                    # Gamification: +10 XP for viewing score breakdown (once)
+                    if not st.session_state.get("xp_score_breakdown_done"):
+                        add_xp_safe(10, "Melihat detail skor komposit")
+                        st.session_state["xp_score_breakdown_done"] = True
+
             st.divider()
 
 
-def render_flight_cards(flights: List[AggregatedOffer], best_price: float):
-    """Render flight offer cards."""
+def render_flight_cards(flights: List[AggregatedOffer], best_price: float,
+                        scores: Optional[Dict[int, dict]] = None):
+    """Render flight offer cards with composite scores."""
     for idx, flight in enumerate(flights):
         is_best = flight.price_idr == best_price and best_price > 0
+        score_data = scores.get(idx) if scores else None
 
         with st.container():
             col1, col2, col3 = st.columns([3, 2, 2])
 
             with col1:
-                # Flight name (airline + route)
-                st.markdown(f"**{flight.name}**")
+                # Flight name (airline + route) with score badge
+                if score_data:
+                    badge_html = _build_score_inline_badge(score_data)
+                    name_html = (
+                        '<span style="font-weight:600;">'
+                        + flight.name + '</span> ' + badge_html
+                    )
+                    st.markdown(name_html, unsafe_allow_html=True)
+                else:
+                    st.markdown(f"**{flight.name}**")
 
                 # Route details
                 details = []
@@ -556,20 +925,38 @@ def render_flight_cards(flights: List[AggregatedOffer], best_price: float):
                 if not flight.is_available:
                     st.error("Sold Out")
 
+            # Score breakdown expander
+            if score_data:
+                with st.expander(f"📊 Detail Skor — {flight.name[:30]}", expanded=False):
+                    render_score_breakdown(score_data)
+                    if not st.session_state.get("xp_score_breakdown_done"):
+                        add_xp_safe(10, "Melihat detail skor komposit")
+                        st.session_state["xp_score_breakdown_done"] = True
+
             st.divider()
 
 
-def render_package_cards(packages: List[AggregatedOffer], best_price: float):
-    """Render package offer cards."""
+def render_package_cards(packages: List[AggregatedOffer], best_price: float,
+                         scores: Optional[Dict[int, dict]] = None):
+    """Render package offer cards with composite scores."""
     for idx, pkg in enumerate(packages):
         is_best = pkg.price_idr == best_price and best_price > 0
+        score_data = scores.get(idx) if scores else None
 
         with st.container():
             col1, col2, col3 = st.columns([3, 2, 2])
 
             with col1:
-                # Package name
-                st.markdown(f"**{pkg.name}**")
+                # Package name with score badge
+                if score_data:
+                    badge_html = _build_score_inline_badge(score_data)
+                    name_html = (
+                        '<span style="font-weight:600;">'
+                        + pkg.name + '</span> ' + badge_html
+                    )
+                    st.markdown(name_html, unsafe_allow_html=True)
+                else:
+                    st.markdown(f"**{pkg.name}**")
 
                 # Duration and departure
                 details = []
@@ -623,6 +1010,14 @@ def render_package_cards(packages: List[AggregatedOffer], best_price: float):
                     available = pkg.quota - (pkg.quota if hasattr(pkg, 'booked') else 0)
                     if available < 10:
                         st.warning(f"Sisa {available} seat!")
+
+            # Score breakdown expander
+            if score_data:
+                with st.expander(f"📊 Detail Skor — {pkg.name[:30]}", expanded=False):
+                    render_score_breakdown(score_data)
+                    if not st.session_state.get("xp_score_breakdown_done"):
+                        add_xp_safe(10, "Melihat detail skor komposit")
+                        st.session_state["xp_score_breakdown_done"] = True
 
             st.divider()
 
@@ -855,4 +1250,9 @@ def render_best_prices_widget():
 __all__ = [
     "render_price_comparison_page",
     "render_best_prices_widget",
+    "calculate_composite_score",
+    "render_score_breakdown",
+    "render_score_legend",
+    "SCORE_WEIGHTS",
+    "SOURCE_RELIABILITY",
 ]

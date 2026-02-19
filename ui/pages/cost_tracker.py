@@ -1221,6 +1221,166 @@ def render_export_section():
 
 
 # =============================================================================
+# CROSS-PAGE NAVIGATION CSS
+# =============================================================================
+
+CROSS_NAV_CSS = """
+.cross-nav-card {
+    background: linear-gradient(145deg, #1a1a2e 0%, #1e293b 100%);
+    border: 1px solid #334155;
+    border-radius: 16px;
+    padding: 1.5rem;
+    margin: 1.5rem 0;
+}
+
+.cross-nav-card h3 {
+    color: #d4af37;
+    margin-top: 0;
+    margin-bottom: 0.25rem;
+    font-size: 1.1rem;
+}
+
+.cross-nav-card .cross-nav-subtitle {
+    color: #b0b0b0;
+    font-size: 0.85rem;
+    margin-bottom: 1rem;
+}
+
+.sync-banner {
+    background: linear-gradient(135deg, #1a2a1a 0%, #1e3a1e 100%);
+    border: 1px solid #4ade80;
+    border-left: 4px solid #4ade80;
+    border-radius: 14px;
+    padding: 1.25rem;
+    margin: 1rem 0;
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    flex-wrap: wrap;
+}
+
+.sync-banner .sync-text {
+    flex: 1;
+    min-width: 200px;
+}
+
+.sync-banner .sync-title {
+    color: #4ade80;
+    font-weight: 700;
+    font-size: 0.95rem;
+}
+
+.sync-banner .sync-detail {
+    color: #b0b0b0;
+    font-size: 0.82rem;
+    margin-top: 0.2rem;
+}
+
+@media (max-width: 480px) {
+    .sync-banner {
+        flex-direction: column;
+        align-items: stretch;
+        text-align: center;
+    }
+}
+"""
+
+
+# =============================================================================
+# CROSS-PAGE NAVIGATION
+# =============================================================================
+
+def render_cross_nav():
+    """Render cross-page navigation buttons and booking sync banner."""
+    st.markdown(CROSS_NAV_CSS, unsafe_allow_html=True)
+
+    # --- Booking data sync banner ---
+    booking_costs = st.session_state.get("booking_costs")
+    if booking_costs and isinstance(booking_costs, dict):
+        total_amount = booking_costs.get("total", 0)
+        pkg_name = booking_costs.get("package_name", "Umrah")
+        dep_date = booking_costs.get("departure_date", "")
+        breakdown = booking_costs.get("breakdown", {})
+
+        st.markdown(
+            f'<div class="sync-banner">'
+            f'<div style="font-size:1.5rem;" aria-hidden="true">\U0001f504</div>'
+            f'<div class="sync-text">'
+            f'<div class="sync-title">Data booking tersedia \u2014 Sinkronkan?</div>'
+            f'<div class="sync-detail">'
+            f'Paket {pkg_name} | {dep_date} | {format_idr_full(total_amount)}'
+            f'</div></div></div>',
+            unsafe_allow_html=True,
+        )
+
+        if st.button(
+            "\U0001f504 Sinkronkan Data Booking sebagai Pengeluaran",
+            key="btn_sync_booking_to_expenses",
+            type="primary",
+            use_container_width=True,
+        ):
+            imported_count = 0
+            for item_key, item_data in breakdown.items():
+                new_expense = {
+                    "id": str(uuid.uuid4()),
+                    "date": datetime.now().date().isoformat(),
+                    "category": _map_booking_category(item_key),
+                    "amount": item_data.get("amount", 0),
+                    "notes": item_data.get("label", item_key),
+                }
+                st.session_state.tracker_expenses.append(new_expense)
+                imported_count += 1
+
+            add_xp(15, "Sinkronisasi data booking ke cost tracker")
+            st.success(
+                f"\u2705 {imported_count} item biaya booking berhasil diimpor sebagai pengeluaran!"
+            )
+            # Clear booking_costs so banner doesn't show again
+            del st.session_state["booking_costs"]
+            st.rerun()
+
+    # --- Navigation card ---
+    st.markdown(
+        '<div class="cross-nav-card">'
+        '<h3><span aria-hidden="true">\U0001f9ed</span> Jelajahi Fitur Lainnya</h3>'
+        '<div class="cross-nav-subtitle">Lanjutkan perencanaan umrah Anda</div>'
+        '</div>',
+        unsafe_allow_html=True,
+    )
+
+    nav_col1, nav_col2 = st.columns(2)
+
+    with nav_col1:
+        if st.button(
+            "\U0001f54b Buat Booking Baru",
+            key="nav_to_booking",
+            use_container_width=True,
+        ):
+            st.session_state.nav = "booking"
+            st.rerun()
+
+    with nav_col2:
+        if st.button(
+            "\u2705 Cek Kesiapan",
+            key="nav_to_readiness_from_tracker",
+            use_container_width=True,
+        ):
+            st.session_state.nav = "readiness_checker"
+            st.rerun()
+
+
+def _map_booking_category(item_key: str) -> str:
+    """Map booking breakdown keys to cost tracker expense categories."""
+    mapping = {
+        "paket_dasar": "penerbangan",
+        "upgrade_hotel": "hotel",
+        "addons": "lainnya",
+        "penyesuaian_musiman": "lainnya",
+    }
+    return mapping.get(item_key, "lainnya")
+
+
+# =============================================================================
 # MAIN PAGE RENDERER
 # =============================================================================
 
@@ -1288,6 +1448,11 @@ def render_cost_tracker_page():
 
     with tab_export:
         render_export_section()
+
+    st.divider()
+
+    # Cross-page navigation and booking sync
+    render_cross_nav()
 
     st.divider()
 

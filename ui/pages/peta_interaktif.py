@@ -9,10 +9,18 @@ Fitur: Peta interaktif lokasi penting di Makkah & Madinah dengan AI tips
 
 import streamlit as st
 import math
+from datetime import datetime, timedelta, timezone
 from typing import Dict, List, Optional
 
 from services.ai.helpers import ai_complete, add_xp_safe
 from ui.components.shared_styles import inject_css, HERO_CSS, CARD_CSS, AI_CARD_CSS
+
+# Crowd prediction (optional dependency)
+try:
+    from features.crowd_prediction import CrowdPredictor
+    HAS_CROWD_PREDICTION = True
+except ImportError:
+    HAS_CROWD_PREDICTION = False
 
 # =============================================================================
 # STYLING
@@ -326,6 +334,172 @@ PETA_CSS = """
     background: rgba(220, 20, 60, 0.2);
     color: #f87171;
     border: 1px solid rgba(220, 20, 60, 0.4);
+}
+
+/* Crowd overlay section */
+.crowd-overlay-section {
+    background: linear-gradient(145deg, #0d1b2a 0%, #1b2a4a 100%);
+    border-radius: 16px;
+    padding: 1.5rem;
+    margin-bottom: 1rem;
+    border: 1px solid rgba(212, 175, 55, 0.3);
+}
+
+.crowd-overlay-section h3 {
+    color: #d4af37;
+    margin-top: 0;
+    margin-bottom: 1rem;
+}
+
+.crowd-location-card {
+    background: linear-gradient(145deg, #1a1a2e 0%, #16213e 100%);
+    border-radius: 12px;
+    padding: 1rem 1.25rem;
+    margin-bottom: 0.75rem;
+    border: 1px solid #333;
+    border-left: 5px solid #d4af37;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+}
+
+.crowd-location-card:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+}
+
+.crowd-location-card.crowd-green { border-left-color: #22c55e; }
+.crowd-location-card.crowd-yellow { border-left-color: #eab308; }
+.crowd-location-card.crowd-orange { border-left-color: #f97316; }
+.crowd-location-card.crowd-red { border-left-color: #ef4444; }
+
+.crowd-level-indicator {
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    display: inline-block;
+    flex-shrink: 0;
+}
+
+.crowd-level-indicator.indicator-green { background: #22c55e; }
+.crowd-level-indicator.indicator-yellow { background: #eab308; }
+.crowd-level-indicator.indicator-orange { background: #f97316; }
+.crowd-level-indicator.indicator-red { background: #ef4444; }
+
+.crowd-location-info {
+    flex: 1;
+    min-width: 0;
+}
+
+.crowd-location-name {
+    color: white;
+    font-weight: 600;
+    font-size: 1rem;
+    margin: 0;
+}
+
+.crowd-location-level {
+    font-size: 0.85rem;
+    margin-top: 0.15rem;
+}
+
+.crowd-location-rec {
+    color: #b0b0b0;
+    font-size: 0.8rem;
+    margin-top: 0.25rem;
+}
+
+.crowd-location-pct {
+    color: white;
+    font-weight: bold;
+    font-size: 1.3rem;
+    flex-shrink: 0;
+    text-align: right;
+    min-width: 50px;
+}
+
+.crowd-legend {
+    display: flex;
+    gap: 1.25rem;
+    margin-top: 1rem;
+    justify-content: center;
+    flex-wrap: wrap;
+    padding: 0.75rem 1rem;
+    background: rgba(255, 255, 255, 0.03);
+    border-radius: 10px;
+}
+
+.crowd-legend-item {
+    display: flex;
+    align-items: center;
+    gap: 0.35rem;
+    font-size: 0.8rem;
+    color: #b0b0b0;
+}
+
+.crowd-legend-dot {
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    flex-shrink: 0;
+}
+
+.crowd-time-display {
+    background: rgba(212, 175, 55, 0.1);
+    border: 1px solid rgba(212, 175, 55, 0.3);
+    border-radius: 12px;
+    padding: 0.75rem 1rem;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 1rem;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+}
+
+.crowd-time-display .time-label {
+    color: #b0b0b0;
+    font-size: 0.8rem;
+}
+
+.crowd-time-display .time-value {
+    color: #d4af37;
+    font-weight: bold;
+    font-size: 1.05rem;
+}
+
+.crowd-time-display .prayer-badge {
+    background: rgba(212, 175, 55, 0.2);
+    color: #d4af37;
+    padding: 0.25rem 0.75rem;
+    border-radius: 20px;
+    font-size: 0.8rem;
+    font-weight: 600;
+}
+
+@media (max-width: 768px) {
+    .crowd-location-card {
+        padding: 0.75rem 1rem;
+    }
+    .crowd-legend {
+        gap: 0.75rem;
+    }
+    .crowd-time-display {
+        flex-direction: column;
+        text-align: center;
+    }
+}
+
+@media (max-width: 480px) {
+    .crowd-location-card {
+        flex-wrap: wrap;
+        gap: 0.5rem;
+    }
+    .crowd-location-pct {
+        width: 100%;
+        text-align: left;
+    }
 }
 """
 
@@ -984,6 +1158,229 @@ def render_walking_calculator(city):
 
 
 # =============================================================================
+# CROWD PREDICTION OVERLAY
+# =============================================================================
+
+# Key locations with coordinates for crowd prediction
+CROWD_LOCATIONS = [
+    {"name": "Masjidil Haram", "name_ar": "المسجد الحرام", "lat": 21.4225, "lon": 39.8262, "city": "makkah", "icon": "🕋"},
+    {"name": "Masjid Nabawi", "name_ar": "المسجد النبوي", "lat": 24.4672, "lon": 39.6112, "city": "madinah", "icon": "🕌"},
+    {"name": "Jabal Rahmah", "name_ar": "جبل الرحمة", "lat": 21.3549, "lon": 39.9842, "city": "makkah", "icon": "⛰️"},
+    {"name": "Mina", "name_ar": "منى", "lat": 21.4133, "lon": 39.8933, "city": "makkah", "icon": "🏕️"},
+    {"name": "Arafah", "name_ar": "عرفات", "lat": 21.3547, "lon": 39.9842, "city": "makkah", "icon": "🏔️"},
+    {"name": "Muzdalifah", "name_ar": "مزدلفة", "lat": 21.3997, "lon": 39.9000, "city": "makkah", "icon": "🌄"},
+]
+
+
+def _get_crowd_color_class(level: int) -> str:
+    """Return CSS class suffix based on crowd level."""
+    if level <= 30:
+        return "green"
+    elif level <= 60:
+        return "yellow"
+    elif level <= 80:
+        return "orange"
+    else:
+        return "red"
+
+
+def _get_crowd_label(level: int) -> str:
+    """Return Indonesian label based on crowd level."""
+    if level <= 30:
+        return "Sepi"
+    elif level <= 60:
+        return "Ramai Sedang"
+    elif level <= 80:
+        return "Ramai"
+    else:
+        return "Sangat Padat"
+
+
+def _get_crowd_hex(level: int) -> str:
+    """Return hex color for crowd level (WCAG AA compliant)."""
+    if level <= 30:
+        return "#22c55e"
+    elif level <= 60:
+        return "#eab308"
+    elif level <= 80:
+        return "#f97316"
+    else:
+        return "#ef4444"
+
+
+def _get_arabia_time() -> datetime:
+    """Get current time in Arabia Standard Time (UTC+3)."""
+    utc_now = datetime.now(timezone.utc)
+    ast_offset = timedelta(hours=3)
+    return utc_now + ast_offset
+
+
+def _get_wib_to_arabia_label() -> str:
+    """Return formatted time string showing WIB and Arabia time."""
+    arabia = _get_arabia_time()
+    wib = arabia + timedelta(hours=4)  # WIB = UTC+7 = AST+4
+    return (
+        f"{arabia.strftime('%H:%M')} WAS (Waktu Arab Saudi) | "
+        f"{wib.strftime('%H:%M')} WIB"
+    )
+
+
+def _predict_crowd_for_location(loc: Dict, predictor, target_time: datetime = None) -> Dict:
+    """
+    Get crowd prediction for a location using CrowdPredictor.
+
+    Falls back to a deterministic demo value if predictor is None.
+    """
+    if predictor is not None:
+        city = loc.get("city", "makkah")
+        result = predictor.predict(location=city, target_time=target_time)
+        return result
+
+    # Demo/static fallback when CrowdPredictor is unavailable
+    arabia = target_time or _get_arabia_time()
+    hour = arabia.hour
+    # Simple sine-based approximation for demo purposes
+    base = 40 + int(30 * math.sin(math.pi * (hour - 4) / 12))
+    level = max(5, min(95, base))
+    label = _get_crowd_label(level)
+    color = _get_crowd_hex(level)
+    return {
+        "level": level,
+        "description": label,
+        "color": color,
+        "emoji": "",
+        "recommendation": "Data demo - aktifkan modul crowd_prediction untuk prediksi akurat.",
+        "current_prayer": "",
+        "time": arabia.strftime("%H:%M") if hasattr(arabia, "strftime") else "--:--",
+        "season": "regular",
+    }
+
+
+def render_crowd_legend():
+    """Render the color legend for crowd levels."""
+    st.markdown("""
+    <div class="crowd-legend" role="img" aria-label="Legenda tingkat keramaian">
+        <div class="crowd-legend-item">
+            <span class="crowd-legend-dot" style="background: #22c55e;"></span>
+            Sepi (0-30%)
+        </div>
+        <div class="crowd-legend-item">
+            <span class="crowd-legend-dot" style="background: #eab308;"></span>
+            Ramai Sedang (31-60%)
+        </div>
+        <div class="crowd-legend-item">
+            <span class="crowd-legend-dot" style="background: #f97316;"></span>
+            Ramai (61-80%)
+        </div>
+        <div class="crowd-legend-item">
+            <span class="crowd-legend-dot" style="background: #ef4444;"></span>
+            Sangat Padat (81-100%)
+        </div>
+    </div>
+    """, unsafe_allow_html=True)
+
+
+def render_crowd_overlay(selected_city: str):
+    """
+    Render crowd prediction overlay section for the interactive map page.
+
+    Shows crowd levels for key Umrah locations with color-coded cards,
+    current Arabia time, prayer time indicator, and a time slider for
+    predicting crowd at different hours.
+    """
+    # Initialize predictor (or None for demo mode)
+    predictor = None
+    is_demo = True
+    if HAS_CROWD_PREDICTION:
+        try:
+            predictor = CrowdPredictor()
+            is_demo = False
+        except Exception:
+            pass
+
+    arabia_now = _get_arabia_time()
+
+    # --- Current time display ---
+    time_label = _get_wib_to_arabia_label()
+    prayer_text = ""
+    if predictor is not None:
+        sample = predictor.predict(location=selected_city, target_time=arabia_now)
+        prayer_text = sample.get("current_prayer", "")
+
+    prayer_html = ""
+    if prayer_text:
+        prayer_html = f'<span class="prayer-badge">{prayer_text}</span>'
+
+    st.markdown(f"""
+    <div class="crowd-time-display">
+        <div>
+            <div class="time-label">Waktu Saat Ini</div>
+            <div class="time-value">{time_label}</div>
+        </div>
+        {prayer_html}
+    </div>
+    """, unsafe_allow_html=True)
+
+    if is_demo:
+        st.caption("Mode demo - instal modul crowd_prediction untuk prediksi akurat.")
+
+    # --- Time slider ---
+    slider_hour = st.slider(
+        "Prediksi keramaian pada jam (Waktu Arab Saudi):",
+        min_value=0,
+        max_value=23,
+        value=arabia_now.hour,
+        format="%02d:00",
+        key="crowd_time_slider",
+    )
+
+    target_time = arabia_now.replace(hour=slider_hour, minute=0, second=0, microsecond=0)
+
+    # --- Filter locations by selected city ---
+    locations = [
+        loc for loc in CROWD_LOCATIONS
+        if loc["city"] == selected_city
+    ]
+
+    if not locations:
+        st.info("Tidak ada lokasi prediksi keramaian untuk kota ini.")
+        return
+
+    # --- Render cards for each location ---
+    for loc in locations:
+        prediction = _predict_crowd_for_location(loc, predictor, target_time)
+        level = prediction["level"]
+        color_class = _get_crowd_color_class(level)
+        label = _get_crowd_label(level)
+        hex_color = _get_crowd_hex(level)
+        recommendation = prediction.get("recommendation", "")
+
+        st.markdown(f"""
+        <div class="crowd-location-card crowd-{color_class}" role="status" aria-live="polite"
+             aria-label="{loc['name']}: keramaian {level}% - {label}">
+            <span class="crowd-level-indicator indicator-{color_class}"
+                  aria-hidden="true"></span>
+            <div class="crowd-location-info">
+                <p class="crowd-location-name">
+                    <span aria-hidden="true">{loc['icon']}</span> {loc['name']}
+                    <span style="color: #b0b0b0; font-size: 0.8rem; font-family: 'Amiri', serif; direction: rtl; margin-left: 0.5rem;">{loc['name_ar']}</span>
+                </p>
+                <p class="crowd-location-level" style="color: {hex_color}; font-weight: 600;">
+                    {label}
+                </p>
+                <p class="crowd-location-rec">{recommendation}</p>
+            </div>
+            <div class="crowd-location-pct" style="color: {hex_color};">
+                {level}%
+            </div>
+        </div>
+        """, unsafe_allow_html=True)
+
+    # --- Legend ---
+    render_crowd_legend()
+
+
+# =============================================================================
 # MAIN PAGE FUNCTION
 # =============================================================================
 
@@ -1008,39 +1405,62 @@ def render_peta_interaktif_page():
 
     st.markdown("")  # spacing
 
-    # Category filters
-    active_categories = render_category_filters(selected_city)
+    # Tabs: Peta & Lokasi | Prediksi Keramaian
+    tab_peta, tab_crowd = st.tabs(["🗺️ Peta & Lokasi", "📊 Prediksi Keramaian"])
 
-    # Get filtered POIs
-    from data.peta_locations import get_pois_by_city
+    # ---- Tab 1: Map & POIs (original content) ----
+    with tab_peta:
+        # Category filters
+        active_categories = render_category_filters(selected_city)
 
-    all_pois = get_pois_by_city(selected_city)
-    filtered_pois = [
-        poi for poi in all_pois if poi["category"] in active_categories
-    ]
+        # Get filtered POIs
+        from data.peta_locations import get_pois_by_city
 
-    # Statistics
-    render_statistics(filtered_pois)
+        all_pois = get_pois_by_city(selected_city)
+        filtered_pois = [
+            poi for poi in all_pois if poi["category"] in active_categories
+        ]
 
-    st.markdown("---")
+        # Statistics
+        render_statistics(filtered_pois)
 
-    # Map rendering
-    if filtered_pois:
-        with st.spinner("Memuat peta..."):
-            render_map(selected_city, filtered_pois)
-    else:
-        st.warning("Tidak ada lokasi untuk ditampilkan. Aktifkan setidaknya satu kategori.")
+        st.markdown("---")
 
-    st.markdown("")  # spacing
+        # Map rendering
+        if filtered_pois:
+            with st.spinner("Memuat peta..."):
+                render_map(selected_city, filtered_pois)
+        else:
+            st.warning("Tidak ada lokasi untuk ditampilkan. Aktifkan setidaknya satu kategori.")
 
-    # POI list below map
-    render_poi_list(filtered_pois, selected_city)
+        st.markdown("")  # spacing
 
-    st.markdown("---")
+        # POI list below map
+        render_poi_list(filtered_pois, selected_city)
 
-    # Walking calculator in expander
-    with st.expander("🚶 Kalkulator Jarak Jalan Kaki", expanded=False):
-        render_walking_calculator(selected_city)
+        st.markdown("---")
+
+        # Walking calculator in expander
+        with st.expander("🚶 Kalkulator Jarak Jalan Kaki", expanded=False):
+            render_walking_calculator(selected_city)
+
+    # ---- Tab 2: Crowd Prediction Overlay ----
+    with tab_crowd:
+        st.markdown("""
+        <div class="crowd-overlay-section">
+            <h3><span aria-hidden="true">📊</span> Prediksi Keramaian Lokasi Umrah</h3>
+            <p style="color: #b0b0b0; margin-top: -0.5rem; margin-bottom: 0;">
+                Estimasi tingkat keramaian berdasarkan waktu, hari, dan musim.
+            </p>
+        </div>
+        """, unsafe_allow_html=True)
+
+        render_crowd_overlay(selected_city)
+
+        # XP: +10 for viewing crowd prediction (first time only)
+        if not st.session_state.get("peta_crowd_xp_awarded"):
+            st.session_state.peta_crowd_xp_awarded = True
+            _add_xp(10, "Melihat prediksi keramaian di Peta Interaktif")
 
     # Gamification: +5 XP first time visiting each city map
     city_key = f"peta_{selected_city}"

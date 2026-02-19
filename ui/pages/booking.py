@@ -30,9 +30,63 @@ try:
 except ImportError:
     HAS_CROWD_PREDICTION = False
 
+# Hijri date conversion
+try:
+    from hijri_converter import Gregorian
+    HAS_HIJRI = True
+except ImportError:
+    HAS_HIJRI = False
+
+
+def _get_hijri_date_str(gregorian_date):
+    """Convert Gregorian date to Hijri string."""
+    if not HAS_HIJRI:
+        return None
+    try:
+        h = Gregorian(gregorian_date.year, gregorian_date.month, gregorian_date.day).to_hijri()
+        HIJRI_MONTHS = [
+            "Muharram", "Safar", "Rabiul Awal", "Rabiul Akhir",
+            "Jumadil Awal", "Jumadil Akhir", "Rajab", "Sya'ban",
+            "Ramadan", "Syawal", "Dzulqa'dah", "Dzulhijjah"
+        ]
+        month_name = HIJRI_MONTHS[h.month - 1] if 1 <= h.month <= 12 else str(h.month)
+        return f"{h.day} {month_name} {h.year} H"
+    except Exception:
+        return None
+
+
+def _get_hijri_month(gregorian_date):
+    """Get the Hijri month number for a Gregorian date. Returns None if unavailable."""
+    if not HAS_HIJRI:
+        return None
+    try:
+        h = Gregorian(gregorian_date.year, gregorian_date.month, gregorian_date.day).to_hijri()
+        return h.month
+    except Exception:
+        return None
+
+
 # =============================================================================
 # PAGE-SPECIFIC CSS
 # =============================================================================
+
+WA_SHARE_CSS = """
+.wa-share-btn {
+    display: inline-flex; align-items: center; gap: 8px;
+    background: #25D366; color: white; padding: 8px 16px;
+    border-radius: 8px; text-decoration: none; font-weight: 600;
+    font-size: 0.85rem; transition: background 0.2s;
+}
+.wa-share-btn:hover { background: #128C7E; color: white; }
+"""
+
+
+def _build_wa_share_url(text):
+    """Build WhatsApp share URL with encoded text."""
+    import urllib.parse
+    encoded = urllib.parse.quote(text)
+    return f"https://wa.me/?text={encoded}"
+
 
 BOOKING_CSS = """
 /* Booking page hero */
@@ -114,6 +168,17 @@ BOOKING_CSS = """
     padding: 0.5rem;
     text-align: center;
     opacity: 0.4;
+}
+
+/* Hijri date display */
+.hijri-date-display {
+    color: #d4af37; font-size: 0.95rem; font-style: italic;
+    margin-top: 4px;
+}
+.hijri-special-note {
+    background: rgba(212, 175, 55, 0.1); border-left: 3px solid #d4af37;
+    padding: 8px 12px; border-radius: 4px; margin-top: 8px;
+    color: #e8d5a3; font-size: 0.85rem;
 }
 """
 
@@ -1237,6 +1302,34 @@ def render_step_schedule():
         )
         data["departure_date"] = departure_date
 
+        # Hijri date display
+        hijri_str = _get_hijri_date_str(departure_date)
+        if hijri_str:
+            st.markdown(
+                f'<div class="hijri-date-display">Tanggal Hijri: {hijri_str}</div>',
+                unsafe_allow_html=True,
+            )
+            # Special Islamic month note
+            hijri_month = _get_hijri_month(departure_date)
+            if hijri_month == 9:  # Ramadan
+                st.markdown(
+                    '<div class="hijri-special-note">'
+                    '<strong>Bulan Ramadan</strong> &mdash; Bulan suci penuh berkah. '
+                    'Umrah di bulan Ramadan pahalanya setara haji. Namun harga dan '
+                    'keramaian biasanya meningkat signifikan.'
+                    '</div>',
+                    unsafe_allow_html=True,
+                )
+            elif hijri_month == 12:  # Dzulhijjah
+                st.markdown(
+                    '<div class="hijri-special-note">'
+                    '<strong>Bulan Dzulhijjah</strong> &mdash; Bulan haji dan Idul Adha. '
+                    'Perhatikan bahwa akses ke beberapa area di Makkah mungkin dibatasi '
+                    'selama musim haji. Harga cenderung sangat tinggi.'
+                    '</div>',
+                    unsafe_allow_html=True,
+                )
+
         # Season intelligence (enhanced) or basic fallback
         if HAS_SEASON_CALENDAR:
             try:
@@ -1828,6 +1921,51 @@ def render_step_confirmation():
     # Cost Tracker sync
     render_cost_tracker_sync()
 
+    # WhatsApp share button for booking plan
+    _bk_data = st.session_state.booking_data
+    _bk_prices = calculate_total_price(_bk_data)
+    _bk_package = next((p for p in PACKAGES if p.type.value == _bk_data.get("package_type")), None)
+    _bk_package_name = _bk_package.name if _bk_package else "Umrah"
+    _bk_dep_date = _bk_data.get("departure_date")
+    _bk_dep_str = _bk_dep_date.strftime("%d %B %Y") if _bk_dep_date else "-"
+    _bk_ret_date = _bk_data.get("return_date")
+    _bk_ret_str = _bk_ret_date.strftime("%d %B %Y") if _bk_ret_date else "-"
+    _bk_travelers = max(len(_bk_data.get("travelers", [])), 1)
+    _bk_share_text = (
+        f"Assalamu'alaikum! Saya berencana umrah dengan detail berikut:\n\n"
+        f"Paket: {_bk_package_name}\n"
+        f"Tanggal: {_bk_dep_str} - {_bk_ret_str}\n"
+        f"Jumlah Jamaah: {_bk_travelers} orang\n"
+        f"Estimasi Total: {format_currency(_bk_prices['total'])}\n"
+        f"Ref: {booking_number}\n\n"
+        f"Direncanakan dengan LABBAIK Smart Planner\n"
+        f"https://app.labbaik.io"
+    )
+    _bk_wa_url = _build_wa_share_url(_bk_share_text)
+
+    # Initialise share XP flag
+    if "booking_wa_share_xp_awarded" not in st.session_state:
+        st.session_state.booking_wa_share_xp_awarded = False
+
+    st.markdown("---")
+    st.markdown(
+        f'<a href="{_bk_wa_url}" target="_blank" rel="noopener noreferrer" '
+        f'class="wa-share-btn" id="booking-wa-share">'
+        f'<span aria-hidden="true">&#128172;</span> Bagikan Rencana via WhatsApp</a>',
+        unsafe_allow_html=True,
+    )
+
+    # Award +5 XP for sharing via a companion button
+    if not st.session_state.booking_wa_share_xp_awarded:
+        if st.button("\U0001f4e4 Saya sudah bagikan via WhatsApp (+5 XP)", key="btn_wa_share_xp"):
+            st.session_state.booking_wa_share_xp_awarded = True
+            add_xp_safe(5, "Membagikan rencana booking via WhatsApp")
+            st.success("\u2705 +5 XP! Terima kasih telah membagikan rencana umrah Anda.")
+            st.rerun()
+
+    # --- Cross-Page Navigation ---
+    _render_confirmation_nav(booking_number)
+
     # Actions
     col1, col2, col3 = st.columns(3)
 
@@ -1847,6 +1985,135 @@ def render_step_confirmation():
 
 
 # =============================================================================
+# CROSS-PAGE NAVIGATION CSS
+# =============================================================================
+
+CROSS_NAV_CSS = """
+.cross-nav-card {
+    background: linear-gradient(145deg, #1a1a2e 0%, #1e293b 100%);
+    border: 1px solid #334155;
+    border-radius: 16px;
+    padding: 1.5rem;
+    margin: 1.5rem 0;
+}
+
+.cross-nav-card h3 {
+    color: #d4af37;
+    margin-top: 0;
+    margin-bottom: 0.25rem;
+    font-size: 1.1rem;
+}
+
+.cross-nav-card .cross-nav-subtitle {
+    color: #b0b0b0;
+    font-size: 0.85rem;
+    margin-bottom: 1rem;
+}
+
+.cross-nav-card .cross-nav-buttons {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+}
+
+.cross-nav-wa-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    background: linear-gradient(135deg, #128c7e, #25d366);
+    color: #fff !important;
+    padding: 0.6rem 1.25rem;
+    border-radius: 10px;
+    text-decoration: none !important;
+    font-weight: 600;
+    font-size: 0.9rem;
+    min-height: 44px;
+    transition: opacity 0.15s;
+}
+
+.cross-nav-wa-link:hover {
+    opacity: 0.9;
+    color: #fff !important;
+}
+
+@media (max-width: 480px) {
+    .cross-nav-wa-link {
+        min-height: 48px;
+        width: 100%;
+        justify-content: center;
+    }
+}
+"""
+
+
+# =============================================================================
+# CROSS-PAGE NAVIGATION HELPERS
+# =============================================================================
+
+def _render_confirmation_nav(booking_number: str):
+    """Render cross-page navigation buttons on the confirmation step."""
+    import urllib.parse
+
+    st.markdown(CROSS_NAV_CSS, unsafe_allow_html=True)
+
+    # Build WhatsApp message from booking data
+    data = st.session_state.booking_data
+    prices = calculate_total_price(data)
+    package = next((p for p in PACKAGES if p.type.value == data.get("package_type")), None)
+    package_name = package.name if package else "Umrah"
+    dep_date = data.get("departure_date")
+    dep_date_str = dep_date.strftime("%d %B %Y") if dep_date else "-"
+    travelers_count = max(len(data.get("travelers", [])), 1)
+
+    wa_text = (
+        f"Assalamu'alaikum! Saya telah merencanakan booking umrah di LABBAIK AI.\n\n"
+        f"Nomor Referensi: {booking_number}\n"
+        f"Paket: {package_name}\n"
+        f"Tanggal: {dep_date_str}\n"
+        f"Jamaah: {travelers_count} orang\n"
+        f"Estimasi: {format_currency(prices['total'])}\n\n"
+        f"Detail: https://app.labbaik.io"
+    )
+    wa_url = f"https://wa.me/?text={urllib.parse.quote(wa_text)}"
+
+    st.markdown(
+        '<div class="cross-nav-card">'
+        '<h3><span aria-hidden="true">\U0001f9ed</span> Langkah Berikutnya</h3>'
+        '<div class="cross-nav-subtitle">Lanjutkan persiapan umrah Anda</div>'
+        '</div>',
+        unsafe_allow_html=True,
+    )
+
+    nav_col1, nav_col2, nav_col3 = st.columns(3)
+
+    with nav_col1:
+        if st.button(
+            "\U0001f4ca Lihat di Cost Tracker",
+            key="nav_to_cost_tracker",
+            use_container_width=True,
+        ):
+            st.session_state.nav = "cost_tracker"
+            st.rerun()
+
+    with nav_col2:
+        if st.button(
+            "\u2705 Cek Kesiapan Umrah",
+            key="nav_to_readiness",
+            use_container_width=True,
+        ):
+            st.session_state.nav = "readiness_checker"
+            st.rerun()
+
+    with nav_col3:
+        st.markdown(
+            f'<a class="cross-nav-wa-link" href="{wa_url}" target="_blank" '
+            f'rel="noopener noreferrer">'
+            f'<span aria-hidden="true">\U0001f4e4</span> Bagikan via WhatsApp</a>',
+            unsafe_allow_html=True,
+        )
+
+
+# =============================================================================
 # MAIN PAGE RENDERER
 # =============================================================================
 
@@ -1854,7 +2121,7 @@ def render_booking_page():
     """Main booking page renderer."""
 
     # Inject shared + page-specific CSS
-    inject_css(HERO_CSS, CARD_CSS, AI_CARD_CSS, BADGE_CSS, BOOKING_CSS)
+    inject_css(HERO_CSS, CARD_CSS, AI_CARD_CSS, BADGE_CSS, BOOKING_CSS, WA_SHARE_CSS)
 
     # Track page view
     try:
