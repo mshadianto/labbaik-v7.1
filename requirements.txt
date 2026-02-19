@@ -1,5 +1,5 @@
 # =============================================================================
-# LABBAIK AI v6.0 - Dependencies
+# LABBAIK AI v7.8 - Dependencies
 # =============================================================================
 
 # Core framework
@@ -25,9 +25,9 @@ pyyaml>=6.0
 requests>=2.31.0
 python-dateutil>=2.8.2
 
-# Optional: RAG capabilities
-sentence-transformers>=2.2.0
-chromadb>=0.4.0
+# Optional: RAG capabilities (heavy deps — comment out to reduce build size)
+# sentence-transformers>=2.2.0
+# chromadb>=0.4.0
 
 # Authentication
 pyjwt>=2.8.0
@@ -46,3 +46,9 @@ hijri-converter>=2.3.0
 # Interactive Maps
 folium>=0.14.0
 streamlit-folium>=0.13.0
+
+# Charts & Visualization
+plotly>=5.15.0
+
+# QR Code Generation
+qrcode[pil]>=7.4
