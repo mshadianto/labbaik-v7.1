@@ -12,6 +12,8 @@ from dataclasses import dataclass
 
 from services.partner_api.api_service import get_partner_api, APIKey
 
+# Partner commission rate (fraction, e.g. 0.15 = 15%)
+PARTNER_COMMISSION_RATE = 0.15
 
 # API Endpoints documentation
 API_ENDPOINTS = {
@@ -316,17 +318,20 @@ class APIHandler:
             if not cursor.fetchone():
                 return APIResponse(success=False, error="not_found", message="Package not found")
 
-            # Build update query
+            # Build update query - only allow whitelisted column names
+            ALLOWED_FIELDS = frozenset([
+                "name", "description", "price", "duration_days",
+                "departure_city", "hotel_makkah", "hotel_madinah",
+                "airline", "quota", "is_active",
+            ])
+
             updates = []
             params = []
-            allowed_fields = ["name", "description", "price", "duration_days",
-                              "departure_city", "hotel_makkah", "hotel_madinah",
-                              "airline", "quota", "is_active"]
 
-            for field in allowed_fields:
-                if field in data:
-                    updates.append(f"{field} = ?")
-                    params.append(data[field])
+            for field_name in ALLOWED_FIELDS:
+                if field_name in data:
+                    updates.append(f"{field_name} = ?")
+                    params.append(data[field_name])
 
             if not updates:
                 return APIResponse(success=False, error="validation_error",
@@ -335,10 +340,11 @@ class APIHandler:
             updates.append("updated_at = datetime('now')")
             params.extend([package_id, self.partner_id])
 
-            cursor.execute(f"""
-                UPDATE partner_packages SET {', '.join(updates)}
-                WHERE id = ? AND partner_id = ?
-            """, params)
+            set_clause = ", ".join(updates)
+            cursor.execute(
+                f"UPDATE partner_packages SET {set_clause} WHERE id = ? AND partner_id = ?",
+                params,
+            )
             conn.commit()
 
             return APIResponse(success=True, message="Package updated successfully")
@@ -461,7 +467,7 @@ class APIHandler:
 
             # Calculate price and commission
             total_price = package["price"] * num_pax
-            commission_amount = int(total_price * 0.15)  # 15% commission
+            commission_amount = int(total_price * PARTNER_COMMISSION_RATE)
 
             cursor.execute("""
                 INSERT INTO partner_bookings (

@@ -14,9 +14,9 @@ from typing import Dict, List, Tuple
 try:
     from core.version import APP_VERSION, APP_NAME, APP_TAGLINE
 except ImportError:
-    APP_NAME = "LABBAIK AI"
-    APP_VERSION = "7.1.0"
-    APP_TAGLINE = "Platform Umrah Cerdas Indonesia"
+    APP_NAME = "LABBAIK Smart Planner"
+    APP_VERSION = "7.8.0"
+    APP_TAGLINE = "Satu-satunya AI Companion untuk Umrah Anda"
 
 APP_AUTHOR = "MS Hadianto"
 APP_WEBSITE = "https://labbaik.io"

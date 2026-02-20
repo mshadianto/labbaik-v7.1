@@ -269,7 +269,7 @@ class AnalyticsTracker:
         """Get engagement metrics from sessions."""
         try:
             query = """
-                SELECT 
+                SELECT
                     AVG(page_count) as avg_pages,
                     AVG(duration_seconds) as avg_duration,
                     COUNT(CASE WHEN is_returning THEN 1 END)::FLOAT / NULLIF(COUNT(*), 0) * 100 as returning_rate,
@@ -278,17 +278,19 @@ class AnalyticsTracker:
                 WHERE last_activity >= NOW() - INTERVAL '30 days'
             """
             result = self.db.fetch_one(query) or {}
-            
+
             avg_duration = int(result.get('avg_duration', 272) or 272)
             minutes = avg_duration // 60
             seconds = avg_duration % 60
-            
+
+            top_region = self._get_top_region()
+
             return {
                 "avg_pages_per_visit": round(float(result.get('avg_pages', 1.3) or 1.3), 1),
                 "avg_session_duration": f"{minutes}m {seconds}s",
                 "returning_visitors_pct": round(float(result.get('returning_rate', 34) or 34), 0),
                 "mobile_users_pct": round(float(result.get('mobile_rate', 67) or 67), 0),
-                "top_region": "Jakarta"  # TODO: implement geo tracking
+                "top_region": top_region
             }
         except Exception:
             return {
@@ -298,6 +300,40 @@ class AnalyticsTracker:
                 "mobile_users_pct": 67,
                 "top_region": "Jakarta"
             }
+
+    def _get_top_region(self) -> str:
+        """Get the top visitor region from session geo data."""
+        try:
+            # Query city from visitor_sessions (populated by tracking)
+            query = """
+                SELECT COALESCE(city, country, 'Unknown') as region, COUNT(*) as cnt
+                FROM visitor_sessions
+                WHERE started_at >= NOW() - INTERVAL '30 days'
+                  AND (city IS NOT NULL OR country IS NOT NULL)
+                GROUP BY region
+                ORDER BY cnt DESC
+                LIMIT 1
+            """
+            row = self.db.fetch_one(query)
+            if row and row.get('region') and row['region'] != 'Unknown':
+                return row['region']
+
+            # Fallback: derive from user profiles if sessions lack geo data
+            user_query = """
+                SELECT city, COUNT(*) as cnt
+                FROM users
+                WHERE city IS NOT NULL AND city != ''
+                GROUP BY city
+                ORDER BY cnt DESC
+                LIMIT 1
+            """
+            user_row = self.db.fetch_one(user_query)
+            if user_row and user_row.get('city'):
+                return user_row['city']
+        except Exception:
+            pass
+
+        return "Jakarta"
     
     def _get_fallback_stats(self) -> Dict[str, Any]:
         """Return demo stats when database is not available."""

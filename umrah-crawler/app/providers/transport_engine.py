@@ -274,9 +274,14 @@ async def store_transport_rows(
     """
     Store transport rows to database.
 
+    Uses the transport_schedule table schema (schema_v1_3.sql):
+    - operator, mode, route, depart_time_local, arrive_time_local,
+      duration_min, price_sar, class, availability, source_url,
+      source_method, payload
+
     Args:
         rows: List of TransportRow objects
-        db_session: Optional database session
+        db_session: Optional SQLAlchemy async session
 
     Returns:
         Number of rows stored
@@ -289,16 +294,47 @@ async def store_transport_rows(
         logger.info(f"Would store {len(rows)} transport rows (no db session)")
         return len(rows)
 
-    # TODO: Implement actual DB storage with session
-    # INSERT INTO transport_schedule (...)
+    from sqlalchemy import text
+    import json as _json
+
     stored = 0
     for row in rows:
         try:
-            # Placeholder for actual DB insert
+            await db_session.execute(text("""
+                INSERT INTO transport_schedule
+                (operator, mode, route, depart_time_local, arrive_time_local,
+                 duration_min, price_sar, class, availability,
+                 source_url, source_method, payload)
+                VALUES (:operator, :mode, :route, :depart, :arrive,
+                        :duration, :price, :cls, :avail,
+                        :url, :method, :payload::jsonb)
+            """), {
+                "operator": row.operator,
+                "mode": row.mode,
+                "route": row.route,
+                "depart": row.depart_time,
+                "arrive": row.arrive_time,
+                "duration": row.duration_min,
+                "price": row.price_sar,
+                "cls": row.travel_class,
+                "avail": row.availability,
+                "url": row.source_url,
+                "method": row.source_method.value if row.source_method else None,
+                "payload": _json.dumps(row.raw_payload, default=str) if row.raw_payload else None,
+            })
             stored += 1
         except Exception as e:
-            logger.error(f"Failed to store row: {e}")
+            logger.error(f"Failed to store transport row ({row.operator} {row.route}): {e}")
 
+    if stored > 0:
+        try:
+            await db_session.commit()
+        except Exception as e:
+            logger.error(f"Failed to commit transport rows: {e}")
+            await db_session.rollback()
+            return 0
+
+    logger.info(f"Stored {stored}/{len(rows)} transport rows to database")
     return stored
 
 

@@ -5,6 +5,7 @@ Premium subscription upgrade UI with self-service subscription management.
 Includes plan comparison, billing history, upgrade flow, and cancellation.
 """
 
+import os
 import streamlit as st
 from datetime import datetime, timedelta
 from services.subscription import (
@@ -14,6 +15,20 @@ from services.subscription import (
 from services.user import get_current_user, is_logged_in, UserRole
 from services.ai.helpers import ai_complete, add_xp_safe
 from ui.components.shared_styles import inject_css, HERO_CSS, CARD_CSS, AI_CARD_CSS, BADGE_CSS
+
+
+def _get_admin_whatsapp() -> str:
+    """Get admin WhatsApp number from env/secrets, fallback to default."""
+    number = os.getenv("ADMIN_WHATSAPP")
+    if number:
+        return number.strip().lstrip("+")
+    try:
+        number = st.secrets.get("ADMIN_WHATSAPP")
+        if number:
+            return str(number).strip().lstrip("+")
+    except Exception:
+        pass
+    return "6281200000000"
 
 
 # =============================================================================
@@ -815,7 +830,8 @@ def render_upgrade_flow(current_sub=None):
         """, unsafe_allow_html=True)
 
         wa_message = f"Halo admin LABBAIK, saya ingin upgrade ke paket {details['name']} ({details['price']}). Mohon bantuannya."
-        wa_url = f"https://wa.me/6281200000000?text={wa_message.replace(' ', '%20')}"
+        admin_wa = _get_admin_whatsapp()
+        wa_url = f"https://wa.me/{admin_wa}?text={wa_message.replace(' ', '%20')}"
 
         st.link_button(
             f"Hubungi Admin via WhatsApp - Upgrade {details['name']}",

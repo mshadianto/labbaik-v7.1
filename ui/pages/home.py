@@ -914,99 +914,6 @@ def render_visitor_stats_section():
 
 
 # =============================================================================
-# 🔧 FIX: DEBUG WIDGET (NEW)
-# =============================================================================
-
-def render_debug_widget():
-    """🔧 FIX: Temporary debug widget - only for internal users."""
-    # Only show debug widget to internal team
-    if not is_internal_user():
-        return
-
-    with st.sidebar.expander("🔍 DB Debug", expanded=False):
-        st.caption("Debug Mode - Remove after fixing")
-        
-        if st.button("🔄 Test Database", use_container_width=True):
-            try:
-                from services.database.repository import get_db
-                
-                db = get_db()
-                
-                if not db:
-                    st.error("❌ DB connection is None")
-                else:
-                    # Test 1: Connection
-                    try:
-                        test = db.fetch_one("SELECT NOW() as time")
-                        st.success(f"✅ Connected: {test.get('time')}")
-                    except Exception as e:
-                        st.error(f"❌ Connection failed: {e}")
-                        return
-                    
-                    # Test 2: Count rows
-                    try:
-                        count = db.fetch_one("""
-                            SELECT 
-                                COUNT(*) as rows,
-                                COALESCE(SUM(unique_visitors), 0) as visitors,
-                                COALESCE(SUM(page_views), 0) as views,
-                                MAX(updated_at) as last_update
-                            FROM visitor_stats
-                        """)
-                        
-                        st.write("📊 **Database Stats:**")
-                        st.json(count)
-                        
-                        if count and count.get('rows', 0) > 0:
-                            st.success(f"✅ Found {count['rows']} rows in visitor_stats")
-                        else:
-                            st.warning("⚠️ visitor_stats table is EMPTY!")
-                            
-                    except Exception as e:
-                        st.error(f"❌ Query failed: {e}")
-                    
-                    # Test 3: Today's data
-                    try:
-                        today = db.fetch_all("""
-                            SELECT page, unique_visitors, page_views, 
-                                   updated_at, date
-                            FROM visitor_stats 
-                            WHERE date = CURRENT_DATE
-                            ORDER BY updated_at DESC
-                        """)
-                        
-                        if today:
-                            st.write(f"📅 **Today's Data ({len(today)} rows):**")
-                            for row in today:
-                                st.caption(f"• {row['page']}: {row['unique_visitors']}v / {row['page_views']}pv @ {row['updated_at']}")
-                        else:
-                            st.warning("⚠️ No data for TODAY's date!")
-                            
-                            # Check if there's ANY data
-                            all_data = db.fetch_all("""
-                                SELECT date, page, unique_visitors, page_views
-                                FROM visitor_stats
-                                ORDER BY date DESC
-                                LIMIT 5
-                            """)
-                            
-                            if all_data:
-                                st.write("📋 **Most recent data:**")
-                                for row in all_data:
-                                    st.caption(f"• {row['date']} - {row['page']}: {row['unique_visitors']}v / {row['page_views']}pv")
-                            else:
-                                st.error("❌ Table is completely EMPTY!")
-                                
-                    except Exception as e:
-                        st.error(f"❌ Today check failed: {e}")
-                        
-            except Exception as e:
-                st.error(f"❌ Debug error: {e}")
-                import traceback
-                st.code(traceback.format_exc())
-
-
-# =============================================================================
 # PRICE INTELLIGENCE SECTION
 # =============================================================================
 
@@ -2116,9 +2023,6 @@ def render_home_page():
     if not st.session_state.get("home_xp_awarded"):
         add_xp_safe(5, "Mengunjungi halaman utama")
         st.session_state.home_xp_awarded = True
-
-    # Debug widget (internal only)
-    render_debug_widget()
 
     # Inject CSS (cached)
     inject_custom_css()

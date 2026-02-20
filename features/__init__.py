@@ -256,4 +256,4 @@ __all__ = [
 try:
     from core.version import APP_VERSION as __version__
 except ImportError:
-    __version__ = "7.1.0"
+    __version__ = "7.8.0"

@@ -108,6 +108,18 @@ class TravelokaScraper(BaseScraper):
         logger.info(f"Traveloka: Found {len(offers)} packages")
         return offers
 
+    # Hotel search endpoints
+    HOTEL_SEARCH_URL = "/en-id/hotel/area"
+    HOTEL_API = "/api/v2/hotel/search"
+
+    # City slugs for Traveloka hotel search
+    HOTEL_CITY_SLUGS = {
+        "MAKKAH": {"slug": "makkah", "region_id": "108613"},
+        "MADINAH": {"slug": "madinah", "region_id": "108614"},
+        "MECCA": {"slug": "makkah", "region_id": "108613"},
+        "MEDINA": {"slug": "madinah", "region_id": "108614"},
+    }
+
     def scrape_hotels(
         self,
         city: str,
@@ -116,12 +128,224 @@ class TravelokaScraper(BaseScraper):
         **kwargs
     ) -> List[AggregatedOffer]:
         """
-        Scrape hotels from Traveloka.
+        Scrape hotels from Traveloka for Makkah/Madinah.
 
-        For now, returns empty as we focus on packages.
-        Hotel scraping can be implemented similarly.
+        Strategy: API → HTML parse → demo fallback.
         """
-        return []
+        if not self.is_enabled():
+            return []
+
+        city_upper = city.upper().replace("MECCA", "MAKKAH").replace("MEDINA", "MADINAH")
+        logger.info(f"Scraping Traveloka hotels for {city_upper}")
+
+        if not check_in:
+            check_in = date.today() + timedelta(days=30)
+        if not check_out:
+            check_out = check_in + timedelta(days=3)
+
+        cache_key = f"hotel:{city_upper}:{check_in}"
+        if cache_key in self._package_cache:
+            return self._package_cache[cache_key]
+
+        offers = []
+
+        try:
+            offers = self._scrape_hotels_api(city_upper, check_in, check_out)
+            if not offers:
+                offers = self._scrape_hotels_html(city_upper, check_in, check_out)
+        except Exception as e:
+            logger.error(f"Traveloka hotel scraping failed: {e}")
+
+        if not offers:
+            offers = self._get_demo_hotels(city_upper, check_in, check_out)
+
+        self._package_cache[cache_key] = offers
+        logger.info(f"Traveloka: Found {len(offers)} hotels for {city_upper}")
+        return offers
+
+    def _scrape_hotels_api(
+        self, city: str, check_in: date, check_out: date
+    ) -> List[AggregatedOffer]:
+        """Try Traveloka hotel search API."""
+        city_info = self.HOTEL_CITY_SLUGS.get(city)
+        if not city_info:
+            return []
+
+        api_url = f"{self.config.base_url}{self.HOTEL_API}"
+        headers = {
+            "Accept": "application/json",
+            "Content-Type": "application/json",
+            "X-Domain": "hotel",
+        }
+        payload = {
+            "regionId": city_info["region_id"],
+            "checkIn": check_in.isoformat(),
+            "checkOut": check_out.isoformat(),
+            "rooms": 1,
+            "adults": 2,
+            "currency": "IDR",
+        }
+
+        response = self._make_request(
+            api_url, method="POST", json_data=payload, headers=headers
+        )
+        if not response or response.status_code != 200:
+            return []
+
+        offers = []
+        nights = max(1, (check_out - check_in).days)
+
+        try:
+            data = response.json()
+            hotels = (
+                data.get("data", {}).get("hotels", [])
+                or data.get("data", {}).get("properties", [])
+                or data.get("results", [])
+            )
+
+            for hotel in hotels[:30]:
+                name = hotel.get("name") or hotel.get("hotelName", "Hotel")
+                price_per_night = float(hotel.get("price", 0) or hotel.get("nightlyPrice", 0))
+                if price_per_night <= 0:
+                    continue
+
+                stars = int(hotel.get("star", 0) or hotel.get("starRating", 0))
+                price_total = price_per_night * nights
+
+                offer = self._create_offer(
+                    name=name,
+                    price_idr=price_total,
+                    offer_type=OfferType.HOTEL,
+                    city=city,
+                    source_offer_id=str(hotel.get("id", "")),
+                    stars=stars or None,
+                    source_url=hotel.get("url") or hotel.get("deeplink"),
+                    is_available=True,
+                    price_sar=convert_idr_to_sar(price_total),
+                )
+                offers.append(offer)
+        except (json.JSONDecodeError, KeyError, TypeError) as e:
+            logger.debug(f"Traveloka hotel API parse failed: {e}")
+
+        return offers
+
+    def _scrape_hotels_html(
+        self, city: str, check_in: date, check_out: date
+    ) -> List[AggregatedOffer]:
+        """Fallback: parse Traveloka hotel search HTML page."""
+        city_info = self.HOTEL_CITY_SLUGS.get(city)
+        if not city_info:
+            return []
+
+        search_url = (
+            f"{self.config.base_url}{self.HOTEL_SEARCH_URL}"
+            f"/{city_info['slug']}"
+            f"?checkin={check_in.isoformat()}&checkout={check_out.isoformat()}"
+            f"&rooms=1&adults=2"
+        )
+
+        response = self._make_request(search_url)
+        if not response:
+            return []
+
+        offers = []
+        nights = max(1, (check_out - check_in).days)
+
+        try:
+            soup = BeautifulSoup(response.text, "html.parser")
+            cards = soup.select(
+                "[data-testid='hotel-card'], .hotel-card, .property-card, "
+                "[data-testid='PropertyCard']"
+            )
+
+            for card in cards[:20]:
+                name_el = card.select_one(
+                    "h2, h3, .hotel-name, [data-testid='hotel-name'], "
+                    "[data-testid='PropertyName']"
+                )
+                price_el = card.select_one(
+                    ".price, [data-testid='price'], [data-testid='PropertyPrice']"
+                )
+                stars_el = card.select_one(
+                    ".stars, .star-rating, [data-testid='star-rating']"
+                )
+
+                if not name_el or not price_el:
+                    continue
+
+                name = name_el.get_text(strip=True)
+                price_per_night = self._parse_price(price_el.get_text(strip=True))
+                if price_per_night <= 0:
+                    continue
+
+                stars = self._parse_stars(stars_el.get_text(strip=True)) if stars_el else None
+                price_total = price_per_night * nights
+
+                link_el = card.select_one("a[href]")
+                source_url = None
+                if link_el:
+                    href = link_el.get("href", "")
+                    if href.startswith("/"):
+                        source_url = f"{self.config.base_url}{href}"
+                    elif href.startswith("http"):
+                        source_url = href
+
+                offer = self._create_offer(
+                    name=name,
+                    price_idr=price_total,
+                    offer_type=OfferType.HOTEL,
+                    city=city,
+                    stars=stars,
+                    source_url=source_url,
+                    is_available=True,
+                    price_sar=convert_idr_to_sar(price_total),
+                )
+                offers.append(offer)
+        except Exception as e:
+            logger.error(f"Traveloka hotel HTML parse failed: {e}")
+
+        return offers
+
+    def _get_demo_hotels(
+        self, city: str, check_in: date, check_out: date
+    ) -> List[AggregatedOffer]:
+        """Return demo hotel data when scraping fails."""
+        nights = max(1, (check_out - check_in).days)
+
+        demo_data = {
+            "MAKKAH": [
+                {"name": "Grand Zam Zam Tower", "stars": 4, "price_per_night": 1_900_000},
+                {"name": "Hilton Makkah Convention Hotel", "stars": 5, "price_per_night": 3_500_000},
+                {"name": "Raffles Makkah Palace", "stars": 5, "price_per_night": 5_000_000},
+                {"name": "Makkah Clock Royal Tower", "stars": 5, "price_per_night": 4_200_000},
+            ],
+            "MADINAH": [
+                {"name": "Dar Al Taqwa Hotel Madinah", "stars": 4, "price_per_night": 1_600_000},
+                {"name": "Madinah Hilton Hotel", "stars": 5, "price_per_night": 2_600_000},
+                {"name": "Oberoi Madinah", "stars": 5, "price_per_night": 3_500_000},
+                {"name": "Crowne Plaza Madinah", "stars": 5, "price_per_night": 2_400_000},
+            ],
+        }
+
+        hotels = demo_data.get(city, demo_data["MAKKAH"])
+        offers = []
+
+        for hotel in hotels:
+            price_total = hotel["price_per_night"] * nights
+            offer = self._create_offer(
+                name=hotel["name"],
+                price_idr=price_total,
+                offer_type=OfferType.HOTEL,
+                city=city,
+                source_offer_id=f"traveloka_demo_{hotel['name'][:10]}",
+                stars=hotel["stars"],
+                is_available=True,
+                price_sar=convert_idr_to_sar(price_total),
+                confidence_score=0.5,
+            )
+            offers.append(offer)
+
+        return offers
 
     def _scrape_via_api(
         self,

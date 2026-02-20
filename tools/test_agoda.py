@@ -33,13 +33,12 @@ except ImportError:
 RAPIDAPI_HOST = "agoda-com.p.rapidapi.com"
 RAPIDAPI_URL = "https://agoda-com.p.rapidapi.com/hotels/search-overnight"
 
-# Location IDs (to be discovered)
-# Format: "type_id" where type=1 is city, type=2 is region, etc.
+# Location IDs (confirmed 2024-12-27 via agoda.py provider)
+# Format: "type_id" where type=1 is city
 LOCATION_IDS = {
-    "DEFAULT": "1_318",      # Default test ID
-    # TODO: Discover Makkah & Madinah IDs
-    # "MAKKAH": "1_xxx",
-    # "MADINAH": "1_yyy",
+    "DEFAULT": "1_318",       # Default test ID
+    "MAKKAH": "1_78591",      # Makkah (718 hotels)
+    "MADINAH": "1_23028",     # Madinah (999 hotels)
 }
 
 
@@ -175,21 +174,25 @@ def test_agoda_search(location_id: str = None, verbose: bool = True):
 
 def discover_location_id(city_name: str):
     """
-    Try to discover Agoda location ID for a city.
+    Look up Agoda location ID for a city.
 
-    This is a placeholder - actual discovery would require
-    a separate API endpoint or manual lookup.
+    Known IDs are stored in LOCATION_IDS dict.
+    For unknown cities, manual lookup is required via Agoda.com URL.
     """
-    print(f"[INFO] Location ID discovery for '{city_name}'")
-    print("[INFO] Check Agoda website or API docs for location IDs")
+    city_upper = city_name.upper().replace("MECCA", "MAKKAH").replace("MEDINA", "MADINAH")
+    location_id = LOCATION_IDS.get(city_upper)
+
+    if location_id:
+        print(f"[OK] Found location ID for '{city_name}': {location_id}")
+        return location_id
+
+    print(f"[INFO] Location ID not found for '{city_name}'")
+    print("[INFO] Known cities:")
+    for city, lid in LOCATION_IDS.items():
+        print(f"  {city}: {lid}")
     print()
-    print("Known patterns:")
-    print("  1_xxx = City ID")
-    print("  2_xxx = Region ID")
-    print("  3_xxx = Country ID")
-    print()
-    print("For Makkah/Madinah, try searching on Agoda.com")
-    print("and check the URL for the location ID.")
+    print("To discover new IDs, search on Agoda.com and check the URL.")
+    return None
 
 
 if __name__ == "__main__":
@@ -215,6 +218,10 @@ if __name__ == "__main__":
         print()
         print("Next steps:")
         print("1. Copy the JSON structure above")
-        print("2. Identify hotel list path (e.g., data.hotels)")
-        print("3. Find Makkah & Madinah location IDs")
-        print("4. Create provider: app/providers/agoda_v13.py")
+        print("2. Identify hotel list path (e.g., data.citySearch.properties)")
+        print()
+        print("Available city IDs:")
+        for city, lid in LOCATION_IDS.items():
+            print(f"  python tools/test_agoda.py {lid}  # {city}")
+        print()
+        print("Provider already implemented: umrah-crawler/app/providers/agoda.py")

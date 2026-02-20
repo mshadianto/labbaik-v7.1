@@ -1623,17 +1623,17 @@ def render_discover_view():
 
 def render_communities_view():
     """Render communities view like Reclub clubs."""
-    
+
     st.markdown("## 🏘️ Communities")
     st.caption("Bergabung dengan komunitas umrah di Indonesia")
-    
+
     # Search
     search = st.text_input("🔍 Cari komunitas...", key="comm_search")
-    
+
     # Stats
     communities = st.session_state.ub_communities
     total_members = sum(c.member_count for c in communities)
-    
+
     col1, col2, col3, col4 = st.columns(4)
     with col1:
         st.metric("Communities", len(communities))
@@ -1643,17 +1643,99 @@ def render_communities_view():
         st.metric("Active Trips", sum(c.trips_created for c in communities))
     with col4:
         if st.button("➕ Buat Community", type="primary"):
-            st.info("Fitur coming soon!")
-    
+            st.session_state.ub_show_create_community = True
+
+    # Create Community Form
+    if st.session_state.get("ub_show_create_community"):
+        _render_create_community_form()
+
     st.divider()
-    
+
     # Filter
     if search:
         communities = [c for c in communities if search.lower() in c.name.lower()]
-    
+
     # Render communities
     for community in communities:
         render_community_card(community)
+
+
+def _render_create_community_form():
+    """Render community creation form."""
+    st.markdown("---")
+    st.markdown("### Buat Community Baru")
+
+    with st.form("create_community_form"):
+        comm_name = st.text_input(
+            "Nama Community", placeholder="Contoh: Jamaah Jakarta Selatan"
+        )
+        comm_desc = st.text_area(
+            "Deskripsi", placeholder="Jelaskan tujuan dan fokus community Anda...",
+            max_chars=500
+        )
+
+        col1, col2 = st.columns(2)
+        with col1:
+            comm_location = st.selectbox(
+                "Lokasi",
+                ["Jakarta", "Surabaya", "Bandung", "Medan", "Makassar",
+                 "Semarang", "Yogyakarta", "Palembang", "Lainnya"]
+            )
+            comm_public = st.toggle("Community Publik", value=True)
+        with col2:
+            comm_focus = st.selectbox(
+                "Fokus",
+                ["All Levels", "Pemula", "Berpengalaman", "Keluarga",
+                 "Profesional Muda", "Lansia"]
+            )
+
+        col_submit, col_cancel = st.columns(2)
+        with col_submit:
+            submitted = st.form_submit_button(
+                "Buat Community", type="primary", use_container_width=True
+            )
+        with col_cancel:
+            cancelled = st.form_submit_button(
+                "Batal", use_container_width=True
+            )
+
+    if cancelled:
+        st.session_state.ub_show_create_community = False
+        st.rerun()
+
+    if submitted:
+        if not comm_name or len(comm_name.strip()) < 3:
+            st.error("Nama community minimal 3 karakter.")
+            return
+
+        current_user = st.session_state.get("ub_current_user")
+        owner_id = current_user.id if current_user else "user_0"
+        owner_name = current_user.name if current_user else "Anda"
+
+        new_community = Community(
+            id=f"comm_{random.randint(10000, 99999)}",
+            code=generate_club_code(),
+            name=comm_name.strip(),
+            description=comm_desc.strip() if comm_desc else "",
+            avatar=f"https://api.dicebear.com/7.x/identicon/svg?seed={comm_name.strip().replace(' ', '')}",
+            cover_image="",
+            owner_id=owner_id,
+            owner_name=owner_name,
+            admins=[owner_id],
+            member_count=1,
+            members=[owner_id],
+            is_public=comm_public,
+            location=comm_location,
+            focus=comm_focus,
+            trips_created=0,
+            total_jamaah=0,
+            avg_rating=0.0,
+        )
+
+        st.session_state.ub_communities.insert(0, new_community)
+        st.session_state.ub_show_create_community = False
+        st.success(f"Community **{comm_name}** berhasil dibuat! Kode: **{new_community.code}**")
+        st.rerun()
 
 
 def render_smart_match_view():

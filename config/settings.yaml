@@ -93,7 +93,7 @@ ui:
   # Application Info
   app_name: "LABBAIK AI"
   app_tagline: "Asisten Perjalanan Umrah Cerdas"
-  app_version: "6.0.0"
+  app_version: "7.8.0"
   
   # Appearance
   theme: "default"
