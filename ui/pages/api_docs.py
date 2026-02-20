@@ -5,7 +5,6 @@ Interactive API documentation for partners.
 """
 
 import streamlit as st
-import json
 from services.partner_api import API_ENDPOINTS, get_partner_api
 from services.user import get_current_user, is_logged_in, UserRole
 from services.ai.helpers import add_xp_safe

@@ -8,10 +8,9 @@ package comparison, and interactive UI.
 import streamlit as st
 from datetime import date, timedelta, datetime
 from typing import Dict, List, Any, Optional
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from enum import Enum
 import random
-import json
 
 from ui.components.shared_styles import inject_css, HERO_CSS, CARD_CSS, AI_CARD_CSS, BADGE_CSS
 from ui.components import format_idr as format_currency

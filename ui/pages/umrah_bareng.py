@@ -27,7 +27,6 @@ import random
 import re
 import string
 import hashlib
-import json
 
 from services.ai.helpers import ai_complete, add_xp_safe
 from ui.components.shared_styles import inject_css, HERO_CSS, CARD_CSS, AI_CARD_CSS, BADGE_CSS

@@ -10,7 +10,7 @@ Tracks bookings, revenue, commission, and provides AI business insights.
 import streamlit as st
 from datetime import datetime, date, timedelta
 from typing import List, Dict, Any, Optional
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 import random
 
 from services.ai.helpers import ai_complete, add_xp_safe
