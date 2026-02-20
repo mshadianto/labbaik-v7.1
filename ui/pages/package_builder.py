@@ -21,6 +21,7 @@ import logging
 from services.ai.helpers import ai_complete, add_xp_safe
 from ui.components.shared_styles import inject_css, HERO_CSS, CARD_CSS, AI_CARD_CSS, BADGE_CSS
 from ui.components import format_idr as format_rupiah
+format_currency = format_rupiah
 
 logger = logging.getLogger(__name__)
 
@@ -600,7 +601,7 @@ def render_margin_section(config: dict) -> dict:
 
 def render_calculation_result(params: dict):
     """Render calculation result."""
-    from utils.package_calculator import PackageScenario, calculate_package, format_currency
+    from utils.package_calculator import PackageScenario, calculate_package
 
     st.markdown("---")
     st.markdown("## Hasil Kalkulasi")
@@ -772,8 +773,6 @@ AI_SYSTEM_PROMPT = (
 
 def build_ai_prompt(params: dict, breakdown) -> str:
     """Build AI prompt from package parameters and breakdown."""
-    from utils.package_calculator import format_currency
-
     hotel_cat_makkah = params.get("hotel_makkah_category", "bintang_4").replace("_", " ").title()
     hotel_cat_madinah = params.get("hotel_madinah_category", "bintang_4").replace("_", " ").title()
     margin_type_label = "persentase" if params.get("margin_type") == "percentage" else "nominal tetap"

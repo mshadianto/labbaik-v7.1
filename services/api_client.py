@@ -6,12 +6,13 @@ Async HTTP client for connecting Streamlit to FastAPI backend.
 
 import asyncio
 import httpx
+import os
 from typing import Optional, Dict, Any, List
 import streamlit as st
 
 
 # API Configuration
-API_URL = "http://localhost:8000/api/v1"  # Change for production
+API_URL = os.getenv("API_URL", "http://localhost:8000/api/v1")
 
 
 class LabbaikAPIClient:
