@@ -18,6 +18,11 @@ except ImportError:
     CARD_CSS = ""
 
 try:
+    from services.analytics.tracker import track_page
+except ImportError:
+    def track_page(*args, **kwargs): pass
+
+try:
     from core.version import get_display_version, APP_VERSION
 except ImportError:
     def get_display_version():
@@ -110,6 +115,7 @@ def _init_settings_state():
 
 def render_settings_page():
     """Render the user settings/preferences page."""
+    track_page("settings")
     _init_settings_state()
 
     inject_css(HERO_CSS, CARD_CSS, SETTINGS_CSS)

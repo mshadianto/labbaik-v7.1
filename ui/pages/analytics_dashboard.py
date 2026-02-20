@@ -340,15 +340,16 @@ def render_analytics_dashboard():
 # HELPERS
 # =============================================================================
 
-def get_excluded_user_ids_sql():
-    """Get SQL clause to exclude internal users."""
-    emails = "', '".join(EXCLUDED_EMAILS)
-    return f"SELECT id FROM users WHERE email IN ('{emails}')"
+def get_excluded_user_ids_clause():
+    """Get SQL sub-query and params to exclude internal users (parameterized)."""
+    placeholders = ", ".join(["%s"] * len(EXCLUDED_EMAILS))
+    sql = f"SELECT id FROM users WHERE email IN ({placeholders})"
+    return sql, tuple(EXCLUDED_EMAILS)
 
 
 def _collect_dashboard_metrics(db, start_date, end_date):
     """Collect all key metrics into a dict for both display and AI prompt."""
-    excluded_sql = get_excluded_user_ids_sql()
+    excluded_sql, excluded_params = get_excluded_user_ids_clause()
     metrics = {'total_users': 0, 'total_sessions': 0, 'total_events': 0}
 
     try:
@@ -361,7 +362,7 @@ def _collect_dashboard_metrics(db, start_date, end_date):
         WHERE event_timestamp::date BETWEEN %s AND %s
             AND (user_id IS NULL OR user_id NOT IN ({excluded_sql}))
         """
-        result = db.fetch_one(query, (start_date, end_date))
+        result = db.fetch_one(query, (start_date, end_date) + excluded_params)
         if result and result.get('total_events', 0) > 0:
             metrics = result
         else:
@@ -1176,7 +1177,7 @@ def _build_cohort_data(db, start_date, end_date):
     Falls back to demo data if the DB query fails.
     """
     try:
-        excluded_sql = get_excluded_user_ids_sql()
+        excluded_sql, excluded_params = get_excluded_user_ids_clause()
 
         # Step 1: Get user cohorts by registration week
         cohort_query = f"""
@@ -1190,7 +1191,7 @@ def _build_cohort_data(db, start_date, end_date):
         GROUP BY DATE_TRUNC('week', created_at)
         ORDER BY cohort_week
         """
-        cohort_rows = db.fetch_all(cohort_query, (start_date, end_date))
+        cohort_rows = db.fetch_all(cohort_query, (start_date, end_date) + excluded_params)
 
         if not cohort_rows or len(cohort_rows) == 0:
             raise ValueError("No cohort data found")
@@ -1415,7 +1416,7 @@ def _build_activity_data(db, start_date, end_date):
     Returns a 7x24 nested list. Falls back to demo data on failure.
     """
     try:
-        excluded_sql = get_excluded_user_ids_sql()
+        excluded_sql, excluded_params = get_excluded_user_ids_clause()
         query = f"""
         SELECT
             EXTRACT(DOW FROM event_timestamp) AS dow,
@@ -1429,7 +1430,7 @@ def _build_activity_data(db, start_date, end_date):
             EXTRACT(HOUR FROM event_timestamp)
         ORDER BY dow, hour
         """
-        rows = db.fetch_all(query, (start_date, end_date))
+        rows = db.fetch_all(query, (start_date, end_date) + excluded_params)
 
         if not rows or len(rows) == 0:
             raise ValueError("No activity data")

@@ -140,6 +140,9 @@ class Limits:
 
 class CostConstants:
     """Cost calculation constants."""
+    # Exchange rate (fallback; prefer live rates from kurs_calculator when available)
+    SAR_TO_IDR = 4200.0
+
     # Base costs (IDR)
     VISA_COST = 2_000_000
     HANDLING_FEE = 500_000

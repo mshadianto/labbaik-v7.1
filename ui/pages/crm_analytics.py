@@ -13,12 +13,7 @@ logger = logging.getLogger(__name__)
 from services.ai.helpers import ai_complete, add_xp_safe
 from ui.components.shared_styles import inject_css, HERO_CSS, CARD_CSS, AI_CARD_CSS
 
-from ui.components.crm_helpers import format_rupiah as _format_rupiah
-
-
-def format_rupiah(amount: int) -> str:
-    """Format as Rupiah (CRM analytics uses 'Rp 0' default)."""
-    return _format_rupiah(amount, default="Rp 0")
+from ui.components import format_idr as format_rupiah
 
 
 def format_number(num: int) -> str:

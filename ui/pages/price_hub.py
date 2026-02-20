@@ -520,7 +520,8 @@ PRICE_HUB_CSS = """
 # CONSTANTS
 # =============================================================================
 
-SAR_TO_IDR = 4200
+from core.constants import CostConstants
+SAR_TO_IDR = CostConstants.SAR_TO_IDR
 
 SOURCE_BADGES = {
     "amadeus": ("API", "#4CAF50"),

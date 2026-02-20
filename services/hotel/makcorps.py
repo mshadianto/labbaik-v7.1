@@ -37,7 +37,8 @@ CITY_IDS = {
 
 # Currency
 DEFAULT_CURRENCY = "SAR"  # Saudi Riyal
-SAR_TO_IDR = 4200
+from core.constants import CostConstants
+SAR_TO_IDR = CostConstants.SAR_TO_IDR
 
 # API Configuration
 API_BASE_URL = "https://api.makcorps.com"

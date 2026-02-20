@@ -20,6 +20,7 @@ import logging
 
 from services.ai.helpers import ai_complete, add_xp_safe
 from ui.components.shared_styles import inject_css, HERO_CSS, CARD_CSS, AI_CARD_CSS, BADGE_CSS
+from ui.components import format_idr as format_rupiah
 
 logger = logging.getLogger(__name__)
 
@@ -168,11 +169,6 @@ def load_config():
 # =============================================================================
 # HELPERS
 # =============================================================================
-
-def format_rupiah(amount: int) -> str:
-    """Format as Rupiah."""
-    return f"Rp {amount:,.0f}".replace(",", ".")
-
 
 def init_session_state():
     """Initialize session state for package builder."""
