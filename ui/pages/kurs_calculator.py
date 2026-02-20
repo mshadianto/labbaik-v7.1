@@ -20,6 +20,7 @@ import requests
 
 from services.ai.helpers import ai_complete, add_xp_safe
 from ui.components.shared_styles import inject_css, HERO_CSS, CARD_CSS, AI_CARD_CSS, BADGE_CSS
+from ui.components import format_idr
 
 # =============================================================================
 # STYLING
@@ -662,13 +663,6 @@ def idr_to_sar(amount: float) -> float:
 def sar_to_usd(amount: float) -> float:
     """Convert SAR to USD using live or fallback rates."""
     return amount / get_current_rates()["USD_SAR"]
-
-
-def format_idr(amount: float) -> str:
-    """Format amount as Indonesian Rupiah with dot separator."""
-    rounded = int(round(amount))
-    formatted = f"{rounded:,}".replace(",", ".")
-    return f"Rp {formatted}"
 
 
 def format_sar(amount: float) -> str:

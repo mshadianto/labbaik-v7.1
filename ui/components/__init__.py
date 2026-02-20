@@ -598,14 +598,33 @@ def validate_phone(phone: str) -> bool:
 
 
 def format_currency(amount: float, currency: str = "IDR") -> str:
-    """Format number as currency."""
+    """Format number as currency with Indonesian dot separator."""
     if currency == "IDR":
-        return f"Rp {amount:,.0f}"
+        return f"Rp {amount:,.0f}".replace(",", ".")
     elif currency == "USD":
-        return f"${amount:,.2f}"
+        return f"${amount:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
     elif currency == "SAR":
-        return f"SAR {amount:,.2f}"
+        return f"SAR {amount:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
     return f"{amount:,.2f}"
+
+
+def format_idr(amount: float) -> str:
+    """Format amount as Indonesian Rupiah (Rp X.XXX.XXX)."""
+    return f"Rp {int(round(amount)):,}".replace(",", ".")
+
+
+def format_idr_short(amount: float) -> str:
+    """Format Rupiah with short notation (jt/rb)."""
+    if amount >= 1_000_000:
+        return f"Rp {amount / 1_000_000:.1f} jt"
+    elif amount >= 1_000:
+        return f"Rp {amount / 1_000:.0f} rb"
+    return f"Rp {amount:,.0f}"
+
+
+def format_sar(amount: float) -> str:
+    """Format amount as Saudi Riyal."""
+    return f"SAR {amount:,.0f}"
 
 
 def format_date(dt: date, format_str: str = "%d %B %Y") -> str:

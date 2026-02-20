@@ -284,16 +284,6 @@ except ImportError:
 # HELPER FUNCTIONS
 # =============================================================================
 
-def format_price_sar(price: float) -> str:
-    """Format price in SAR"""
-    return f"SAR {price:,.0f}"
-
-
-def format_price_idr(price: float) -> str:
-    """Format price in IDR"""
-    return f"Rp {price:,.0f}"
-
-
 def get_star_display(stars: int) -> str:
     """Get star rating display"""
     return "⭐" * stars

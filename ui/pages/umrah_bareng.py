@@ -31,6 +31,7 @@ import json
 
 from services.ai.helpers import ai_complete, add_xp_safe
 from ui.components.shared_styles import inject_css, HERO_CSS, CARD_CSS, AI_CARD_CSS, BADGE_CSS
+from ui.components import format_idr as format_currency
 
 # =============================================================================
 # ENUMS
@@ -592,11 +593,6 @@ def generate_trip_id() -> str:
     timestamp = datetime.now().strftime("%Y%m%d%H%M%S")
     random_suffix = ''.join(random.choices(string.ascii_lowercase + string.digits, k=4))
     return f"trip_{timestamp}_{random_suffix}"
-
-
-def format_currency(amount: int) -> str:
-    """Format as Indonesian Rupiah."""
-    return f"Rp {amount:,.0f}".replace(",", ".")
 
 
 def format_relative_time(dt: datetime) -> str:

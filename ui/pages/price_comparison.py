@@ -23,6 +23,7 @@ from typing import Dict, List, Any, Optional, TYPE_CHECKING
 
 from services.ai.helpers import ai_complete, add_xp_safe
 from ui.components.shared_styles import inject_css, HERO_CSS, CARD_CSS, AI_CARD_CSS, BADGE_CSS, SKELETON_CSS, render_skeleton
+from ui.components import format_currency as format_price
 
 # Type checking imports (not executed at runtime)
 if TYPE_CHECKING:
@@ -299,14 +300,6 @@ PRICE_COMPARISON_CSS = """
 # =============================================================================
 # HELPER FUNCTIONS
 # =============================================================================
-
-def format_price(price: float, currency: str = "IDR") -> str:
-    """Format price with thousand separators."""
-    if currency == "IDR":
-        return f"Rp {price:,.0f}"
-    else:
-        return f"SAR {price:,.2f}"
-
 
 def get_source_badge(source_name: str) -> tuple:
     """Get badge label and color for source."""

@@ -15,6 +15,7 @@ from datetime import datetime
 from abc import ABC, abstractmethod
 from enum import Enum
 import json
+import os
 
 from core.config import get_settings
 from core.exceptions import EmailServiceError, ExternalServiceError
@@ -1166,7 +1167,3 @@ class NotificationService:
 def get_notification_service() -> NotificationService:
     """Get notification service singleton."""
     return NotificationService()
-
-
-# Need to import os for environment variables
-import os

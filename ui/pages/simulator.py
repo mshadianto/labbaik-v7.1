@@ -22,9 +22,10 @@ import re
 
 from services.ai.helpers import ai_complete, add_xp_safe
 from ui.components.shared_styles import inject_css, HERO_CSS, CARD_CSS, AI_CARD_CSS, BADGE_CSS
+from ui.components import format_idr as format_currency
 
 try:
-    from ui.pages.kurs_calculator import get_current_rates, format_idr as kurs_format_idr
+    from ui.pages.kurs_calculator import get_current_rates
     HAS_KURS_SERVICE = True
 except ImportError:
     HAS_KURS_SERVICE = False
@@ -816,11 +817,6 @@ def calculate_cost(
         seasonal_adj=seasonal_adj,
         total=total,
     )
-
-
-def format_currency(amount: int) -> str:
-    """Format as Indonesian Rupiah."""
-    return f"Rp {amount:,.0f}".replace(",", ".")
 
 
 # =============================================================================

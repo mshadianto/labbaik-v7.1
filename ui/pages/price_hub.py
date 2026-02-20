@@ -21,6 +21,7 @@ import math
 
 from services.ai.helpers import ai_complete, add_xp_safe
 from ui.components.shared_styles import inject_css, HERO_CSS, CARD_CSS, AI_CARD_CSS, BADGE_CSS, SKELETON_CSS, render_skeleton
+from ui.components import format_sar as format_price_sar, format_idr as format_price_idr
 
 logger = logging.getLogger(__name__)
 
@@ -554,16 +555,6 @@ TRAVEL_AGENTS = [
 # =============================================================================
 # HELPER FUNCTIONS
 # =============================================================================
-
-def format_price_sar(price: float) -> str:
-    """Format price in SAR."""
-    return f"SAR {price:,.0f}"
-
-
-def format_price_idr(price: float) -> str:
-    """Format price in IDR."""
-    return f"Rp {price:,.0f}"
-
 
 def get_star_display(stars: int) -> str:
     """Get star rating display."""

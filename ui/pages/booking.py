@@ -14,6 +14,7 @@ import random
 import json
 
 from ui.components.shared_styles import inject_css, HERO_CSS, CARD_CSS, AI_CARD_CSS, BADGE_CSS
+from ui.components import format_idr as format_currency
 from services.ai.helpers import ai_complete, add_xp_safe
 
 # Season Calendar integration
@@ -477,11 +478,6 @@ ADDONS = [
 # =============================================================================
 # UTILITY FUNCTIONS
 # =============================================================================
-
-def format_currency(amount: int) -> str:
-    """Format number as Indonesian Rupiah."""
-    return f"Rp {amount:,.0f}".replace(",", ".")
-
 
 def calculate_total_price(data: Dict) -> Dict[str, int]:
     """Calculate total booking price."""

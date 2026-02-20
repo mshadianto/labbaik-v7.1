@@ -7,12 +7,14 @@ Eliminates duplicate Groq init/try-except code in every page.
 ================================================================================
 """
 
+from typing import Optional
+
 import streamlit as st
 import os
 
 
 @st.cache_resource(ttl=3600)
-def get_groq_service():
+def get_groq_service() -> Optional["GroqChatService"]:
     """Get a cached GroqChatService instance. Returns None if unavailable."""
     try:
         from services.ai.chat_service import GroqChatService
@@ -34,7 +36,7 @@ def get_groq_service():
     return None
 
 
-def ai_complete(prompt, system_prompt="", max_tokens=512):
+def ai_complete(prompt: str, system_prompt: str = "", max_tokens: int = 512) -> Optional[str]:
     """Simple AI completion with graceful fallback.
 
     Returns the response string, or None if the service is unavailable.
@@ -52,7 +54,7 @@ def ai_complete(prompt, system_prompt="", max_tokens=512):
         return None
 
 
-def add_xp_safe(amount, reason=""):
+def add_xp_safe(amount: int, reason: str = "") -> None:
     """Award XP via the main app gamification system, with fallback.
 
     Tries app.add_xp first; if import fails (e.g. circular import),

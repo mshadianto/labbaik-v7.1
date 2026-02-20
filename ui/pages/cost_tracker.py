@@ -21,6 +21,7 @@ import io
 
 from services.ai.helpers import ai_complete, add_xp_safe
 from ui.components.shared_styles import inject_css, HERO_CSS, CARD_CSS, AI_CARD_CSS, PROGRESS_CSS, EMPTY_STATE_CSS
+from ui.components import format_idr_short as format_idr, format_idr as format_idr_full
 
 try:
     from ui.pages.kurs_calculator import get_current_rates
@@ -626,20 +627,6 @@ def init_cost_tracker_state():
 # =============================================================================
 # HELPERS
 # =============================================================================
-
-def format_idr(amount):
-    """Format amount as Indonesian Rupiah with short notation."""
-    if amount >= 1_000_000:
-        return f"Rp {amount / 1_000_000:.1f} jt"
-    elif amount >= 1_000:
-        return f"Rp {amount / 1_000:.0f} rb"
-    return f"Rp {amount:,.0f}"
-
-
-def format_idr_full(amount):
-    """Format amount as full Indonesian Rupiah."""
-    return f"Rp {amount:,.0f}".replace(",", ".")
-
 
 def get_total_budget():
     """Get total budget across all categories."""

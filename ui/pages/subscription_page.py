@@ -15,6 +15,7 @@ from services.subscription import (
 from services.user import get_current_user, is_logged_in, UserRole
 from services.ai.helpers import ai_complete, add_xp_safe
 from ui.components.shared_styles import inject_css, HERO_CSS, CARD_CSS, AI_CARD_CSS, BADGE_CSS
+from ui.components import format_idr as format_price
 
 
 def _get_admin_whatsapp() -> str:
@@ -339,11 +340,6 @@ SUBSCRIPTION_CSS = """
     .plan-price { font-size: 1.3rem; }
 }
 """
-
-
-def format_price(amount: int) -> str:
-    """Format price in IDR"""
-    return f"Rp {amount:,.0f}".replace(",", ".")
 
 
 def _get_current_plan_key(current_sub) -> str:
