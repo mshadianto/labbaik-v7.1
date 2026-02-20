@@ -1495,7 +1495,7 @@ def render_coaching_plan(score: Dict, dimension_scores: Dict, answers: Dict):
         answers: Raw answers dict from session state
     """
     # Inject coaching CSS
-    st.markdown(f"<style>{COACHING_CSS}</style>", unsafe_allow_html=True)
+    inject_css(COACHING_CSS)
 
     # Identify weak dimensions (< 60% of max)
     weak_dims = []

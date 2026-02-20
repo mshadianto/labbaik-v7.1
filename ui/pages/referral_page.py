@@ -11,6 +11,7 @@ import random
 import string
 import base64
 import io
+import urllib.parse
 from datetime import datetime, timedelta
 from services.referral import get_referral_service, ReferralReward
 from services.user import get_current_user, is_logged_in
@@ -764,10 +765,7 @@ def render_referral_link_generator(referral_code: str):
             "Assalamualaikum! Yuk rencanakan Umrah bareng LABBAIK AI. "
             f"Daftar gratis lewat link saya:\n{referral_link}"
         )
-        wa_url = (
-            "https://wa.me/?text="
-            + wa_message.replace(" ", "%20").replace("\n", "%0A")
-        )
+        wa_url = f"https://wa.me/?text={urllib.parse.quote(wa_message)}"
         st.link_button(
             "Bagikan via WhatsApp",
             wa_url,
@@ -1031,8 +1029,7 @@ def render_referral_code(code: str):
     st.markdown("**Bagikan via:**")
 
     wa_text = f"Halo! Yuk pakai LABBAIK AI untuk perencanaan Umrah. Daftar gratis dengan kode saya: {code}\n\n{share_link}"
-    newline = "\n"
-    wa_url = f"https://wa.me/?text={wa_text.replace(' ', '%20').replace(newline, '%0A')}"
+    wa_url = f"https://wa.me/?text={urllib.parse.quote(wa_text)}"
 
     col1, col2, col3 = st.columns(3)
     with col1:

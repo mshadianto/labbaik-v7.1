@@ -6,6 +6,7 @@ Includes plan comparison, billing history, upgrade flow, and cancellation.
 """
 
 import os
+import urllib.parse
 import streamlit as st
 from datetime import datetime, timedelta
 from services.subscription import (
@@ -827,7 +828,7 @@ def render_upgrade_flow(current_sub=None):
 
         wa_message = f"Halo admin LABBAIK, saya ingin upgrade ke paket {details['name']} ({details['price']}). Mohon bantuannya."
         admin_wa = _get_admin_whatsapp()
-        wa_url = f"https://wa.me/{admin_wa}?text={wa_message.replace(' ', '%20')}"
+        wa_url = f"https://wa.me/{admin_wa}?text={urllib.parse.quote(wa_message)}"
 
         st.link_button(
             f"Hubungi Admin via WhatsApp - Upgrade {details['name']}",

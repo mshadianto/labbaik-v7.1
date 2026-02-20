@@ -493,6 +493,16 @@ except ImportError:
         st.markdown("# ⚙️ Pengaturan")
         st.info("Fitur pengaturan sedang dalam pengembangan.")
 
+# Group Matching
+try:
+    from ui.pages.group_matching import render_group_matching_page
+    HAS_GROUP_MATCHING = True
+except ImportError:
+    HAS_GROUP_MATCHING = False
+    def render_group_matching_page():
+        st.markdown("# 🤝 Group Matching")
+        st.info("Fitur group matching sedang dalam pengembangan.")
+
 
 # =============================================================================
 # SESSION STATE INITIALIZATION
@@ -1404,6 +1414,14 @@ def render_sidebar():
                 st.session_state.current_page = "umrah_bareng"
                 st.rerun()
 
+            # Group Matching
+            if HAS_GROUP_MATCHING:
+                is_gm = st.session_state.get("current_page") == "group_matching"
+                if st.button("🤝 Group Matching", key="p2_group_matching", use_container_width=True,
+                            type="primary" if is_gm else "secondary"):
+                    st.session_state.current_page = "group_matching"
+                    st.rerun()
+
             # Unified Price Hub (Hotel + Flight + Package)
             if HAS_PRICE_HUB:
                 is_price_hub = st.session_state.get("current_page") == "price_hub"
@@ -1616,6 +1634,7 @@ def render_page():
         "simulator": render_simulator_page,
         "umrah_mandiri": render_umrah_mandiri_page,
         "umrah_bareng": render_umrah_bareng_page,
+        "group_matching": render_group_matching_page,
         "booking": render_booking_page,
 
         # New feature pages

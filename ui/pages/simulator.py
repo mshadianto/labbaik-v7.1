@@ -1875,8 +1875,8 @@ def render_budget_planner(cost: CostBreakdown, num_travelers: int):
                 st.metric("Per Hari", format_currency(daily_saving))
             
             # Progress bar
-            progress = current_savings / total_needed
-            st.progress(progress)
+            progress = current_savings / total_needed if total_needed > 0 else 0
+            st.progress(min(progress, 1.0))
             st.caption(f"Terkumpul: {progress * 100:.1f}% ({format_currency(current_savings)} dari {format_currency(total_needed)})")
     
     elif remaining == 0:
