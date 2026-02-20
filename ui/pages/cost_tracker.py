@@ -2053,7 +2053,7 @@ def render_cross_nav():
             key="nav_to_readiness_from_tracker",
             use_container_width=True,
         ):
-            st.session_state.nav = "readiness_checker"
+            st.session_state.nav = "readiness"
             st.rerun()
 
 

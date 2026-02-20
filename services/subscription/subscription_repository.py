@@ -193,6 +193,7 @@ class SubscriptionRepository:
                 SELECT * FROM subscriptions
                 WHERE user_id = ?
                 ORDER BY created_at DESC
+                LIMIT 50
             """, (user_id,))
             return [self._row_to_subscription(row) for row in cursor.fetchall()]
 
@@ -223,6 +224,7 @@ class SubscriptionRepository:
                 SELECT * FROM subscriptions
                 WHERE status = 'active'
                 AND expires_at < datetime('now')
+                LIMIT 500
             """)
             return [self._row_to_subscription(row) for row in cursor.fetchall()]
 

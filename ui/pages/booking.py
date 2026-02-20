@@ -2096,7 +2096,7 @@ def _render_confirmation_nav(booking_number: str):
             key="nav_to_readiness",
             use_container_width=True,
         ):
-            st.session_state.nav = "readiness_checker"
+            st.session_state.nav = "readiness"
             st.rerun()
 
     with nav_col3:

@@ -1240,13 +1240,13 @@ def _build_cohort_data(db, start_date, end_date):
             })
 
         if cohorts:
-            return cohorts
+            return cohorts, False
 
         raise ValueError("Empty cohort result")
 
     except Exception as e:
         logger.debug(f"Cohort query failed, using demo data: {e}")
-        return _generate_demo_cohort_data(start_date, end_date)
+        return _generate_demo_cohort_data(start_date, end_date), True
 
 
 def _retention_color(pct):
@@ -1288,11 +1288,24 @@ def render_cohort_analytics(db, start_date, end_date):
         unsafe_allow_html=True,
     )
 
-    cohorts = _build_cohort_data(db, start_date, end_date)
+    result = _build_cohort_data(db, start_date, end_date)
+    if isinstance(result, tuple):
+        cohorts, is_demo = result
+    else:
+        cohorts, is_demo = result, False
 
     if not cohorts:
         st.info("Belum ada data kohort untuk periode ini.")
         return
+
+    if is_demo:
+        st.markdown(
+            '<div style="background:#78350f;color:#fbbf24;padding:0.5rem 1rem;border-radius:8px;'
+            'margin-bottom:1rem;font-size:0.85rem;">'
+            '<strong>DATA DEMO</strong> — Data kohort menggunakan simulasi karena database belum tersedia.'
+            '</div>',
+            unsafe_allow_html=True,
+        )
 
     # Build HTML retention matrix table
     header_labels = ['Kohort', 'Ukuran', 'Minggu 0', 'Minggu 1', 'Minggu 2', 'Minggu 3', 'Minggu 4']
@@ -1452,11 +1465,11 @@ def _build_activity_data(db, start_date, end_date):
         if total == 0:
             raise ValueError("All zeros in activity data")
 
-        return grid
+        return grid, False
 
     except Exception as e:
         logger.debug(f"Activity heatmap query failed, using demo data: {e}")
-        return _generate_demo_activity_data()
+        return _generate_demo_activity_data(), True
 
 
 def render_activity_heatmap(db, start_date, end_date):
@@ -1470,7 +1483,21 @@ def render_activity_heatmap(db, start_date, end_date):
         unsafe_allow_html=True,
     )
 
-    grid = _build_activity_data(db, start_date, end_date)
+    result = _build_activity_data(db, start_date, end_date)
+    if isinstance(result, tuple):
+        grid, is_demo = result
+    else:
+        grid, is_demo = result, False
+
+    if is_demo:
+        st.markdown(
+            '<div style="background:#78350f;color:#fbbf24;padding:0.5rem 1rem;border-radius:8px;'
+            'margin-bottom:1rem;font-size:0.85rem;">'
+            '<strong>DATA DEMO</strong> — Data heatmap menggunakan simulasi karena database belum tersedia.'
+            '</div>',
+            unsafe_allow_html=True,
+        )
+
     day_names = ['Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu', 'Minggu']
 
     # Find max value for scaling

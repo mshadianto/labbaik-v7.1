@@ -2006,7 +2006,7 @@ def render_footer():
 
 
 # =============================================================================
-# MAIN PAGE RENDERER - 🔧 FIX: WITH DEBUG WIDGET
+# MAIN PAGE RENDERER
 # =============================================================================
 
 def render_home_page():
