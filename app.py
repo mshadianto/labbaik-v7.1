@@ -339,6 +339,16 @@ except ImportError:
     HAS_COMPARISON = False
     def render_smart_comparison_page(): st.warning("⚠️ Fitur Smart Comparison belum tersedia")
 
+# Umrah Complete Guide
+try:
+    from features.umrah_complete import render_umrah_complete_page
+    HAS_UMRAH_COMPLETE = True
+except ImportError:
+    HAS_UMRAH_COMPLETE = False
+    def render_umrah_complete_page():
+        st.markdown("# 🕋 Panduan Umrah Lengkap")
+        st.info("🚧 Fitur ini sedang dalam pengembangan.")
+
 # Analytics Dashboard
 try:
     from ui.pages.analytics_dashboard import render_analytics_dashboard
@@ -1372,6 +1382,7 @@ def render_sidebar():
                 ("📋", "Smart Checklist", "checklist", HAS_CHECKLIST),
                 ("📖", "Panduan Manasik", "umrah_mandiri", True),
                 ("🕋", "Manasik 3D", "manasik", HAS_MANASIK),
+                ("🕌", "Panduan Umrah Lengkap", "umrah_complete", HAS_UMRAH_COMPLETE),
                 ("🎯", "Readiness Score", "readiness", HAS_READINESS),
                 ("📄", "Doc Checker", "doc_checker", HAS_DOC_CHECKER),
             ]
@@ -1644,6 +1655,7 @@ def render_page():
         "sos": render_sos_page,
         "tracking": render_group_tracking_page,
         "manasik": render_manasik_page,
+        "umrah_complete": render_umrah_complete_page,
         "compare": render_smart_comparison_page,
         "analytics": render_analytics_dashboard,
         "whatsapp": render_whatsapp_settings,
