@@ -135,10 +135,8 @@ def get_meta_tags():
 <meta name="author" content="LABBAIK.AI" />
 """
 
-# Inject meta tags only once per session
-if "_meta_injected" not in st.session_state:
-    st.markdown(get_meta_tags(), unsafe_allow_html=True)
-    st.session_state._meta_injected = True
+# Inject meta tags on every rerun (Streamlit rebuilds the page each time)
+st.markdown(get_meta_tags(), unsafe_allow_html=True)
 
 # =============================================================================
 # LAZY IMPORTS & FEATURE FLAGS
@@ -547,7 +545,6 @@ def init_session_state():
         "xp": 0,
         "level": 1,
         "achievements": [],
-        "daily_challenges_completed": [],
         "xp_log": [],  # List of {"amount": int, "reason": str, "timestamp": str}
         "daily_streak": 0,
         "last_active_date": None,
@@ -1773,23 +1770,21 @@ def main():
         st.rerun()
     
     # Global UX CSS (page transitions, smooth scroll)
-    if not st.session_state.get("_global_ux_injected"):
-        st.session_state._global_ux_injected = True
-        st.markdown("""
-        <style>
-        @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(8px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
-        section.main .block-container { animation: fadeIn 0.3s ease-out; }
-        #main-content { scroll-margin-top: 1rem; }
-        html, section.main { scroll-behavior: smooth; }
-        @media (prefers-reduced-motion: reduce) {
-            section.main .block-container { animation: none; }
-            html, section.main { scroll-behavior: auto; }
-        }
-        </style>
-        """, unsafe_allow_html=True)
+    st.markdown("""
+    <style>
+    @keyframes fadeIn {
+        from { opacity: 0; transform: translateY(8px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+    section.main .block-container { animation: fadeIn 0.3s ease-out; }
+    #main-content { scroll-margin-top: 1rem; }
+    html, section.main { scroll-behavior: smooth; }
+    @media (prefers-reduced-motion: reduce) {
+        section.main .block-container { animation: none; }
+        html, section.main { scroll-behavior: auto; }
+    }
+    </style>
+    """, unsafe_allow_html=True)
 
     # Skip-to-content link (accessibility)
     st.markdown('<a href="#main-content" class="skip-to-content">Langsung ke konten utama</a>', unsafe_allow_html=True)

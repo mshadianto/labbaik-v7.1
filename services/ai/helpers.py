@@ -13,27 +13,35 @@ import streamlit as st
 import os
 
 
-@st.cache_resource(ttl=3600)
-def get_groq_service() -> Optional["GroqChatService"]:
-    """Get a cached GroqChatService instance. Returns None if unavailable."""
+def _get_groq_api_key() -> str:
+    """Resolve GROQ API key from secrets or environment."""
     try:
-        from services.ai.chat_service import GroqChatService
-
-        api_key = ""
-        try:
-            api_key = st.secrets.get("GROQ_API_KEY", "")
-        except Exception:
-            pass
-        if not api_key:
-            api_key = os.getenv("GROQ_API_KEY", "")
-
-        if api_key:
-            service = GroqChatService(api_key=api_key)
-            service.initialize()
-            return service
+        key = st.secrets.get("GROQ_API_KEY", "")
+        if key:
+            return key
     except Exception:
         pass
-    return None
+    return os.getenv("GROQ_API_KEY", "")
+
+
+@st.cache_resource(ttl=3600)
+def _init_groq_service(api_key: str) -> Optional["GroqChatService"]:
+    """Create and cache a GroqChatService instance."""
+    try:
+        from services.ai.chat_service import GroqChatService
+        service = GroqChatService(api_key=api_key)
+        service.initialize()
+        return service
+    except Exception:
+        return None
+
+
+def get_groq_service() -> Optional["GroqChatService"]:
+    """Get a cached GroqChatService instance. Returns None if unavailable."""
+    api_key = _get_groq_api_key()
+    if not api_key:
+        return None
+    return _init_groq_service(api_key)
 
 
 def ai_complete(prompt: str, system_prompt: str = "", max_tokens: int = 512) -> Optional[str]:
