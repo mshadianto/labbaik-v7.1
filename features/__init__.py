@@ -99,34 +99,9 @@ try:
 except ImportError:
     pass
 
-# WhatsApp Bot
-try:
-    from features.whatsapp_bot import (
-        WhatsAppBot,
-        IncomingMessage,
-        BotCommand,
-        BotResponses,
-        search_doa,
-        create_webhook_handler,
-        create_fastapi_router,
-        render_bot_simulator,
-    )
-except ImportError:
-    pass
+# WhatsApp Bot — removed (features/whatsapp_bot.py deleted; use services/whatsapp/)
 
-# Doa Player
-try:
-    from features.doa_player import (
-        Doa,
-        DoaCategory,
-        UMRAH_DOAS,
-        render_doa_card,
-        render_doa_list,
-        render_doa_player_page,
-        render_doa_mini_widget,
-    )
-except ImportError:
-    pass
+# Doa Player — moved to ui/pages/doa_player.py
 
 # Umrah Complete Guide
 try:
@@ -213,24 +188,8 @@ __all__ = [
     "render_whatsapp_settings",
     "send_sos_via_whatsapp",
 
-    # WhatsApp Bot
-    "WhatsAppBot",
-    "IncomingMessage",
-    "BotCommand",
-    "BotResponses",
-    "search_doa",
-    "create_webhook_handler",
-    "create_fastapi_router",
-    "render_bot_simulator",
-    
-    # Doa Player
-    "Doa",
-    "DoaCategory",
-    "UMRAH_DOAS",
-    "render_doa_card",
-    "render_doa_list",
-    "render_doa_player_page",
-    "render_doa_mini_widget",
+    # WhatsApp Bot — removed (use services/whatsapp/)
+    # Doa Player — moved to ui/pages/doa_player.py
 
     # Umrah Complete Guide
     "render_umrah_complete_page",
