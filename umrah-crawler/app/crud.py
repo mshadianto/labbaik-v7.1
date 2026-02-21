@@ -62,14 +62,15 @@ async def get_calendar(session, hotel_id, start, end, provider):
     return {"hotel_id": hotel_id, "start": str(start), "end": str(end), "rows": list(rows)}
 
 
-async def get_transport(session, from_city, to_city, mode, limit):
-    """Get transport schedule between cities."""
+async def get_transport(session, route, mode, limit):
+    """Get transport schedule for a route."""
     q = text("""
-      SELECT mode, operator, from_city, to_city, depart_time_local, arrive_time_local, duration_min, fetched_at
+      SELECT mode, operator, route, depart_time_local, arrive_time_local,
+             duration_min, price_sar, class, availability, source_method, fetched_at
       FROM transport_schedule
-      WHERE from_city=:f AND to_city=:t AND mode=:m
+      WHERE route=:r AND mode=:m
       ORDER BY fetched_at DESC
       LIMIT :lim
     """)
-    rows = (await session.execute(q, {"f": from_city, "t": to_city, "m": mode, "lim": limit})).mappings().all()
-    return {"route": f"{from_city}->{to_city}", "mode": mode, "items": list(rows)}
+    rows = (await session.execute(q, {"r": route, "m": mode, "lim": limit})).mappings().all()
+    return {"route": route, "mode": mode, "items": list(rows)}

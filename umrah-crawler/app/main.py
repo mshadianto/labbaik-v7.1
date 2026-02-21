@@ -85,7 +85,7 @@ async def api_transport(mode: str = Query("TRAIN", pattern="^(TRAIN|BUS)$"), lim
     if not is_db_configured():
         raise HTTPException(status_code=503, detail="Database not configured")
     async with get_session() as session:
-        return await get_transport(session, "MAKKAH", "MADINAH", mode, limit)
+        return await get_transport(session, "MAKKAH_MADINAH", mode, limit)
 
 
 @app.post("/crawl/bootstrap")

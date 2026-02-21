@@ -77,21 +77,26 @@ CREATE TABLE IF NOT EXISTS availability_calendar (
   PRIMARY KEY (hotel_id, provider, date)
 );
 
--- === TRANSPORT ===
+-- === TRANSPORT (aligned with schema_v1_3.sql) ===
 CREATE TABLE IF NOT EXISTS transport_schedule (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-  mode TEXT NOT NULL CHECK (mode IN ('TRAIN','BUS')),
   operator TEXT NOT NULL,
-  from_city TEXT NOT NULL,
-  to_city TEXT NOT NULL,
+  mode TEXT NOT NULL CHECK (mode IN ('TRAIN','BUS')),
+  route TEXT NOT NULL,
   depart_time_local TIMESTAMPTZ,
   arrive_time_local TIMESTAMPTZ,
   duration_min INTEGER,
+  price_sar NUMERIC(10, 2),
+  class TEXT,
+  availability TEXT,
   source_url TEXT,
+  source_method TEXT,
+  payload JSONB,
   fetched_at TIMESTAMPTZ DEFAULT now()
 );
 
-CREATE INDEX IF NOT EXISTS idx_transport_route ON transport_schedule(from_city, to_city, mode, fetched_at DESC);
+CREATE INDEX IF NOT EXISTS idx_transport_schedule_route ON transport_schedule(operator, route, fetched_at DESC);
+CREATE INDEX IF NOT EXISTS idx_transport_schedule_depart ON transport_schedule(depart_time_local);
 
 -- === OPS ===
 CREATE TABLE IF NOT EXISTS crawl_jobs (

@@ -1,6 +1,9 @@
 """HTTP client utilities."""
+import logging
 import httpx
 from typing import Dict, Any, Optional
+
+logger = logging.getLogger(__name__)
 
 # Default timeout
 DEFAULT_TIMEOUT = 30.0
@@ -23,11 +26,22 @@ async def get(
 
     Returns:
         httpx.Response object
+
+    Raises:
+        httpx.HTTPStatusError: On 4xx/5xx responses
+        httpx.ConnectError: On connection failures
     """
     async with httpx.AsyncClient(timeout=timeout) as client:
-        response = await client.get(url, headers=headers, params=params)
-        response.raise_for_status()
-        return response
+        try:
+            response = await client.get(url, headers=headers, params=params)
+            response.raise_for_status()
+            return response
+        except httpx.HTTPStatusError as e:
+            logger.error(f"HTTP {e.response.status_code} for GET {url}")
+            raise
+        except httpx.ConnectError as e:
+            logger.error(f"Connection failed for GET {url}: {e}")
+            raise
 
 
 async def post(
@@ -49,8 +63,19 @@ async def post(
 
     Returns:
         httpx.Response object
+
+    Raises:
+        httpx.HTTPStatusError: On 4xx/5xx responses
+        httpx.ConnectError: On connection failures
     """
     async with httpx.AsyncClient(timeout=timeout) as client:
-        response = await client.post(url, headers=headers, data=data, json=json)
-        response.raise_for_status()
-        return response
+        try:
+            response = await client.post(url, headers=headers, data=data, json=json)
+            response.raise_for_status()
+            return response
+        except httpx.HTTPStatusError as e:
+            logger.error(f"HTTP {e.response.status_code} for POST {url}")
+            raise
+        except httpx.ConnectError as e:
+            logger.error(f"Connection failed for POST {url}: {e}")
+            raise

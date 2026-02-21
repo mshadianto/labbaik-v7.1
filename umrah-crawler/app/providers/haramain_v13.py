@@ -26,13 +26,8 @@ logger = logging.getLogger(__name__)
 HARAMAIN_WEB_URL = "https://sar.hhr.sa"
 HARAMAIN_TIMETABLE_URL = "https://sar.hhr.sa/#/timetable"
 
-# JSON API endpoints (discovered via Network tab - update when found)
-# These are placeholders - need to discover actual endpoints
-HARAMAIN_JSON_ENDPOINTS = [
-    # Example format - replace with actual discovered endpoints:
-    # "https://sar.hhr.sa/api/schedule?from=MAK&to=MED&date=2025-01-15",
-    # "https://booking.hhr.sa/api/v1/timetable",
-]
+# JSON API endpoints — populated when actual endpoints are discovered
+HARAMAIN_JSON_ENDPOINTS: list[str] = []
 
 # Route codes
 ROUTES = {
