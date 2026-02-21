@@ -8,8 +8,7 @@ Integration with WAHA (WhatsApp HTTP API) for:
 - Group notifications
 - Payment notifications
 
-WAHA Dashboard: https://waha-qikiufjwa2nh.cgk-max.sumopod.my.id
-"""
+WAHA Dashboard: """
 
 import streamlit as st
 import requests
