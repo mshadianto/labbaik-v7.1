@@ -86,10 +86,13 @@ else:
                 return buf.read()
             loop = asyncio.new_event_loop()
             asyncio.set_event_loop(loop)
-            result = loop.run_until_complete(_gen())
-            loop.close()
-            return result
-        except Exception:
+            try:
+                result = loop.run_until_complete(_gen())
+                return result
+            finally:
+                loop.close()
+        except Exception as e:
+            logging.getLogger(__name__).warning(f"edge-tts audio generation failed: {e}")
             return None
 
     @st.cache_data(ttl=3600)

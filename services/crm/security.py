@@ -397,8 +397,8 @@ def _write_audit_to_db(entry: Dict[str, Any]) -> None:
                     ))
                     conn.commit()
                 db.pool.putconn(conn)
-    except Exception:
-        pass  # Silently fail, audit is logged to console
+    except Exception as e:
+        logger.warning(f"Failed to write audit to DB: {e}")
 
 
 def get_audit_log(

@@ -222,7 +222,7 @@ class VisitorAnalytics:
             WHERE viewed_at >= CURRENT_DATE - INTERVAL '%s days'
             GROUP BY DATE(viewed_at)
             ORDER BY date ASC
-        """ % days, fetch="all")
+        """, params=(days,), fetch="all")
         
         if results:
             return [{"date": str(row[0]), "views": row[1]} for row in results]
