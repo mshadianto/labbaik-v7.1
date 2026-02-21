@@ -575,6 +575,11 @@ def render_sos_activated():
 
 def render_sos_page():
     """Full SOS emergency page."""
+    try:
+        from services.analytics.tracker import track_page
+        track_page("sos")
+    except Exception:
+        pass
     inject_css(HERO_CSS, CARD_CSS)
 
     st.markdown("""

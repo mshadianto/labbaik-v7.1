@@ -567,6 +567,11 @@ def render_tracking_map(group: TravelGroup):
 
 def render_group_tracking_page():
     """Full group tracking page."""
+    try:
+        from services.analytics.tracker import track_page
+        track_page("tracking")
+    except Exception:
+        pass
     inject_css(HERO_CSS, CARD_CSS, AI_CARD_CSS)
 
     st.markdown("""

@@ -894,6 +894,11 @@ def render_doa_answer(query: str):
 
 def render_doa_player_page():
     """Full doa player page."""
+    try:
+        from services.analytics.tracker import track_page
+        track_page("doa")
+    except Exception:
+        pass
     inject_css(HERO_CSS, CARD_CSS)
 
     if not st.session_state.get("doa_player_xp_awarded"):

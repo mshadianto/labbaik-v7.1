@@ -229,6 +229,11 @@ def render_historical_site(site: HistoricalSite):
 
 def render_umrah_complete_page():
     """Render the complete Umrah guide page."""
+    try:
+        from services.analytics.tracker import track_page
+        track_page("umrah_complete")
+    except Exception:
+        pass
     inject_css(HERO_CSS, CARD_CSS)
 
     if not st.session_state.get("umrah_complete_xp_awarded"):

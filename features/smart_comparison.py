@@ -519,7 +519,11 @@ def render_preferences_form() -> UserPreferences:
 
 def render_smart_comparison_page():
     """Full smart comparison page."""
-
+    try:
+        from services.analytics.tracker import track_page
+        track_page("compare")
+    except Exception:
+        pass
     inject_css(HERO_CSS, CARD_CSS, AI_CARD_CSS)
 
     if not st.session_state.get("smart_comparison_xp_awarded"):

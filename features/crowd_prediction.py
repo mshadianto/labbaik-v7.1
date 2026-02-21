@@ -400,6 +400,11 @@ def render_weekly_heatmap(location: str = "makkah"):
 
 def render_crowd_prediction_page():
     """Full crowd prediction page."""
+    try:
+        from services.analytics.tracker import track_page
+        track_page("crowd")
+    except Exception:
+        pass
     inject_css(HERO_CSS, CARD_CSS, AI_CARD_CSS)
 
     if not st.session_state.get("crowd_prediction_xp_awarded"):

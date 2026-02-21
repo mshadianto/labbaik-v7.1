@@ -577,7 +577,11 @@ def render_ritual_progress():
 
 def render_manasik_page():
     """Full manasik simulator page."""
-
+    try:
+        from services.analytics.tracker import track_page
+        track_page("manasik")
+    except Exception:
+        pass
     inject_css(HERO_CSS, CARD_CSS, AI_CARD_CSS)
 
     if not st.session_state.get("manasik_xp_awarded"):
