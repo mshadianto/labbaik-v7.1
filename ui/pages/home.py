@@ -1229,7 +1229,7 @@ def render_data_freshness_widget():
         # Admin: button to full monitoring dashboard
         if _is_admin_user():
             if st.button("Buka Dashboard Monitoring", key="home_monitoring_dashboard_btn", use_container_width=False):
-                st.session_state.current_page = "monitoring"
+                st.session_state.current_page = "analytics"
                 st.rerun()
 
     except Exception as e:

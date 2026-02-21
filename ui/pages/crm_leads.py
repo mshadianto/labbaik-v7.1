@@ -875,13 +875,13 @@ def render_lead_detail(lead_id: str):
         with col1:
             if st.button("\U0001f4cb Buat Quote", use_container_width=True):
                 st.session_state.quote_lead_id = lead_id
-                st.session_state.current_page = "quotes"
+                st.session_state.current_page = "crm_quotes"
                 st.rerun()
 
         with col2:
             if st.button("\U0001f4c5 Buat Booking", use_container_width=True):
                 st.session_state.booking_lead_id = lead_id
-                st.session_state.current_page = "bookings"
+                st.session_state.current_page = "crm_bookings"
                 st.rerun()
 
         with col3:
