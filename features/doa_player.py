@@ -591,12 +591,14 @@ else:
                 return audio_buffer.read()
 
             loop = asyncio.new_event_loop()
-            asyncio.set_event_loop(loop)
-            result = loop.run_until_complete(_generate())
-            loop.close()
-            return result
-        except Exception:
-            return None
+            try:
+                asyncio.set_event_loop(loop)
+                result = loop.run_until_complete(_generate())
+                return result
+            except Exception:
+                return None
+            finally:
+                loop.close()
 
     @st.cache_data(ttl=3600)
     def generate_audio(text: str, lang: str = "ar") -> bytes:

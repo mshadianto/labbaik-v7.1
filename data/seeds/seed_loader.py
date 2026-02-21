@@ -99,42 +99,43 @@ class SeedLoader:
         if self.db:
             try:
                 cursor = self.db.cursor()
+                try:
+                    for pkg in packages:
+                        # Insert into prices_packages table (n8n format)
+                        try:
+                            cursor.execute("""
+                                INSERT INTO prices_packages (
+                                    id, source_id, package_name, price_idr,
+                                    duration_days, departure_city, airline,
+                                    hotel_makkah, hotel_makkah_stars,
+                                    hotel_madinah, hotel_madinah_stars,
+                                    includes, is_available, source_url, scraped_at
+                                ) VALUES (
+                                    gen_random_uuid(), %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, NOW()
+                                )
+                                ON CONFLICT DO NOTHING
+                            """, (
+                                pkg.get("travel_agent_id", "demo"),
+                                pkg["name"],
+                                pkg["price_idr"],
+                                pkg["duration_days"],
+                                pkg["departure_city"],
+                                pkg.get("airline"),
+                                pkg.get("hotel_makkah", {}).get("name") if isinstance(pkg.get("hotel_makkah"), dict) else pkg.get("hotel_makkah"),
+                                pkg.get("hotel_makkah", {}).get("stars", 4) if isinstance(pkg.get("hotel_makkah"), dict) else 4,
+                                pkg.get("hotel_madinah", {}).get("name") if isinstance(pkg.get("hotel_madinah"), dict) else pkg.get("hotel_madinah"),
+                                pkg.get("hotel_madinah", {}).get("stars", 4) if isinstance(pkg.get("hotel_madinah"), dict) else 4,
+                                json.dumps(pkg.get("inclusions", [])),
+                                pkg.get("is_available", True),
+                                f"https://labbaik.ai/packages/{pkg['id']}"
+                            ))
+                            count += 1
+                        except Exception as e:
+                            logger.warning(f"Failed to insert package {pkg['id']}: {e}")
 
-                for pkg in packages:
-                    # Insert into prices_packages table (n8n format)
-                    try:
-                        cursor.execute("""
-                            INSERT INTO prices_packages (
-                                id, source_id, package_name, price_idr,
-                                duration_days, departure_city, airline,
-                                hotel_makkah, hotel_makkah_stars,
-                                hotel_madinah, hotel_madinah_stars,
-                                includes, is_available, source_url, scraped_at
-                            ) VALUES (
-                                gen_random_uuid(), %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, NOW()
-                            )
-                            ON CONFLICT DO NOTHING
-                        """, (
-                            pkg.get("travel_agent_id", "demo"),
-                            pkg["name"],
-                            pkg["price_idr"],
-                            pkg["duration_days"],
-                            pkg["departure_city"],
-                            pkg.get("airline"),
-                            pkg.get("hotel_makkah", {}).get("name") if isinstance(pkg.get("hotel_makkah"), dict) else pkg.get("hotel_makkah"),
-                            pkg.get("hotel_makkah", {}).get("stars", 4) if isinstance(pkg.get("hotel_makkah"), dict) else 4,
-                            pkg.get("hotel_madinah", {}).get("name") if isinstance(pkg.get("hotel_madinah"), dict) else pkg.get("hotel_madinah"),
-                            pkg.get("hotel_madinah", {}).get("stars", 4) if isinstance(pkg.get("hotel_madinah"), dict) else 4,
-                            json.dumps(pkg.get("inclusions", [])),
-                            pkg.get("is_available", True),
-                            f"https://labbaik.ai/packages/{pkg['id']}"
-                        ))
-                        count += 1
-                    except Exception as e:
-                        logger.warning(f"Failed to insert package {pkg['id']}: {e}")
-
-                self.db.commit()
-                cursor.close()
+                    self.db.commit()
+                finally:
+                    cursor.close()
 
             except Exception as e:
                 logger.error(f"Database error loading packages: {e}")
@@ -160,47 +161,48 @@ class SeedLoader:
         if self.db:
             try:
                 cursor = self.db.cursor()
+                try:
+                    for hotel in hotels:
+                        # Get first room type price
+                        room_types = hotel.get("room_types", [])
+                        price = room_types[0]["price_per_night_idr"] if room_types else 1000000
 
-                for hotel in hotels:
-                    # Get first room type price
-                    room_types = hotel.get("room_types", [])
-                    price = room_types[0]["price_per_night_idr"] if room_types else 1000000
+                        try:
+                            cursor.execute("""
+                                INSERT INTO prices_hotels (
+                                    id, source_id, hotel_name, city, star_rating,
+                                    distance_to_haram, distance_meters, rating_score,
+                                    room_type, room_capacity, price_per_night_idr,
+                                    includes_breakfast, meal_plan, is_available,
+                                    view_type, source_url, scraped_at
+                                ) VALUES (
+                                    gen_random_uuid(), %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, NOW()
+                                )
+                                ON CONFLICT DO NOTHING
+                            """, (
+                                "seed-data",
+                                hotel["name"],
+                                hotel["city"],
+                                hotel["stars"],
+                                f"{hotel['distance_to_haram_m']}m",
+                                hotel["distance_to_haram_m"],
+                                hotel.get("rating", 4.5),
+                                room_types[0]["type"] if room_types else "Standard",
+                                room_types[0]["capacity"] if room_types else 2,
+                                price,
+                                "breakfast" in str(hotel.get("amenities", [])).lower(),
+                                "breakfast",
+                                hotel.get("is_available", True),
+                                room_types[0].get("view", "city") if room_types else "city",
+                                f"https://labbaik.ai/hotels/{hotel['id']}"
+                            ))
+                            count += 1
+                        except Exception as e:
+                            logger.warning(f"Failed to insert hotel {hotel['id']}: {e}")
 
-                    try:
-                        cursor.execute("""
-                            INSERT INTO prices_hotels (
-                                id, source_id, hotel_name, city, star_rating,
-                                distance_to_haram, distance_meters, rating_score,
-                                room_type, room_capacity, price_per_night_idr,
-                                includes_breakfast, meal_plan, is_available,
-                                view_type, source_url, scraped_at
-                            ) VALUES (
-                                gen_random_uuid(), %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, NOW()
-                            )
-                            ON CONFLICT DO NOTHING
-                        """, (
-                            "seed-data",
-                            hotel["name"],
-                            hotel["city"],
-                            hotel["stars"],
-                            f"{hotel['distance_to_haram_m']}m",
-                            hotel["distance_to_haram_m"],
-                            hotel.get("rating", 4.5),
-                            room_types[0]["type"] if room_types else "Standard",
-                            room_types[0]["capacity"] if room_types else 2,
-                            price,
-                            "breakfast" in str(hotel.get("amenities", [])).lower(),
-                            "breakfast",
-                            hotel.get("is_available", True),
-                            room_types[0].get("view", "city") if room_types else "city",
-                            f"https://labbaik.ai/hotels/{hotel['id']}"
-                        ))
-                        count += 1
-                    except Exception as e:
-                        logger.warning(f"Failed to insert hotel {hotel['id']}: {e}")
-
-                self.db.commit()
-                cursor.close()
+                    self.db.commit()
+                finally:
+                    cursor.close()
 
             except Exception as e:
                 logger.error(f"Database error loading hotels: {e}")
@@ -226,48 +228,49 @@ class SeedLoader:
         if self.db:
             try:
                 cursor = self.db.cursor()
+                try:
+                    for flight in flights:
+                        try:
+                            cursor.execute("""
+                                INSERT INTO prices_flights (
+                                    id, source_id, airline, airline_code, flight_code,
+                                    origin_city, origin_airport, destination_city, destination_airport,
+                                    departure_date, departure_time, arrival_time,
+                                    duration_minutes, is_direct, transit_cities,
+                                    price_idr, ticket_class, fare_type,
+                                    is_available, source_url, scraped_at
+                                ) VALUES (
+                                    gen_random_uuid(), %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, NOW()
+                                )
+                                ON CONFLICT DO NOTHING
+                            """, (
+                                "seed-data",
+                                flight["airline"],
+                                flight["airline_code"],
+                                flight["flight_number"],
+                                flight["origin_city"],
+                                flight["origin_airport"],
+                                flight["destination_city"],
+                                flight["destination_airport"],
+                                flight.get("departure_dates", ["2025-03-15"])[0],
+                                flight["departure_time"],
+                                flight["arrival_time"],
+                                flight["duration_minutes"],
+                                flight["is_direct"],
+                                json.dumps(flight.get("transit_cities", [])) if flight.get("transit_cities") else None,
+                                flight["price_economy_idr"],
+                                "economy",
+                                "estimated",
+                                flight.get("is_available", True),
+                                f"https://labbaik.ai/flights/{flight['id']}"
+                            ))
+                            count += 1
+                        except Exception as e:
+                            logger.warning(f"Failed to insert flight {flight['id']}: {e}")
 
-                for flight in flights:
-                    try:
-                        cursor.execute("""
-                            INSERT INTO prices_flights (
-                                id, source_id, airline, airline_code, flight_code,
-                                origin_city, origin_airport, destination_city, destination_airport,
-                                departure_date, departure_time, arrival_time,
-                                duration_minutes, is_direct, transit_cities,
-                                price_idr, ticket_class, fare_type,
-                                is_available, source_url, scraped_at
-                            ) VALUES (
-                                gen_random_uuid(), %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, NOW()
-                            )
-                            ON CONFLICT DO NOTHING
-                        """, (
-                            "seed-data",
-                            flight["airline"],
-                            flight["airline_code"],
-                            flight["flight_number"],
-                            flight["origin_city"],
-                            flight["origin_airport"],
-                            flight["destination_city"],
-                            flight["destination_airport"],
-                            flight.get("departure_dates", ["2025-03-15"])[0],
-                            flight["departure_time"],
-                            flight["arrival_time"],
-                            flight["duration_minutes"],
-                            flight["is_direct"],
-                            json.dumps(flight.get("transit_cities", [])) if flight.get("transit_cities") else None,
-                            flight["price_economy_idr"],
-                            "economy",
-                            "estimated",
-                            flight.get("is_available", True),
-                            f"https://labbaik.ai/flights/{flight['id']}"
-                        ))
-                        count += 1
-                    except Exception as e:
-                        logger.warning(f"Failed to insert flight {flight['id']}: {e}")
-
-                self.db.commit()
-                cursor.close()
+                    self.db.commit()
+                finally:
+                    cursor.close()
 
             except Exception as e:
                 logger.error(f"Database error loading flights: {e}")
