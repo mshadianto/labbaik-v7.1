@@ -959,15 +959,15 @@ def render_package_recommendations():
                     f'<span class="pkg-original-price">{format_price(pkg.original_price)}</span>'
                 )
 
-            cards_html += f"""
-            <div class="chat-package-card">
-                <div class="pkg-name">{pkg.name}{promo_badge}</div>
-                <div class="pkg-price">{price_str}{original_price_str}</div>
-                <div class="pkg-details">
-                    {pkg.duration_days} hari &middot; {stars_display} Hotel Makkah &middot; {pkg.travel_agent}
-                </div>
-            </div>
-            """
+            cards_html += (
+                '<div class="chat-package-card">'
+                f'<div class="pkg-name">{pkg.name}{promo_badge}</div>'
+                f'<div class="pkg-price">{price_str}{original_price_str}</div>'
+                '<div class="pkg-details">'
+                f'{pkg.duration_days} hari &middot; {stars_display} Hotel Makkah &middot; {pkg.travel_agent}'
+                '</div>'
+                '</div>'
+            )
 
         # Full section HTML with accessibility attributes
         section_html = f"""

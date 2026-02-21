@@ -1620,12 +1620,12 @@ def render_season_countdown():
     if display_seasons:
         seasons_html = ""
         for name, days_str, date_str in display_seasons:
-            seasons_html += f"""
-            <div class="countdown-upcoming">
-                <span class="countdown-upcoming-name">{name}</span>
-                <span class="countdown-upcoming-date">{date_str} ({days_str})</span>
-            </div>
-            """
+            seasons_html += (
+                '<div class="countdown-upcoming">'
+                f'<span class="countdown-upcoming-name">{name}</span>'
+                f'<span class="countdown-upcoming-date">{date_str} ({days_str})</span>'
+                '</div>'
+            )
         st.markdown(seasons_html, unsafe_allow_html=True)
 
 
@@ -1720,20 +1720,20 @@ def render_featured_deals():
         if deal["is_promo"]:
             promo_badge = f'<div class="deal-badge{badge_type}">{badge_label}</div>'
 
-        cards_html += f"""
-        <div class="deal-card">
-            {promo_badge}
-            <div style="font-size: 2rem;" aria-hidden="true">🕌</div>
-            <div class="deal-name">{deal['name']}</div>
-            <div class="deal-agent">🏢 {deal['agent']}</div>
-            {deal['discount_html']}
-            <div class="deal-price">{price_formatted}</div>
-            <div class="deal-details">
-                📅 {deal['duration']} hari | 🛫 {deal['departure']} | {stars_display}
-            </div>
-            <div class="deal-cta">Lihat Detail</div>
-        </div>
-        """
+        cards_html += (
+            '<div class="deal-card">'
+            f'{promo_badge}'
+            '<div style="font-size: 2rem;" aria-hidden="true">🕌</div>'
+            f'<div class="deal-name">{deal["name"]}</div>'
+            f'<div class="deal-agent">🏢 {deal["agent"]}</div>'
+            f'{deal["discount_html"]}'
+            f'<div class="deal-price">{price_formatted}</div>'
+            '<div class="deal-details">'
+            f'📅 {deal["duration"]} hari | 🛫 {deal["departure"]} | {stars_display}'
+            '</div>'
+            '<div class="deal-cta">Lihat Detail</div>'
+            '</div>'
+        )
     cards_html += "</div>"
 
     st.markdown(cards_html, unsafe_allow_html=True)
@@ -1800,18 +1800,18 @@ def render_testimonials_section():
 
     for t in all_testimonials:
         stars = "★" * t["rating"] + "☆" * (5 - t["rating"])
-        cards_html += f"""
-        <div class="testimonial-card">
-            <div>
-                <div class="testimonial-stars" aria-label="{t['rating']} dari 5 bintang">{stars}</div>
-                <div class="testimonial-quote">"{t['quote']}"</div>
-            </div>
-            <div class="testimonial-author">
-                <div class="testimonial-author-name">{t['name']}</div>
-                <div class="testimonial-author-city">{t['city']}</div>
-            </div>
-        </div>
-        """
+        cards_html += (
+            '<div class="testimonial-card">'
+            '<div>'
+            f'<div class="testimonial-stars" aria-label="{t["rating"]} dari 5 bintang">{stars}</div>'
+            f'<div class="testimonial-quote">"{t["quote"]}"</div>'
+            '</div>'
+            '<div class="testimonial-author">'
+            f'<div class="testimonial-author-name">{t["name"]}</div>'
+            f'<div class="testimonial-author-city">{t["city"]}</div>'
+            '</div>'
+            '</div>'
+        )
 
     cards_html += "</div></div>"
     st.markdown(cards_html, unsafe_allow_html=True)

@@ -909,14 +909,14 @@ def render_season_intelligence(departure_date: date):
                         <div style="margin-top: 0.5rem; display: flex; flex-wrap: wrap; gap: 0.5rem;">
                     """
                     for ls_start, ls_end in low_seasons[:3]:
-                        alt_html += f"""
-                            <div style="background: rgba(34, 197, 94, 0.1); border: 1px solid #22c55e;
-                                        border-radius: 8px; padding: 0.4rem 0.75rem;">
-                                <span style="color: #22c55e; font-size: 0.85rem; font-weight: bold;">
-                                    {ls_start.strftime('%d %b')} \u2013 {ls_end.strftime('%d %b %Y')}
-                                </span>
-                            </div>
-                        """
+                        alt_html += (
+                            '<div style="background: rgba(34, 197, 94, 0.1); border: 1px solid #22c55e;'
+                            ' border-radius: 8px; padding: 0.4rem 0.75rem;">'
+                            '<span style="color: #22c55e; font-size: 0.85rem; font-weight: bold;">'
+                            f'{ls_start.strftime("%d %b")} \u2013 {ls_end.strftime("%d %b %Y")}'
+                            '</span>'
+                            '</div>'
+                        )
                     alt_html += """
                         </div>
                     </div>

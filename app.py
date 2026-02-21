@@ -1247,11 +1247,12 @@ def render_gamification_sidebar():
         for entry in recent:
             reason = entry.get("reason", "Aktivitas")
             amount = entry.get("amount", 0)
-            activities_html += f"""
-            <div class="xp-activity-item">
-                <span class="act-reason">{reason}</span>
-                <span class="act-amount">+{amount}</span>
-            </div>"""
+            activities_html += (
+                '<div class="xp-activity-item">'
+                f'<span class="act-reason">{reason}</span>'
+                f'<span class="act-amount">+{amount}</span>'
+                '</div>'
+            )
     else:
         activities_html = '<div style="color:#8e9fb3;font-size:0.65rem;text-align:center;padding:0.2rem 0;">Belum ada aktivitas</div>'
 
