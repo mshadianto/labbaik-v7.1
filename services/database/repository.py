@@ -310,6 +310,12 @@ class BaseRepository(ABC, Generic[T]):
         data = self.db.fetch_one(query, (id,))
         return self._to_model(data) if data else None
     
+    # Allowed ORDER BY directions
+    _VALID_ORDER_DIRS = frozenset({"ASC", "DESC"})
+
+    # Column name pattern — only allow alphanumeric + underscore
+    _VALID_COL_RE = __import__("re").compile(r"^[a-zA-Z_][a-zA-Z0-9_]*$")
+
     def find_all(
         self,
         limit: int = 100,
@@ -319,16 +325,20 @@ class BaseRepository(ABC, Generic[T]):
     ) -> List[T]:
         """
         Find all entities with pagination.
-        
+
         Args:
             limit: Maximum results
             offset: Results offset
             order_by: Column to order by
             order_dir: Order direction (ASC/DESC)
-        
+
         Returns:
             List of model instances
         """
+        if not self._VALID_COL_RE.match(order_by):
+            order_by = "created_at"
+        if order_dir.upper() not in self._VALID_ORDER_DIRS:
+            order_dir = "DESC"
         query = f"""
             SELECT * FROM {self.table_name}
             ORDER BY {order_by} {order_dir}
@@ -336,20 +346,25 @@ class BaseRepository(ABC, Generic[T]):
         """
         rows = self.db.fetch_all(query, (limit, offset))
         return [self._to_model(row) for row in rows]
-    
+
     def find_by(self, **conditions) -> List[T]:
         """
         Find entities by conditions.
-        
+
         Args:
             **conditions: Column=value conditions
-        
+
         Returns:
             List of matching model instances
         """
         if not conditions:
             return self.find_all()
-        
+
+        # Validate column names to prevent SQL injection
+        for col in conditions:
+            if not self._VALID_COL_RE.match(col):
+                raise ValueError(f"Invalid column name: {col}")
+
         where_clauses = [f"{col} = %s" for col in conditions.keys()]
         query = f"""
             SELECT * FROM {self.table_name}
