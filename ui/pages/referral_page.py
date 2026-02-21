@@ -867,14 +867,14 @@ def render_friend_tracking():
             else f'<span class="status-belum">{friend["reward"]}</span>'
         )
 
-        rows_html += f"""
-            <tr>
-                <td>{friend['name']}</td>
-                <td>{friend['tanggal']}</td>
-                <td><span class="{status_class}">{friend['status']}</span></td>
-                <td>{reward_display}</td>
-            </tr>
-        """
+        rows_html += (
+            '<tr>'
+            f'<td>{friend["name"]}</td>'
+            f'<td>{friend["tanggal"]}</td>'
+            f'<td><span class="{status_class}">{friend["status"]}</span></td>'
+            f'<td>{reward_display}</td>'
+            '</tr>'
+        )
 
     st.markdown(f"""
         <table class="friend-tracking-table">

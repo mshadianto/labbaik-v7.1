@@ -562,14 +562,14 @@ def render_plan_comparison(current_sub=None):
 
         rows_html = ""
         for feature, free_val, prem_val, vip_val in comparison_rows:
-            rows_html += f"""
-                <tr>
-                    <td class="feature-name">{feature}</td>
-                    <td><span class="check-text">{free_val}</span></td>
-                    <td><span class="check-text">{prem_val}</span></td>
-                    <td><span class="check-text">{vip_val}</span></td>
-                </tr>
-            """
+            rows_html += (
+                '<tr>'
+                f'<td class="feature-name">{feature}</td>'
+                f'<td><span class="check-text">{free_val}</span></td>'
+                f'<td><span class="check-text">{prem_val}</span></td>'
+                f'<td><span class="check-text">{vip_val}</span></td>'
+                '</tr>'
+            )
 
         st.markdown(f"""
             <div style="overflow-x: auto;">
@@ -617,15 +617,15 @@ def render_billing_history():
     for entry in billing_history:
         status_class = "billing-status-paid" if entry["status"] == "paid" else "billing-status-pending"
         status_label = "Lunas" if entry["status"] == "paid" else "Pending"
-        rows_html += f"""
-            <tr>
-                <td>{entry['tanggal']}</td>
-                <td>{entry['paket']}</td>
-                <td>{format_price(entry['jumlah'])}</td>
-                <td><span class="{status_class}">{status_label}</span></td>
-                <td>{entry['invoice']}</td>
-            </tr>
-        """
+        rows_html += (
+            '<tr>'
+            f'<td>{entry["tanggal"]}</td>'
+            f'<td>{entry["paket"]}</td>'
+            f'<td>{format_price(entry["jumlah"])}</td>'
+            f'<td><span class="{status_class}">{status_label}</span></td>'
+            f'<td>{entry["invoice"]}</td>'
+            '</tr>'
+        )
 
     st.markdown(f"""
         <div style="overflow-x: auto;">
