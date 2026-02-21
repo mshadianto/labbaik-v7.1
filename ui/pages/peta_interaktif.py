@@ -1316,8 +1316,7 @@ def render_crowd_overlay(selected_city: str):
         <div>
             <div class="time-label">Waktu Saat Ini</div>
             <div class="time-value">{time_label}</div>
-        </div>
-        {prayer_html}
+        </div>{prayer_html}
     </div>
     """, unsafe_allow_html=True)
 

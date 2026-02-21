@@ -1707,8 +1707,7 @@ def render_featured_deals():
         <h2 style="color: #d4af37; margin-bottom: 0.5rem;">
             <span aria-hidden="true">🔥</span> Penawaran Terbaik Hari Ini
         </h2>
-        <p style="color: #b0b0b0;">Paket umrah terpilih dengan harga terbaik</p>
-        {data_source_note}
+        <p style="color: #b0b0b0;">Paket umrah terpilih dengan harga terbaik</p>{data_source_note}
     </div>
     """, unsafe_allow_html=True)
 

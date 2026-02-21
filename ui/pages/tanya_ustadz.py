@@ -1475,8 +1475,7 @@ def render_qa_database():
         st.markdown(f"""
         <div class="qa-db-card">
             <div class="qa-db-question"><span aria-hidden="true">&#10067;</span> {entry["question"]}</div>
-            <div class="qa-db-meta">
-                {cat_badge}
+            <div class="qa-db-meta">{cat_badge}
                 <span class="qa-views-count"><span aria-hidden="true">&#128065;</span> {views} dilihat</span>
                 <span class="qa-views-count"><span aria-hidden="true">&#128077;</span> {helpful} terbantu</span>
             </div>

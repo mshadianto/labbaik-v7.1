@@ -961,8 +961,7 @@ def render_cancel_flow(current_sub=None):
 
         st.markdown(f"""
             <div class="cancel-warning">
-                <h3>Fitur yang akan hilang:</h3>
-                {features_html}
+                <h3>Fitur yang akan hilang:</h3>{features_html}
                 <p style="color: #b0b0b0; margin-top: 1rem; font-size: 0.85rem;">
                     Akun Anda akan kembali ke paket Free. Data Anda tetap tersimpan.
                 </p>

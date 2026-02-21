@@ -1284,32 +1284,41 @@ def render_gamification_sidebar():
     if achievements:
         legacy_badges_html = f'<div style="font-size:0.75rem;margin-top:0.25rem;">{" ".join(achievements[:5])}</div>'
 
-    st.markdown(f"""
-    <div class="gamification-sidebar">
-        <div class="gs-header">
-            <span class="gs-title"><span aria-hidden="true">&#x1F3C6;</span> Progress Anda</span>
-            <span class="level-badge {tier_class}">{title}</span>
-        </div>
-        <div class="xp-stats-row">
-            <span class="xp-label">Level {level}</span>
-            <span class="xp-value">{xp}/{xp_for_next} XP</span>
-        </div>
-        <div class="xp-progress-bar">
-            <div class="xp-fill" style="width:{progress_width}%"></div>
-        </div>
-        <div class="xp-stats-row" style="margin-top:0.35rem;">
-            <span class="xp-label"><span aria-hidden="true">&#x1F3C5;</span> Badge</span>
-            <span class="xp-value">{unlocked_count}/{total_badges}</span>
-        </div>
-        {badge_icons_html}
-        <div class="xp-stats-row" style="margin-top:0.35rem;">
-            <span class="xp-label">Aktivitas Terkini</span>
-            {streak_html}
-        </div>
-        {activities_html}
-        {legacy_badges_html}
-    </div>
-    """, unsafe_allow_html=True)
+    # Build HTML as continuous block — blank lines from empty variables would
+    # break CommonMark HTML block parsing, causing raw HTML to appear as text.
+    parts = [
+        '<div class="gamification-sidebar">',
+        '<div class="gs-header">',
+        f'<span class="gs-title"><span aria-hidden="true">&#x1F3C6;</span> Progress Anda</span>',
+        f'<span class="level-badge {tier_class}">{title}</span>',
+        '</div>',
+        '<div class="xp-stats-row">',
+        f'<span class="xp-label">Level {level}</span>',
+        f'<span class="xp-value">{xp}/{xp_for_next} XP</span>',
+        '</div>',
+        '<div class="xp-progress-bar">',
+        f'<div class="xp-fill" style="width:{progress_width}%"></div>',
+        '</div>',
+        '<div class="xp-stats-row" style="margin-top:0.35rem;">',
+        '<span class="xp-label"><span aria-hidden="true">&#x1F3C5;</span> Badge</span>',
+        f'<span class="xp-value">{unlocked_count}/{total_badges}</span>',
+        '</div>',
+    ]
+    if badge_icons_html:
+        parts.append(badge_icons_html)
+    parts += [
+        '<div class="xp-stats-row" style="margin-top:0.35rem;">',
+        '<span class="xp-label">Aktivitas Terkini</span>',
+    ]
+    if streak_html:
+        parts.append(streak_html)
+    parts.append('</div>')
+    parts.append(activities_html)
+    if legacy_badges_html:
+        parts.append(legacy_badges_html)
+    parts.append('</div>')
+
+    st.markdown("\n".join(parts), unsafe_allow_html=True)
 
     # Weekly Challenge widget
     render_weekly_challenge()

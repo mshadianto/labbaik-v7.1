@@ -305,8 +305,7 @@ def render_crowd_widget(location: str = "makkah", compact: bool = False):
             st.markdown(f"""
             <div style="background: #1a1a1a; padding: 1rem; border-radius: 15px; text-align: center; height: 100%;">
                 <div style="color: {season_color}; font-size: 2rem;" aria-hidden="true">📊</div>
-                <div style="color: white; font-size: 0.9rem; margin-top: 0.5rem;">{season_label}</div>
-                {hijri_line}
+                <div style="color: white; font-size: 0.9rem; margin-top: 0.5rem;">{season_label}</div>{hijri_line}
                 <div style="color: #b0b0b0; font-size: 0.75rem; margin-top: 0.25rem;">Multiplier aktif</div>
             </div>
             """, unsafe_allow_html=True)
