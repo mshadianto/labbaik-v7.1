@@ -1054,10 +1054,8 @@ def render_page_feedback():
     if page in st.session_state.get("page_feedback", {}):
         return
 
-    # Inject CSS once per session
-    if not st.session_state.get("_feedback_css_injected"):
-        st.markdown(PAGE_FEEDBACK_CSS, unsafe_allow_html=True)
-        st.session_state._feedback_css_injected = True
+    # Inject CSS on every rerun (Streamlit rebuilds the page each time)
+    st.markdown(PAGE_FEEDBACK_CSS, unsafe_allow_html=True)
 
     # Collapsible container so it stays non-intrusive
     st.markdown(
@@ -1225,10 +1223,8 @@ def _get_sidebar_level_title(level: int) -> str:
 
 def render_gamification_sidebar():
     """Render compact gamification summary in the sidebar."""
-    # Inject CSS once per session
-    if not st.session_state.get("_gamification_css_injected"):
-        st.markdown(GAMIFICATION_SIDEBAR_CSS, unsafe_allow_html=True)
-        st.session_state._gamification_css_injected = True
+    # Inject CSS on every rerun (Streamlit rebuilds the page each time)
+    st.markdown(GAMIFICATION_SIDEBAR_CSS, unsafe_allow_html=True)
 
     xp = st.session_state.get("xp", 0)
     # Sidebar level uses XP // 100 scheme (different from main level system)

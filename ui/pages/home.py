@@ -1242,11 +1242,6 @@ def render_data_freshness_widget():
 
 def inject_custom_css():
     """Inject page CSS via shared inject_css() helper."""
-    # Skip if already injected
-    if st.session_state.get('_home_css_injected'):
-        return
-    st.session_state._home_css_injected = True
-
     inject_css(HERO_CSS, CARD_CSS, HOME_PAGE_CSS)
 
 
