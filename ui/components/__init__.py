@@ -254,7 +254,7 @@ def render_login_prompt():
         st.info("🔐 Silakan login untuk melanjutkan")
         
         if st.button("Login", use_container_width=True):
-            st.session_state.current_page = "login"
+            st.session_state.current_page = "auth"
             st.rerun()
 
 

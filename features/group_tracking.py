@@ -716,7 +716,7 @@ def render_tracking_mini_widget():
         """, unsafe_allow_html=True)
     else:
         if st.button("📍 Setup Tracking", use_container_width=True):
-            st.session_state.current_page = "group_tracking"
+            st.session_state.current_page = "tracking"
             st.rerun()
 
 

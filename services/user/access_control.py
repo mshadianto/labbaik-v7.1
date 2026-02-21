@@ -214,7 +214,7 @@ def render_access_denied(reason: str, feature_name: str = ""):
         """)
 
         if st.button("Daftar Jadi Mitra", use_container_width=True, type="primary"):
-            st.session_state.current_page = "partner_register"
+            st.session_state.current_page = "partner"
             st.rerun()
 
     elif reason == "admin_required":
