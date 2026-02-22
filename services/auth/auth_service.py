@@ -359,7 +359,7 @@ class GoogleOAuthService:
         if not self._configured:
             raise AuthenticationError("Google OAuth not configured")
         
-        async with httpx.AsyncClient() as client:
+        async with httpx.AsyncClient(timeout=15) as client:
             response = await client.post(
                 self.TOKEN_URL,
                 data={
@@ -389,7 +389,7 @@ class GoogleOAuthService:
         """
         import httpx
         
-        async with httpx.AsyncClient() as client:
+        async with httpx.AsyncClient(timeout=15) as client:
             response = await client.get(
                 self.USERINFO_URL,
                 headers={"Authorization": f"Bearer {access_token}"}

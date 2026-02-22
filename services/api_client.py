@@ -40,7 +40,7 @@ class LabbaikAPIClient:
         phone: Optional[str] = None
     ) -> Dict[str, Any]:
         """Register new user."""
-        async with httpx.AsyncClient() as client:
+        async with httpx.AsyncClient(timeout=15) as client:
             response = await client.post(
                 f"{self.base_url}/auth/register",
                 json={
@@ -55,7 +55,7 @@ class LabbaikAPIClient:
     
     async def login(self, email: str, password: str) -> Dict[str, Any]:
         """Login user."""
-        async with httpx.AsyncClient() as client:
+        async with httpx.AsyncClient(timeout=15) as client:
             response = await client.post(
                 f"{self.base_url}/auth/login/email",
                 json={"email": email, "password": password}
@@ -65,7 +65,7 @@ class LabbaikAPIClient:
     
     async def get_current_user(self) -> Dict[str, Any]:
         """Get current user info."""
-        async with httpx.AsyncClient() as client:
+        async with httpx.AsyncClient(timeout=15) as client:
             response = await client.get(
                 f"{self.base_url}/auth/me",
                 headers=self.headers
@@ -97,7 +97,7 @@ class LabbaikAPIClient:
         if budget_max:
             params["budget_max"] = budget_max
         
-        async with httpx.AsyncClient() as client:
+        async with httpx.AsyncClient(timeout=15) as client:
             response = await client.get(
                 f"{self.base_url}/bareng/trips",
                 params=params
@@ -107,7 +107,7 @@ class LabbaikAPIClient:
     
     async def create_trip(self, trip_data: Dict[str, Any]) -> Dict[str, Any]:
         """Create new Umrah Bareng trip."""
-        async with httpx.AsyncClient() as client:
+        async with httpx.AsyncClient(timeout=15) as client:
             response = await client.post(
                 f"{self.base_url}/bareng/trips",
                 json=trip_data,
@@ -118,7 +118,7 @@ class LabbaikAPIClient:
     
     async def join_trip(self, trip_id: str, message: str = "") -> Dict[str, Any]:
         """Join Umrah Bareng trip."""
-        async with httpx.AsyncClient() as client:
+        async with httpx.AsyncClient(timeout=15) as client:
             response = await client.post(
                 f"{self.base_url}/bareng/trips/{trip_id}/join",
                 json={"message": message},
@@ -138,7 +138,7 @@ class LabbaikAPIClient:
         num_participants: int
     ) -> Dict[str, Any]:
         """Simulate Umrah cost."""
-        async with httpx.AsyncClient() as client:
+        async with httpx.AsyncClient(timeout=15) as client:
             response = await client.post(
                 f"{self.base_url}/cost/simulate",
                 json={
@@ -156,7 +156,7 @@ class LabbaikAPIClient:
     
     async def chat(self, question: str) -> Dict[str, Any]:
         """Ask AI about Umrah."""
-        async with httpx.AsyncClient() as client:
+        async with httpx.AsyncClient(timeout=30) as client:
             response = await client.post(
                 f"{self.base_url}/chat",
                 json={"question": question}

@@ -1325,12 +1325,6 @@ def render_hero_section():
             st.rerun()
 
 
-def render_stats_counter():
-    """Render animated stats counter."""
-    
-    # Skip - stats already in hero section
-    pass
-
 
 def render_3_pilar_framework():
     """Render Smart Planner Framework section - BLACK GOLD theme."""
