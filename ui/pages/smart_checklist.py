@@ -1269,7 +1269,7 @@ def render_smart_checklist_page():
         '<div class="share-box">'
         '<h3 style="color:#4ade80;margin-top:0;">\U0001f4e4 Bagikan Progress Anda!</h3>'
         f'<p style="color:#b0b0b0;">Progress packing: <strong>{pct}%</strong> ({done}/{total} item)</p>'
-        '<p style="color:#666;font-size:0.85rem;">'
+        '<p style="color:#8e9fb3;font-size:0.85rem;">'
         'Screenshot dan share ke grup WhatsApp keluarga! \U0001f4f1'
         '</p>'
         '</div>',

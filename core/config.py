@@ -383,20 +383,6 @@ def get_settings() -> Settings:
     return get_config().settings
 
 
-# Streamlit-specific configuration helpers
-def configure_streamlit_page(settings: Optional[Settings] = None):
-    """Configure Streamlit page settings."""
-    import streamlit as st
-    
-    settings = settings or get_settings()
-    
-    st.set_page_config(
-        page_title=settings.ui.app_name,
-        page_icon=settings.ui.page_icon,
-        layout=settings.ui.layout,
-        initial_sidebar_state="expanded"
-    )
-
 
 # Environment variable helpers
 def get_env(key: str, default: str = "") -> str:

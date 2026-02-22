@@ -943,7 +943,7 @@ def render_hotel_card(hotel: Dict, nights: int = 1, active_filters: List[str] = 
                     <div style="color: #b0b0b0; font-size: 0.8rem; margin-bottom: 0.5rem;">
                         Lihat harga dari Booking.com, Agoda, Expedia & lainnya
                     </div>
-                    <div style="color: #666; font-size: 0.75rem;">
+                    <div style="color: #8e9fb3; font-size: 0.75rem;">
                         Upgrade ke Premium untuk akses lengkap
                     </div>
                 </div>

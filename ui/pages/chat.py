@@ -275,7 +275,7 @@ CHAT_PAGE_CSS = """
 }
 
 .expert-paywall p {
-    color: #aaa;
+    color: #b0b0b0;
     font-size: 0.85rem;
     margin-bottom: 0.8rem;
 }

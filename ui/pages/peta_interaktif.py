@@ -112,7 +112,7 @@ PETA_CSS = """
 }
 
 .peta-stat-label {
-    color: #aaa;
+    color: #b0b0b0;
     font-size: 0.8rem;
     margin-top: 0.25rem;
 }
@@ -243,7 +243,7 @@ PETA_CSS = """
 }
 
 .peta-poi-distance {
-    color: #aaa;
+    color: #b0b0b0;
     font-size: 0.8rem;
 }
 
@@ -295,7 +295,7 @@ PETA_CSS = """
 }
 
 .peta-walk-metric .metric-label {
-    color: #aaa;
+    color: #b0b0b0;
     font-size: 0.9rem;
 }
 

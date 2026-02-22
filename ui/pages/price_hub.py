@@ -1354,9 +1354,11 @@ def render_price_history_chart(city: str):
     min_date = min_entry["date"]
 
     # Trend direction: compare average of last 7 days vs first 7 days
-    first_week_avg = sum(h["price"] for h in history[:7]) / 7
-    last_week_avg = sum(h["price"] for h in history[-7:]) / 7
-    trend_pct = ((last_week_avg - first_week_avg) / first_week_avg) * 100
+    first_week = history[:7]
+    last_week = history[-7:]
+    first_week_avg = sum(h["price"] for h in first_week) / len(first_week) if first_week else 0
+    last_week_avg = sum(h["price"] for h in last_week) / len(last_week) if last_week else 0
+    trend_pct = ((last_week_avg - first_week_avg) / first_week_avg) * 100 if first_week_avg else 0.0
 
     if trend_pct > 2:
         trend_dir = "up"

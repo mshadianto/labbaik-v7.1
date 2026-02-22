@@ -591,6 +591,8 @@ def _mask_name(name: str) -> str:
     if not name:
         return "Anonim"
     parts = name.strip().split()
+    if not parts:
+        return "***"
     if len(parts) == 1:
         if len(parts[0]) <= 3:
             return parts[0]

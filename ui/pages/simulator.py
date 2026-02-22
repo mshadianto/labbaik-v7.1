@@ -2411,7 +2411,7 @@ table {{
     padding: 6px 12px; border-bottom: 1px solid #eee;
 }}
 .param-table td:first-child {{
-    color: #666; width: 45%;
+    color: #8e9fb3; width: 45%;
 }}
 .cost-table {{
     border: 1px solid #ddd; border-radius: 8px; overflow: hidden;
@@ -2424,7 +2424,7 @@ table {{
     border-bottom: none !important;
 }}
 .footer {{
-    text-align: center; color: #999; font-size: 0.8rem;
+    text-align: center; color: #b0b0b0; font-size: 0.8rem;
     margin-top: 30px; padding-top: 16px;
     border-top: 1px solid #eee;
 }}

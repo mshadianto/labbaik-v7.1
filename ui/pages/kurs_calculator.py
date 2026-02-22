@@ -113,7 +113,7 @@ KURS_CSS = """
 }
 
 .kurs-stat-label {
-    color: #aaa;
+    color: #b0b0b0;
     font-size: 0.8rem;
     margin-top: 0.25rem;
 }

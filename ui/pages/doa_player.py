@@ -137,7 +137,7 @@ DOA_CSS = """
 }
 
 .doa-hero .stat-label {
-    color: #aaa;
+    color: #b0b0b0;
     font-size: 0.8rem;
     margin-top: 0.25rem;
 }
@@ -195,7 +195,7 @@ DOA_CSS = """
 }
 
 .doa-player-card .latin-text {
-    color: #aaa;
+    color: #b0b0b0;
     font-style: italic;
     margin-bottom: 0.5rem;
     font-size: 0.95rem;
@@ -562,7 +562,7 @@ def _build_audio_player_html(doa_id, name, category, when_to_read, arabic,
         '        </div>'
         '        <div id="status-' + doa_id + '" style="color: #b0b0b0; font-size: 0.8rem; margin-top: 0.5rem;">Siap diputar</div>'
         '    </div>'
-        '    <div style="color: #aaa; font-style: italic; margin-bottom: 0.5rem; font-size: 0.95rem;">' + latin + '</div>'
+        '    <div style="color: #b0b0b0; font-style: italic; margin-bottom: 0.5rem; font-size: 0.95rem;">' + latin + '</div>'
         '    <div style="color: #eee; font-size: 1rem;"><strong>Artinya:</strong> ' + translation + '</div>'
         '</div>'
         '<script>'
@@ -649,9 +649,9 @@ VOICE_CHAT_HTML = (
     '    <div style="display: flex; gap: 1rem; align-items: center; flex-wrap: wrap;">'
     '        <button id="voice-record-btn" onclick="toggleRecording()" aria-label="Rekam suara untuk bertanya" style="background: linear-gradient(135deg, #e94560, #ff6b6b); border: none; width: 70px; height: 70px; border-radius: 50%; cursor: pointer; font-size: 2rem; box-shadow: 0 5px 20px rgba(233, 69, 96, 0.4); transition: all 0.3s;">&#127908;</button>'
     '        <div style="flex: 1; min-width: 200px;">'
-    '            <div id="voice-status" style="color: #aaa; margin-bottom: 0.5rem;">Tekan tombol mikrofon untuk bertanya</div>'
+    '            <div id="voice-status" style="color: #b0b0b0; margin-bottom: 0.5rem;">Tekan tombol mikrofon untuk bertanya</div>'
     '            <div id="voice-transcript" style="background: rgba(0,0,0,0.3); padding: 1rem; border-radius: 10px; min-height: 50px; color: white; font-size: 1rem;">'
-    '                <span style="color: #666;">Pertanyaan Anda akan muncul di sini...</span>'
+    '                <span style="color: #8e9fb3;">Pertanyaan Anda akan muncul di sini...</span>'
     '            </div>'
     '        </div>'
     '    </div>'
@@ -680,7 +680,7 @@ VOICE_CHAT_HTML = (
     '            for (var i = event.resultIndex; i < event.results.length; i++) {'
     '                transcript += event.results[i][0].transcript;'
     '            }'
-    '            document.getElementById("voice-transcript").innerHTML = transcript || \'<span style="color: #666;">Mendengarkan...</span>\';'
+    '            document.getElementById("voice-transcript").innerHTML = transcript || \'<span style="color: #8e9fb3;">Mendengarkan...</span>\';'
     '            if (event.results[event.results.length - 1].isFinal) {'
     '                window.parent.postMessage({type: "streamlit:setComponentValue", value: transcript}, "*");'
     '            }'
@@ -1072,7 +1072,7 @@ def render_voice_chat():
         '<button id="voice-btn" onclick="startRecognition()" '
         'aria-label="Rekam suara untuk bertanya" style="background: linear-gradient(135deg, #e94560, #ff6b6b); border: none; width: 60px; height: 60px; border-radius: 50%; cursor: pointer; font-size: 1.5rem;">&#127908;</button>'
         '<div style="flex: 1;">'
-        '<div id="voice-status" style="color: #aaa; font-size: 0.9rem;">Tekan tombol untuk bicara</div>'
+        '<div id="voice-status" style="color: #b0b0b0; font-size: 0.9rem;">Tekan tombol untuk bicara</div>'
         '<div id="voice-result" style="color: #00d9ff; font-size: 1.1rem; margin-top: 0.5rem; min-height: 25px;"></div>'
         '</div>'
         '</div>'

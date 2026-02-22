@@ -382,7 +382,7 @@ def render_user_list():
                             padding: 0.75rem; border-bottom: 1px solid rgba(255,255,255,0.1);
                             font-size: 0.85rem;">
                     <div>{user.name}</div>
-                    <div style="color: #aaa;">{user.email}</div>
+                    <div style="color: #b0b0b0;">{user.email}</div>
                     <div style="color: {role_color};">{user.role.display_name}</div>
                     <div style="color: {status_color};">●</div>
                     <div style="color: #b0b0b0;">{join_date}</div>

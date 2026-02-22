@@ -69,7 +69,7 @@ QUOTES_CSS = """
 
 .invoice-card .subtitle {
     margin: 0;
-    color: #666;
+    color: #8e9fb3;
     text-align: center;
 }
 

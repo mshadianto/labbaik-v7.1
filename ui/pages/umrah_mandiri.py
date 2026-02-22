@@ -1269,7 +1269,7 @@ def render_tab_badges():
                     '<div class="achievement-badge locked">'
                     '<div style="font-size:2rem;">?</div>'
                     '<div><b>???</b></div>'
-                    f'<small style="color:#666;">{ach["desc"]}</small>'
+                    f'<small style="color:#8e9fb3;">{ach["desc"]}</small>'
                     '</div>',
                     unsafe_allow_html=True,
                 )

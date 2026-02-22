@@ -465,7 +465,7 @@ def render_score_breakdown(score_data: dict):
             '<div class="score-dimension">'
             '  <span class="dim-label" title="Bobot: '
             + str(weight_pct) + '%">'
-            + label + ' <span style="color:#666;font-size:0.65rem;">('
+            + label + ' <span style="color:#8e9fb3;font-size:0.65rem;">('
             + str(weight_pct) + '%)</span></span>'
             '  <div class="dim-bar-bg">'
             '    <div class="score-bar" style="width:'
@@ -535,7 +535,7 @@ def render_score_legend():
         '<div style="color:#d4af37;font-weight:600;margin-bottom:8px;">'
         'Cara Penilaian Skor</div>'
         + rows_html
-        + '<div style="color:#666;font-size:0.7rem;margin-top:8px;">'
+        + '<div style="color:#8e9fb3;font-size:0.7rem;margin-top:8px;">'
         'Skor 0-100. Semakin tinggi semakin baik.'
         '</div></div>'
     )

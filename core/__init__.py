@@ -9,7 +9,6 @@ from core.config import (
     ConfigManager,
     get_config,
     get_settings,
-    configure_streamlit_page,
     Environment,
 )
 
@@ -55,7 +54,6 @@ __all__ = [
     "ConfigManager",
     "get_config",
     "get_settings",
-    "configure_streamlit_page",
     "Environment",
     # Constants
     "APP_NAME",

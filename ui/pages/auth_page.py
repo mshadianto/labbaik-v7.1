@@ -385,7 +385,7 @@ def render_login_widget():
         user = get_current_user()
         st.markdown(f"""
             <div style="padding: 0.5rem; background: rgba(76,175,80,0.1); border-radius: 8px; text-align: center;">
-                <div style="font-size: 0.9rem;">Halo, <strong>{user.name.split()[0]}</strong></div>
+                <div style="font-size: 0.9rem;">Halo, <strong>{(user.name.split() or [user.name or "User"])[0]}</strong></div>
                 <div style="font-size: 0.75rem; color: #4CAF50;">{user.role.display_name}</div>
             </div>
         """, unsafe_allow_html=True)
@@ -417,7 +417,7 @@ def render_user_badge():
                         padding: 4px 12px; background: rgba(255,255,255,0.1);
                         border-radius: 20px; font-size: 0.85rem;">
                 <span style="color: {color};">●</span>
-                <span>{user.name.split()[0]}</span>
+                <span>{(user.name.split() or [user.name or "User"])[0]}</span>
             </div>
         """, unsafe_allow_html=True)
 
