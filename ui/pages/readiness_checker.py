@@ -1294,7 +1294,7 @@ def render_doc_completion_card():
         key="btn_nav_doc_checker_from_readiness",
         use_container_width=False,
     ):
-        st.session_state.nav = "doc_checker"
+        st.session_state.current_page = "doc_checker"
         st.rerun()
 
 
@@ -1801,7 +1801,7 @@ def _render_contextual_nav(score: Dict):
                 key=item["key"],
                 use_container_width=True,
             ):
-                st.session_state.nav = item["target"]
+                st.session_state.current_page = item["target"]
                 st.rerun()
 
 

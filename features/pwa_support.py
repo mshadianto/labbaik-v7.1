@@ -717,6 +717,12 @@ def init_pwa():
 
 def render_pwa_settings_page():
     """Render PWA settings page."""
+    try:
+        from services.analytics.tracker import track_page
+        track_page("pwa_settings")
+    except Exception:
+        pass
+
     inject_css(HERO_CSS, CARD_CSS)
 
     if not st.session_state.get("pwa_xp_awarded"):

@@ -2087,7 +2087,7 @@ def _render_confirmation_nav(booking_number: str):
             key="nav_to_cost_tracker",
             use_container_width=True,
         ):
-            st.session_state.nav = "cost_tracker"
+            st.session_state.current_page = "cost_tracker"
             st.rerun()
 
     with nav_col2:
@@ -2096,7 +2096,7 @@ def _render_confirmation_nav(booking_number: str):
             key="nav_to_readiness",
             use_container_width=True,
         ):
-            st.session_state.nav = "readiness"
+            st.session_state.current_page = "readiness"
             st.rerun()
 
     with nav_col3:

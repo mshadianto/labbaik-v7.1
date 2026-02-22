@@ -328,8 +328,12 @@ class APIHandler:
             updates = []
             params = []
 
+            import re
+            _SAFE_IDENT = re.compile(r"^[a-z_][a-z0-9_]*$")
             for field_name in ALLOWED_FIELDS:
                 if field_name in data:
+                    if not _SAFE_IDENT.match(field_name):
+                        continue
                     updates.append(f"{field_name} = ?")
                     params.append(data[field_name])
 

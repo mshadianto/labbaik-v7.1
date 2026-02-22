@@ -13,6 +13,7 @@ def run_cleanup():
     """Execute data cleanup SQL."""
     try:
         import psycopg2
+        from psycopg2 import sql
     except ImportError:
         print("ERROR: psycopg2 not installed. Run: pip install psycopg2-binary")
         return False
@@ -60,12 +61,16 @@ def run_cleanup():
             if table not in ALLOWED_TABLES:
                 continue
             try:
-                cursor.execute(f"SELECT COUNT(*) FROM {table}")
+                cursor.execute(
+                    sql.SQL("SELECT COUNT(*) FROM {}").format(sql.Identifier(table))
+                )
                 total = cursor.fetchone()[0]
 
                 cursor.execute(
-                    f"SELECT COUNT(*) FROM {table} WHERE {date_col} < NOW() - INTERVAL '%s days'",
-                    (price_retention_days,)
+                    sql.SQL("SELECT COUNT(*) FROM {} WHERE {} < NOW() - INTERVAL %s").format(
+                        sql.Identifier(table), sql.Identifier(date_col)
+                    ),
+                    (f"{price_retention_days} days",)
                 )
                 old = cursor.fetchone()[0]
 
@@ -77,8 +82,8 @@ def run_cleanup():
         print("\n[2/6] Cleaning old packages...")
         try:
             cursor.execute(
-                "DELETE FROM prices_packages WHERE scraped_at < NOW() - INTERVAL '%s days'",
-                (price_retention_days,)
+                "DELETE FROM prices_packages WHERE scraped_at < NOW() - INTERVAL %s",
+                (f"{price_retention_days} days",)
             )
             deleted = cursor.rowcount
             print(f"  Deleted {deleted} old packages")
@@ -89,8 +94,8 @@ def run_cleanup():
         print("\n[3/6] Cleaning old hotels...")
         try:
             cursor.execute(
-                "DELETE FROM prices_hotels WHERE scraped_at < NOW() - INTERVAL '%s days'",
-                (price_retention_days,)
+                "DELETE FROM prices_hotels WHERE scraped_at < NOW() - INTERVAL %s",
+                (f"{price_retention_days} days",)
             )
             deleted = cursor.rowcount
             print(f"  Deleted {deleted} old hotels")
@@ -101,8 +106,8 @@ def run_cleanup():
         print("\n[4/6] Cleaning old flights...")
         try:
             cursor.execute(
-                "DELETE FROM prices_flights WHERE scraped_at < NOW() - INTERVAL '%s days'",
-                (price_retention_days,)
+                "DELETE FROM prices_flights WHERE scraped_at < NOW() - INTERVAL %s",
+                (f"{price_retention_days} days",)
             )
             deleted = cursor.rowcount
             print(f"  Deleted {deleted} old flights")
@@ -113,8 +118,8 @@ def run_cleanup():
         print("\n[5/6] Cleaning old scraping logs...")
         try:
             cursor.execute(
-                "DELETE FROM scraping_logs WHERE created_at < NOW() - INTERVAL '%s days'",
-                (log_retention_days,)
+                "DELETE FROM scraping_logs WHERE created_at < NOW() - INTERVAL %s",
+                (f"{log_retention_days} days",)
             )
             deleted = cursor.rowcount
             print(f"  Deleted {deleted} old logs")
@@ -127,7 +132,9 @@ def run_cleanup():
         print("\n[6/6] Final data counts...")
         for table, _ in tables_to_check:
             try:
-                cursor.execute(f"SELECT COUNT(*) FROM {table}")
+                cursor.execute(
+                    sql.SQL("SELECT COUNT(*) FROM {}").format(sql.Identifier(table))
+                )
                 total = cursor.fetchone()[0]
                 print(f"  {table}: {total} records")
             except Exception:

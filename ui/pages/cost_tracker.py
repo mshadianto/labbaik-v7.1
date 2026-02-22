@@ -2044,7 +2044,7 @@ def render_cross_nav():
             key="nav_to_booking",
             use_container_width=True,
         ):
-            st.session_state.nav = "booking"
+            st.session_state.current_page = "booking"
             st.rerun()
 
     with nav_col2:
@@ -2053,7 +2053,7 @@ def render_cross_nav():
             key="nav_to_readiness_from_tracker",
             use_container_width=True,
         ):
-            st.session_state.nav = "readiness"
+            st.session_state.current_page = "readiness"
             st.rerun()
 
 
