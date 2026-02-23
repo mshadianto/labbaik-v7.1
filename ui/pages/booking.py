@@ -38,17 +38,19 @@ except ImportError:
     HAS_HIJRI = False
 
 
+HIJRI_MONTHS = [
+    "Muharram", "Safar", "Rabiul Awal", "Rabiul Akhir",
+    "Jumadil Awal", "Jumadil Akhir", "Rajab", "Sya'ban",
+    "Ramadan", "Syawal", "Dzulqa'dah", "Dzulhijjah",
+]
+
+
 def _get_hijri_date_str(gregorian_date):
     """Convert Gregorian date to Hijri string."""
     if not HAS_HIJRI:
         return None
     try:
         h = Gregorian(gregorian_date.year, gregorian_date.month, gregorian_date.day).to_hijri()
-        HIJRI_MONTHS = [
-            "Muharram", "Safar", "Rabiul Awal", "Rabiul Akhir",
-            "Jumadil Awal", "Jumadil Akhir", "Rajab", "Sya'ban",
-            "Ramadan", "Syawal", "Dzulqa'dah", "Dzulhijjah"
-        ]
         month_name = HIJRI_MONTHS[h.month - 1] if 1 <= h.month <= 12 else str(h.month)
         return f"{h.day} {month_name} {h.year} H"
     except Exception:

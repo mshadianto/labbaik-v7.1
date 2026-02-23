@@ -287,6 +287,7 @@ def render_analytics_dashboard():
         )
     with col3:
         if st.button("Refresh", use_container_width=True):
+            st.cache_data.clear()
             st.rerun()
 
     st.divider()
@@ -345,6 +346,111 @@ def get_excluded_user_ids_clause():
     placeholders = ", ".join(["%s"] * len(EXCLUDED_EMAILS))
     sql = f"SELECT id FROM users WHERE email IN ({placeholders})"
     return sql, tuple(EXCLUDED_EMAILS)
+
+
+# =============================================================================
+# CACHED DATA WRAPPERS (avoid re-querying DB on every Streamlit rerun)
+# =============================================================================
+
+@st.cache_data(ttl=300, show_spinner=False)
+def _cached_dashboard_metrics(start_str: str, end_str: str) -> dict:
+    """Cached wrapper for dashboard KPI metrics."""
+    try:
+        from services.database.repository import get_db
+        db = get_db()
+        if not db:
+            return {'total_users': 0, 'total_sessions': 0, 'total_events': 0}
+        return _collect_dashboard_metrics(db, start_str, end_str)
+    except Exception:
+        return {'total_users': 0, 'total_sessions': 0, 'total_events': 0}
+
+
+@st.cache_data(ttl=300, show_spinner=False)
+def _cached_page_stats(start_str: str, end_str: str) -> list:
+    """Cached wrapper for page-level stats."""
+    try:
+        from services.database.repository import get_db
+        db = get_db()
+        if not db:
+            return []
+        return _collect_page_stats(db, start_str, end_str)
+    except Exception:
+        return []
+
+
+@st.cache_data(ttl=300, show_spinner=False)
+def _cached_session_stats(start_str: str, end_str: str):
+    """Cached wrapper for session stats."""
+    try:
+        from services.database.repository import get_db
+        db = get_db()
+        if not db:
+            return None
+        return _collect_session_stats(db, start_str, end_str)
+    except Exception:
+        return None
+
+
+@st.cache_data(ttl=300, show_spinner=False)
+def _cached_conversion_stats(start_str: str, end_str: str):
+    """Cached wrapper for conversion stats."""
+    try:
+        from services.database.repository import get_db
+        db = get_db()
+        if not db:
+            return None
+        return _collect_conversion_stats(db, start_str, end_str)
+    except Exception:
+        return None
+
+
+@st.cache_data(ttl=300, show_spinner=False)
+def _cached_cohort_data(start_str: str, end_str: str):
+    """Cached wrapper for cohort retention data."""
+    try:
+        from services.database.repository import get_db
+        db = get_db()
+        if not db:
+            return _generate_demo_cohort_data(start_str, end_str), True
+        return _build_cohort_data(db, start_str, end_str)
+    except Exception:
+        return _generate_demo_cohort_data(start_str, end_str), True
+
+
+@st.cache_data(ttl=300, show_spinner=False)
+def _cached_activity_data(start_str: str, end_str: str):
+    """Cached wrapper for activity heatmap data."""
+    try:
+        from services.database.repository import get_db
+        db = get_db()
+        if not db:
+            return _generate_demo_activity_data(), True
+        return _build_activity_data(db, start_str, end_str)
+    except Exception:
+        return _generate_demo_activity_data(), True
+
+
+@st.cache_data(ttl=300, show_spinner=False)
+def _cached_daily_trend(start_str: str, end_str: str) -> list:
+    """Cached wrapper for daily active users trend data."""
+    try:
+        from services.database.repository import get_db
+        db = get_db()
+        if not db:
+            return []
+        query = """
+        SELECT
+            date,
+            COALESCE(SUM(unique_visitors), 0) as dau,
+            COALESCE(SUM(page_views), 0) as views
+        FROM visitor_stats
+        WHERE date BETWEEN %s AND %s
+        GROUP BY date
+        ORDER BY date
+        """
+        return db.fetch_all(query, (start_str, end_str)) or []
+    except Exception:
+        return []
 
 
 def _collect_dashboard_metrics(db, start_date, end_date):
@@ -468,7 +574,7 @@ def render_overview_metrics(db, start_date, end_date):
     """Overview KPIs."""
     st.subheader("Key Metrics")
 
-    metrics = _collect_dashboard_metrics(db, start_date, end_date)
+    metrics = _cached_dashboard_metrics(str(start_date), str(end_date))
 
     # Display KPIs using HTML cards
     total_users = metrics.get('total_users', 0)
@@ -530,17 +636,8 @@ def render_overview_metrics(db, start_date, end_date):
     st.subheader("Daily Active Users Trend")
 
     try:
-        query = """
-        SELECT
-            date,
-            COALESCE(SUM(unique_visitors), 0) as dau,
-            COALESCE(SUM(page_views), 0) as views
-        FROM visitor_stats
-        WHERE date BETWEEN %s AND %s
-        GROUP BY date
-        ORDER BY date
-        """
-        df = pd.DataFrame(db.fetch_all(query, (start_date, end_date)) or [])
+        trend_rows = _cached_daily_trend(str(start_date), str(end_date))
+        df = pd.DataFrame(trend_rows)
 
         if not df.empty and HAS_PLOTLY:
             fig = px.line(
@@ -959,11 +1056,11 @@ def render_ai_insights(db, start_date, end_date):
     """AI-powered analytics insights with trend analysis and user behavior."""
     st.subheader("AI Analytics Insights")
 
-    # Collect metrics for the AI prompt
-    metrics = _collect_dashboard_metrics(db, start_date, end_date)
-    page_stats = _collect_page_stats(db, start_date, end_date)
-    session_stats = _collect_session_stats(db, start_date, end_date)
-    conversion_stats = _collect_conversion_stats(db, start_date, end_date)
+    # Collect metrics for the AI prompt (use cached wrappers)
+    metrics = _cached_dashboard_metrics(str(start_date), str(end_date))
+    page_stats = _cached_page_stats(str(start_date), str(end_date))
+    session_stats = _cached_session_stats(str(start_date), str(end_date))
+    conversion_stats = _cached_conversion_stats(str(start_date), str(end_date))
 
     # Build page stats summary
     page_lines = []
@@ -1289,7 +1386,7 @@ def render_cohort_analytics(db, start_date, end_date):
         unsafe_allow_html=True,
     )
 
-    result = _build_cohort_data(db, start_date, end_date)
+    result = _cached_cohort_data(str(start_date), str(end_date))
     if isinstance(result, tuple):
         cohorts, is_demo = result
     else:
@@ -1484,7 +1581,7 @@ def render_activity_heatmap(db, start_date, end_date):
         unsafe_allow_html=True,
     )
 
-    result = _build_activity_data(db, start_date, end_date)
+    result = _cached_activity_data(str(start_date), str(end_date))
     if isinstance(result, tuple):
         grid, is_demo = result
     else:
@@ -1962,11 +2059,11 @@ def render_export_section(db, start_date, end_date):
         unsafe_allow_html=True,
     )
 
-    # Collect all metrics for export
-    metrics = _collect_dashboard_metrics(db, start_date, end_date)
-    page_stats = _collect_page_stats(db, start_date, end_date)
-    session_stats = _collect_session_stats(db, start_date, end_date)
-    conversion_stats = _collect_conversion_stats(db, start_date, end_date)
+    # Collect all metrics for export (use cached wrappers)
+    metrics = _cached_dashboard_metrics(str(start_date), str(end_date))
+    page_stats = _cached_page_stats(str(start_date), str(end_date))
+    session_stats = _cached_session_stats(str(start_date), str(end_date))
+    conversion_stats = _cached_conversion_stats(str(start_date), str(end_date))
 
     # Build date range string for filenames
     start_str = str(start_date).replace("-", "")

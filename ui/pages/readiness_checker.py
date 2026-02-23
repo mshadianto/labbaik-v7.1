@@ -353,7 +353,7 @@ COACHING_CSS = """
 }
 
 .coaching-step:hover {
-    border-color: #555;
+    border-color: #6b7280;
 }
 
 .coaching-step::before {
@@ -370,7 +370,7 @@ COACHING_CSS = """
 
 .coaching-step.step-pending::before {
     background: #333;
-    border-color: #666;
+    border-color: #6b7280;
 }
 
 .coaching-step.step-current::before {

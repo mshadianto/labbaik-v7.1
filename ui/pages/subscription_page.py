@@ -323,7 +323,7 @@ SUBSCRIPTION_CSS = """
 }
 
 .plan-feature-item .feat-icon.yes { color: #4ade80; }
-.plan-feature-item .feat-icon.no { color: #555; }
+.plan-feature-item .feat-icon.no { color: #b0b0b0; }
 .plan-feature-item .feat-icon.limited { color: #fbbf24; }
 
 /* Responsive adjustments for plan cards */

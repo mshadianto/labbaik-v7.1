@@ -873,7 +873,7 @@ def render_ai_suggestions(profile: Dict, checklist: Dict, checked_items: Dict):
             )
     else:
         st.markdown(
-            '<div class="ai-suggestion-card" role="status" aria-live="polite" style="border-color:#555;opacity:0.7;">'
+            '<div class="ai-suggestion-card" role="status" aria-live="polite" style="border-color:#6b7280;opacity:0.7;">'
             '<p style="color:#b0b0b0;text-align:center;">'
             'Klik tombol di atas untuk mendapatkan saran item berdasarkan checklist Anda.'
             '</p>'
@@ -1130,7 +1130,7 @@ def render_ai_packing_tips(profile: Dict, checklist: Dict, checked_items: Dict):
         )
     else:
         st.markdown(
-            '<div class="ai-card" role="status" aria-live="polite" style="border-color:#555;opacity:0.7;">'
+            '<div class="ai-card" role="status" aria-live="polite" style="border-color:#6b7280;opacity:0.7;">'
             '<p style="color:#b0b0b0;text-align:center;">Klik tombol di atas untuk mendapatkan tips packing '
             'yang dipersonalisasi berdasarkan profil Anda.</p>'
             '</div>',

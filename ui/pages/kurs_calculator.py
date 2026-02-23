@@ -342,11 +342,7 @@ BASE_RATES = {
     "USD_SAR": 3.75,
 }
 
-# Live rate cache TTL (30 minutes)
-_RATE_CACHE_TTL_MINUTES = 30
-
-
-def fetch_live_rates() -> Optional[Dict]:
+def _fetch_live_rates() -> Optional[Dict]:
     """Fetch live exchange rates from free API. Returns None on failure."""
     try:
         resp = requests.get(
@@ -373,30 +369,16 @@ def fetch_live_rates() -> Optional[Dict]:
         return None
 
 
+@st.cache_data(ttl=1800, show_spinner="Memuat kurs terbaru...")
 def get_current_rates() -> Dict:
     """Get current exchange rates (live if available, else hardcoded fallback).
 
-    Caches live rates in session state for _RATE_CACHE_TTL_MINUTES.
+    Cached for 30 minutes via @st.cache_data.
     """
-    now = datetime.now()
-
-    # Check session cache
-    cached = st.session_state.get("_kurs_live_rates")
-    fetched_at = st.session_state.get("_kurs_fetched_at")
-
-    if cached and fetched_at:
-        age = now - fetched_at
-        if age < timedelta(minutes=_RATE_CACHE_TTL_MINUTES):
-            return cached
-
-    # Try fetch
-    live = fetch_live_rates()
+    live = _fetch_live_rates()
     if live:
-        st.session_state["_kurs_live_rates"] = live
-        st.session_state["_kurs_fetched_at"] = now
         return live
 
-    # Fallback
     return {
         **BASE_RATES,
         "last_updated": None,

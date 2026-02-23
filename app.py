@@ -518,6 +518,9 @@ except ImportError:
 
 def init_session_state():
     """Initialize all session state variables."""
+    if st.session_state.get("_session_initialized"):
+        return
+
     defaults = {
         # Navigation
         "current_page": "home",
@@ -603,6 +606,8 @@ def init_session_state():
     for key, value in defaults.items():
         if key not in st.session_state:
             st.session_state[key] = value
+
+    st.session_state._session_initialized = True
 
 
 # =============================================================================
@@ -739,13 +744,19 @@ WEEKLY_CHALLENGES = [
 # GAMIFICATION SYSTEM
 # =============================================================================
 
+LEVEL_TITLES = {
+    1: "Pemula", 2: "Pelajar", 3: "Praktisi", 4: "Ahli", 5: "Master",
+    6: "Guru", 7: "Ulama", 8: "Syaikh", 9: "Mufti", 10: "Grand Master",
+}
+
+SIDEBAR_LEVEL_TITLES = {
+    0: "Pemula", 1: "Penjelajah", 2: "Perencana", 3: "Ahli", 4: "Master",
+}
+
+
 def get_level_title(level: int) -> str:
     """Get title based on level."""
-    titles = {
-        1: "Pemula", 2: "Pelajar", 3: "Praktisi", 4: "Ahli", 5: "Master",
-        6: "Guru", 7: "Ulama", 8: "Syaikh", 9: "Mufti", 10: "Grand Master"
-    }
-    return titles.get(level, "Legend")
+    return LEVEL_TITLES.get(level, "Legend")
 
 
 def add_xp(amount: int, reason: str = ""):
@@ -826,11 +837,7 @@ def check_achievements():
 
         # --- Evaluate each condition ---
         if condition_key == "pages_visited_count":
-            # Count pages visited (session state keys like "visited_<page>")
-            visited = sum(
-                1 for k in st.session_state
-                if isinstance(k, str) and k.startswith("visited_") and st.session_state[k]
-            )
+            visited = st.session_state.get("_visited_pages_count", 0)
             met = visited >= 5
 
         elif condition_key == "readiness_completed":
@@ -1005,7 +1012,6 @@ def render_visitor_analytics_status():
 # =============================================================================
 
 PAGE_FEEDBACK_CSS = """
-<style>
 .page-feedback-section {
     margin-top: 40px; padding: 20px;
     background: rgba(255,255,255,0.03);
@@ -1019,8 +1025,10 @@ PAGE_FEEDBACK_CSS = """
 .feedback-thanks {
     color: #22c55e; font-size: 0.9rem; margin-top: 8px;
 }
-</style>
 """
+
+# Strip <style> tags from gamification CSS for consolidation (defined below)
+# Combined CSS is injected once in main() to reduce DOM style tags.
 
 
 def _get_feedback_summary() -> dict:
@@ -1051,8 +1059,7 @@ def render_page_feedback():
     if page in st.session_state.get("page_feedback", {}):
         return
 
-    # Inject CSS on every rerun (Streamlit rebuilds the page each time)
-    st.markdown(PAGE_FEEDBACK_CSS, unsafe_allow_html=True)
+    # CSS is injected once via APP_COMBINED_CSS in main()
 
     # Collapsible container so it stays non-intrusive
     st.markdown(
@@ -1103,7 +1110,6 @@ def render_page_feedback():
 # =============================================================================
 
 GAMIFICATION_SIDEBAR_CSS = """
-<style>
 .gamification-sidebar {
     background: linear-gradient(145deg, #1a1a2e 0%, #16213e 100%);
     border: 1px solid rgba(212, 175, 55, 0.3);
@@ -1200,28 +1206,38 @@ GAMIFICATION_SIDEBAR_CSS = """
     color: #fb923c;
     font-weight: bold;
 }
-</style>
 """
+
+# --- Combined CSS: injected once in main() to reduce <style> tag count ---
+APP_COMBINED_CSS = (
+    "<style>\n"
+    + PAGE_FEEDBACK_CSS + "\n"
+    + GAMIFICATION_SIDEBAR_CSS + "\n"
+    + "@keyframes fadeIn {\n"
+    + "    from { opacity: 0; transform: translateY(8px); }\n"
+    + "    to { opacity: 1; transform: translateY(0); }\n"
+    + "}\n"
+    + "section.main .block-container { animation: fadeIn 0.3s ease-out; }\n"
+    + "#main-content { scroll-margin-top: 1rem; }\n"
+    + "html, section.main { scroll-behavior: smooth; }\n"
+    + "@media (prefers-reduced-motion: reduce) {\n"
+    + "    section.main .block-container { animation: none; }\n"
+    + "    html, section.main { scroll-behavior: auto; }\n"
+    + "}\n"
+    + "</style>"
+)
 
 
 def _get_sidebar_level_title(level: int) -> str:
     """Get gamification level title for sidebar display."""
-    titles = {
-        0: "Pemula",
-        1: "Penjelajah",
-        2: "Perencana",
-        3: "Ahli",
-        4: "Master",
-    }
     if level >= 5:
         return "Legend"
-    return titles.get(level, "Pemula")
+    return SIDEBAR_LEVEL_TITLES.get(level, "Pemula")
 
 
 def render_gamification_sidebar():
     """Render compact gamification summary in the sidebar."""
-    # Inject CSS on every rerun (Streamlit rebuilds the page each time)
-    st.markdown(GAMIFICATION_SIDEBAR_CSS, unsafe_allow_html=True)
+    # CSS is injected once via APP_COMBINED_CSS in main()
 
     xp = st.session_state.get("xp", 0)
     # Sidebar level uses XP // 100 scheme (different from main level system)
@@ -1609,7 +1625,7 @@ def render_sidebar():
         # Footer
         st.markdown(f"""
         <div style="text-align: center; padding: 1rem 0;">
-            <p style="color: #666; font-size: 0.75rem;">
+            <p style="color: #8e9fb3; font-size: 0.75rem;">
                 {get_display_version()}<br>
                 © 2026 MS Hadianto
             </p>
@@ -1772,6 +1788,7 @@ def main():
     visit_key = f"visited_{page}"
     if not st.session_state.get(visit_key):
         st.session_state[visit_key] = True
+        st.session_state["_visited_pages_count"] = st.session_state.get("_visited_pages_count", 0) + 1
         add_xp(5, f"Mengunjungi {page}")
     
     # Check for SOS trigger from any page
@@ -1779,22 +1796,8 @@ def main():
         st.session_state.current_page = "sos"
         st.rerun()
     
-    # Global UX CSS (page transitions, smooth scroll)
-    st.markdown("""
-    <style>
-    @keyframes fadeIn {
-        from { opacity: 0; transform: translateY(8px); }
-        to { opacity: 1; transform: translateY(0); }
-    }
-    section.main .block-container { animation: fadeIn 0.3s ease-out; }
-    #main-content { scroll-margin-top: 1rem; }
-    html, section.main { scroll-behavior: smooth; }
-    @media (prefers-reduced-motion: reduce) {
-        section.main .block-container { animation: none; }
-        html, section.main { scroll-behavior: auto; }
-    }
-    </style>
-    """, unsafe_allow_html=True)
+    # Global UX CSS — combined: page feedback, gamification sidebar, transitions
+    st.markdown(APP_COMBINED_CSS, unsafe_allow_html=True)
 
     # Skip-to-content link (accessibility)
     st.markdown('<a href="#main-content" class="skip-to-content">Langsung ke konten utama</a>', unsafe_allow_html=True)

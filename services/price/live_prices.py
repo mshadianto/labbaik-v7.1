@@ -316,6 +316,41 @@ class LivePriceService:
 
 
 # =============================================================================
+# CACHED WRAPPERS (survive Streamlit reruns unlike instance-level cache)
+# =============================================================================
+
+@st.cache_data(ttl=300, show_spinner=False)
+def get_cached_live_packages(limit: int = 5) -> list:
+    """Cached wrapper for cheapest packages. Returns list of dicts."""
+    service = LivePriceService()
+    packages = service.get_cheapest_packages(limit)
+    return [
+        {
+            "id": p.id, "name": p.name, "travel_agent": p.travel_agent,
+            "price": p.price, "original_price": p.original_price,
+            "discount_percent": p.discount_percent,
+            "duration_days": p.duration_days,
+            "hotel_makkah": p.hotel_makkah, "hotel_makkah_stars": p.hotel_makkah_stars,
+            "hotel_madinah": p.hotel_madinah, "hotel_madinah_stars": p.hotel_madinah_stars,
+            "departure_city": p.departure_city, "rating": p.rating,
+            "is_promo": p.is_promo, "is_featured": p.is_featured,
+            "seats_available": p.seats_available,
+        }
+        for p in packages
+    ]
+
+
+@st.cache_data(ttl=300, show_spinner=False)
+def get_cached_price_stats() -> dict:
+    """Cached wrapper for price statistics."""
+    service = LivePriceService()
+    stats = service.get_price_stats()
+    if stats and "last_updated" in stats:
+        stats["last_updated"] = str(stats["last_updated"])
+    return stats
+
+
+# =============================================================================
 # STREAMLIT UI COMPONENTS
 # =============================================================================
 

@@ -120,7 +120,7 @@ class DatabaseConnection:
                 pass
 
             self._pool = pool.ThreadedConnectionPool(
-                minconn=2,  # was 1 - keep more connections warm
+                minconn=5,  # was 2 - keep more connections warm for analytics
                 maxconn=pool_size,
                 dsn=self._connection_string
             )

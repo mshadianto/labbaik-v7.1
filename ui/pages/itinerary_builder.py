@@ -1218,7 +1218,7 @@ def generate_printable_html(itinerary: List[dict], start_date: date) -> str:
         "  .col-catatan {\n"
         "    width: 200px;\n"
         "    font-size: 0.85rem;\n"
-        "    color: #555;\n"
+        "    color: #b0b0b0;\n"
         "  }\n"
         "\n"
         "  /* === Tags === */\n"

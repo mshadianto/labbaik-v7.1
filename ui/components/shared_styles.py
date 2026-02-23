@@ -18,6 +18,34 @@ FONT_IMPORT = "@import url('https://fonts.googleapis.com/css2?family=Amiri:wght@
 
 
 # =============================================================================
+# CSS CUSTOM PROPERTIES (design tokens for consistent theming)
+# =============================================================================
+
+CSS_VARIABLES = """
+:root {
+    --brand-gold: #d4af37;
+    --brand-gold-light: #f4d03f;
+    --bg-dark-primary: #0d1b2a;
+    --bg-dark-secondary: #1a1a2e;
+    --bg-card: linear-gradient(145deg, #1a1a2e 0%, #1e293b 100%);
+    --border-default: #333;
+    --border-highlight: #334155;
+    --text-primary: #fafafa;
+    --text-secondary: #b0b0b0;
+    --text-muted: #8e9fb3;
+    --text-accent: #b8c5d4;
+    --color-success: #4ade80;
+    --color-warning: #fbbf24;
+    --color-danger: #f87171;
+    --color-info: #60a5fa;
+    --radius-sm: 8px;
+    --radius-md: 12px;
+    --radius-lg: 20px;
+}
+"""
+
+
+# =============================================================================
 # HERO BANNER (shared structure, pages override colors via variables)
 # =============================================================================
 
@@ -579,7 +607,7 @@ def inject_css(*css_blocks):
     Usage:
         inject_css(HERO_CSS, CARD_CSS, MY_PAGE_OVERRIDES)
     """
-    combined = FONT_IMPORT + "\n" + "\n".join(css_blocks) + "\n" + RESPONSIVE_CSS + "\n" + ACCESSIBILITY_CSS
+    combined = CSS_VARIABLES + "\n" + FONT_IMPORT + "\n" + "\n".join(css_blocks) + "\n" + RESPONSIVE_CSS + "\n" + ACCESSIBILITY_CSS
     st.markdown(f"<style>{combined}</style>", unsafe_allow_html=True)
 
 
