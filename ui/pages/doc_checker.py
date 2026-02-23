@@ -635,6 +635,9 @@ DOC_CHECKER_CSS = """
 }
 """
 
+# Pre-built default checklist (avoids rebuilding dict on every page load)
+_DEFAULT_DOC_CHECKLIST = {doc["id"]: "belum" for doc in REQUIRED_DOCUMENTS}
+
 # =============================================================================
 # SESSION STATE
 # =============================================================================
@@ -642,7 +645,7 @@ DOC_CHECKER_CSS = """
 def init_doc_checker_state():
     """Initialize all session state keys for doc checker."""
     if "doc_checklist" not in st.session_state:
-        st.session_state.doc_checklist = {doc["id"]: "belum" for doc in REQUIRED_DOCUMENTS}
+        st.session_state.doc_checklist = _DEFAULT_DOC_CHECKLIST.copy()
     if "doc_details" not in st.session_state:
         st.session_state.doc_details = {"paspor_expiry": None, "departure_date": None}
     if "doc_tips_cache" not in st.session_state:
@@ -797,24 +800,17 @@ def render_departure_date_input():
     return dep_date
 
 
-def render_alert_banner(departure_date: date):
+def render_alert_banner(departure_date: date, doc_urgencies: list = None):
     """Render an alert banner if any documents are overdue or urgent.
 
     Shows a prominent warning at the top when documents need immediate attention.
+    Accepts pre-computed doc_urgencies to avoid duplicate calculation.
     """
-    if not departure_date:
+    if not departure_date or not doc_urgencies:
         return
 
-    documents = REQUIRED_DOCUMENTS
-    terlambat_docs = []
-    segera_docs = []
-
-    for doc in documents:
-        info = _calculate_urgency(doc, departure_date)
-        if info["urgency"] == "terlambat":
-            terlambat_docs.append(doc)
-        elif info["urgency"] == "segera":
-            segera_docs.append(doc)
+    terlambat_docs = [d["doc"] for d in doc_urgencies if d["urgency"] == "terlambat"]
+    segera_docs = [d["doc"] for d in doc_urgencies if d["urgency"] == "segera"]
 
     total_attention = len(terlambat_docs) + len(segera_docs)
 
@@ -851,7 +847,7 @@ def render_alert_banner(departure_date: date):
 # UI: DEPARTURE-AWARE DOCUMENT TIMELINE
 # =============================================================================
 
-def render_doc_timeline(departure_date: date, documents: List[Dict]):
+def render_doc_timeline(departure_date: date, documents: List[Dict], doc_urgencies: list = None):
     """Render a departure-date-aware document timeline with urgency grouping.
 
     Documents are grouped by urgency (Terlambat, Segera, Aman, Selesai)
@@ -860,6 +856,7 @@ def render_doc_timeline(departure_date: date, documents: List[Dict]):
     Args:
         departure_date: The planned departure date.
         documents: List of document dicts from REQUIRED_DOCUMENTS.
+        doc_urgencies: Pre-computed urgency data (avoids duplicate calculation).
     """
     if not departure_date:
         st.info("Masukkan tanggal keberangkatan di atas untuk melihat timeline persiapan dokumen.")
@@ -879,11 +876,12 @@ def render_doc_timeline(departure_date: date, documents: List[Dict]):
         """, unsafe_allow_html=True)
         return
 
-    # Calculate urgency for each document
-    doc_urgencies = []
-    for doc in documents:
-        info = _calculate_urgency(doc, departure_date)
-        doc_urgencies.append({"doc": doc, **info})
+    # Use pre-computed urgencies or calculate if not provided
+    if doc_urgencies is None:
+        doc_urgencies = [
+            {"doc": doc, **_calculate_urgency(doc, departure_date)}
+            for doc in documents
+        ]
 
     # Group by urgency
     groups = {
@@ -1046,7 +1044,7 @@ def render_doc_timeline(departure_date: date, documents: List[Dict]):
 
 def render_hero():
     """Render the hero banner at the top of the page."""
-    inject_css(HERO_CSS, CARD_CSS, AI_CARD_CSS, PROGRESS_CSS, DOC_CHECKER_CSS)
+    inject_css(HERO_CSS, CARD_CSS, AI_CARD_CSS, PROGRESS_CSS, SKELETON_CSS, DOC_CHECKER_CSS)
 
     st.markdown("""
     <div class="doc-hero">
@@ -1304,7 +1302,6 @@ def render_document_checklist():
         if st.session_state.get(f"show_tips_{doc_id}", False):
             skeleton_placeholder = st.empty()
             with skeleton_placeholder:
-                st.markdown(SKELETON_CSS, unsafe_allow_html=True)
                 render_skeleton(skeleton_type="text")
 
             with st.spinner(f"Memuat tips untuk {doc['name']}..."):
@@ -1455,13 +1452,21 @@ def render_doc_checker_page():
     # Departure date input at the top
     departure_date = render_departure_date_input()
 
+    # Pre-compute urgencies once for both alert banner and timeline
+    doc_urgencies = None
+    if departure_date:
+        doc_urgencies = [
+            {"doc": doc, **_calculate_urgency(doc, departure_date)}
+            for doc in REQUIRED_DOCUMENTS
+        ]
+
     # Alert banner (shows if any documents are overdue/urgent)
-    render_alert_banner(departure_date)
+    render_alert_banner(departure_date, doc_urgencies)
 
     st.divider()
 
     # Departure-aware document timeline
-    render_doc_timeline(departure_date, REQUIRED_DOCUMENTS)
+    render_doc_timeline(departure_date, REQUIRED_DOCUMENTS, doc_urgencies)
 
     st.divider()
 

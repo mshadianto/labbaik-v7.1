@@ -603,6 +603,15 @@ QA_DATABASE = [
     },
 ]
 
+# Pre-built lookup dicts for O(1) access (avoid repeated list scans)
+_QA_DATABASE_BY_ID = {entry["id"]: entry for entry in QA_DATABASE}
+_QA_BY_CATEGORY: Dict[str, list] = {}
+for _entry in QA_DATABASE:
+    _QA_BY_CATEGORY.setdefault(_entry["category"], []).append(_entry)
+_POPULAR_BY_CATEGORY: Dict[str, list] = {}
+for _pq in POPULAR_QUESTIONS:
+    _POPULAR_BY_CATEGORY.setdefault(_pq["cat"], []).append(_pq)
+
 # Fallback answers for when AI service is unavailable
 FALLBACK_ANSWERS = {
     "rukun umrah": """**Jawaban:**
@@ -1292,11 +1301,11 @@ def render_popular_questions():
 
     current_cat = st.session_state.get("tanya_category", "semua")
 
-    # Filter by category
+    # Filter by category (O(1) lookup via pre-built dict)
     if current_cat == "semua":
         filtered = POPULAR_QUESTIONS
     else:
-        filtered = [pq for pq in POPULAR_QUESTIONS if pq["cat"] == current_cat]
+        filtered = _POPULAR_BY_CATEGORY.get(current_cat, [])
 
     if not filtered:
         st.markdown("""
@@ -1349,23 +1358,16 @@ def _fuzzy_match(query: str, text: str) -> bool:
 
 def _get_qa_entry_views(qa_id: str) -> int:
     """Get the combined static + session view count for a QA entry."""
-    # Static base from QA_DATABASE
-    base_views = 0
-    for entry in QA_DATABASE:
-        if entry["id"] == qa_id:
-            base_views = entry.get("views", 0)
-            break
+    entry = _QA_DATABASE_BY_ID.get(qa_id, {})
+    base_views = entry.get("views", 0)
     session_views = st.session_state.get("qa_db_views", {}).get(qa_id, 0)
     return base_views + session_views
 
 
 def _get_qa_entry_helpful(qa_id: str) -> int:
     """Get the combined static + session helpful count for a QA entry."""
-    base_helpful = 0
-    for entry in QA_DATABASE:
-        if entry["id"] == qa_id:
-            base_helpful = entry.get("helpful", 0)
-            break
+    entry = _QA_DATABASE_BY_ID.get(qa_id, {})
+    base_helpful = entry.get("helpful", 0)
     session_helpful = st.session_state.get("qa_db_helpful", {}).get(qa_id, 0)
     return base_helpful + session_helpful
 
@@ -1427,18 +1429,15 @@ def render_qa_database():
             label_visibility="collapsed",
         )
 
-    # --- Filter entries ---
-    filtered_entries = []
-    for entry in QA_DATABASE:
-        # Category filter
-        if selected_cat_db != "semua" and entry["category"] != selected_cat_db:
-            continue
-        # Search filter (fuzzy match on question + answer)
-        if search_query and search_query.strip():
-            combined_text = entry["question"] + " " + entry["answer"]
-            if not _fuzzy_match(search_query, combined_text):
-                continue
-        filtered_entries.append(entry)
+    # --- Filter entries (category via pre-built dict, then search) ---
+    base_entries = _QA_BY_CATEGORY.get(selected_cat_db, QA_DATABASE) if selected_cat_db != "semua" else QA_DATABASE
+    if search_query and search_query.strip():
+        filtered_entries = [
+            entry for entry in base_entries
+            if _fuzzy_match(search_query, entry["question"] + " " + entry["answer"])
+        ]
+    else:
+        filtered_entries = list(base_entries)
 
     # --- Sort entries ---
     if sort_mode == "Terpopuler":

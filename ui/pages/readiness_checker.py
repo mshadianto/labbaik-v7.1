@@ -23,6 +23,12 @@ except Exception:
     _DOC_CHECKER_DOCUMENTS = None
     _DOC_CHECKER_TOTAL = 11  # fallback count
 
+def _escape_html(text: str) -> str:
+    """Escape HTML special chars and convert newlines to <br>."""
+    return (text.replace("&", "&amp;").replace("<", "&lt;")
+            .replace(">", "&gt;").replace("\n", "<br>"))
+
+
 # =============================================================================
 # STYLING
 # =============================================================================
@@ -1084,7 +1090,7 @@ def generate_ai_recommendations(score: Dict, answers: Dict) -> str:
 
 def render_hero():
     """Render hero section with CSS."""
-    inject_css(HERO_CSS, CARD_CSS, AI_CARD_CSS, BADGE_CSS, READINESS_CSS)
+    inject_css(HERO_CSS, CARD_CSS, AI_CARD_CSS, BADGE_CSS, SKELETON_CSS, READINESS_CSS)
 
     st.markdown("""
     <div class="readiness-hero">
@@ -1303,7 +1309,7 @@ def render_recommendations(recs: str):
     st.markdown("### Rekomendasi AI untuk Anda")
 
     if recs:
-        escaped = recs.replace("<", "&lt;").replace(">", "&gt;").replace(chr(10), '<br>')
+        escaped = _escape_html(recs)
         st.markdown(
             f"""
             <div class="rec-card" role="status" aria-live="polite">
@@ -1617,7 +1623,6 @@ def _render_coaching_ai_tip(
 
     skeleton_placeholder = st.empty()
     with skeleton_placeholder:
-        st.markdown(SKELETON_CSS, unsafe_allow_html=True)
         render_skeleton(skeleton_type="text")
 
     with st.spinner("AI menyiapkan tip coaching personal..."):
@@ -1630,7 +1635,7 @@ def _render_coaching_ai_tip(
     skeleton_placeholder.empty()
 
     if ai_tip:
-        escaped = ai_tip.replace("<", "&lt;").replace(">", "&gt;").replace(chr(10), "<br>")
+        escaped = _escape_html(ai_tip)
         st.markdown(
             f'<div class="coaching-ai-tip" role="status" aria-live="polite">'
             f'<h4><span aria-hidden="true">\U0001f4a1</span> Tip Coach AI untuk Anda</h4>'
@@ -1906,7 +1911,6 @@ def render_readiness_checker_page():
         # Generate AI recommendations — show skeleton while loading
         skeleton_placeholder = st.empty()
         with skeleton_placeholder:
-            st.markdown(SKELETON_CSS, unsafe_allow_html=True)
             render_skeleton(skeleton_type="text")
             render_skeleton(skeleton_type="cards", count=2)
 
