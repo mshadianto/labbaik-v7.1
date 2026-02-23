@@ -1303,11 +1303,12 @@ def render_recommendations(recs: str):
     st.markdown("### Rekomendasi AI untuk Anda")
 
     if recs:
+        escaped = recs.replace("<", "&lt;").replace(">", "&gt;").replace(chr(10), '<br>')
         st.markdown(
             f"""
             <div class="rec-card" role="status" aria-live="polite">
                 <h4>Rekomendasi Personal dari AI</h4>
-                <p>{recs.replace(chr(10), '<br>')}</p>
+                <p>{escaped}</p>
             </div>
             """,
             unsafe_allow_html=True,
@@ -1629,10 +1630,11 @@ def _render_coaching_ai_tip(
     skeleton_placeholder.empty()
 
     if ai_tip:
+        escaped = ai_tip.replace("<", "&lt;").replace(">", "&gt;").replace(chr(10), "<br>")
         st.markdown(
             f'<div class="coaching-ai-tip" role="status" aria-live="polite">'
             f'<h4><span aria-hidden="true">\U0001f4a1</span> Tip Coach AI untuk Anda</h4>'
-            f'<p>{ai_tip.replace(chr(10), "<br>")}</p>'
+            f'<p>{escaped}</p>'
             f'</div>',
             unsafe_allow_html=True,
         )

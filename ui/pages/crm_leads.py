@@ -624,13 +624,13 @@ def render_add_lead_form():
                     lead_id = repo.create_lead(lead)
                     if lead_id:
                         # Audit log
-                        user = st.session_state.get("user", {})
+                        user = st.session_state.get("user")
                         audit_log(
                             action=AuditAction.CREATE,
                             entity_type="lead",
                             entity_id=lead_id,
-                            user_id=user.get("id"),
-                            user_email=user.get("email"),
+                            user_id=getattr(user, "id", None),
+                            user_email=getattr(user, "email", None),
                             details={"name": name.strip(), "phone": validated_phone, "source": source}
                         )
 

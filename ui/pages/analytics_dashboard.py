@@ -1037,7 +1037,8 @@ def render_ai_insights(db, start_date, end_date):
             response = ai_complete(prompt_text, system_prompt=system_prompt, max_tokens=1024)
 
         if response:
-            response_html = _markdown_to_html(response)
+            escaped = response.replace("<", "&lt;").replace(">", "&gt;")
+            response_html = _markdown_to_html(escaped)
             st.markdown(
 '<div class="ai-card" role="status" aria-live="polite">'
 '<h3>AI Analytics Insights</h3>'

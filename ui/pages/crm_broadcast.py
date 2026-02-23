@@ -51,10 +51,11 @@ def render_broadcast_templates():
                 max_tokens=300,
             )
             if template:
+                escaped = template.replace("<", "&lt;").replace(">", "&gt;")
                 st.markdown(f"""
                     <div class="ai-card" role="status" aria-live="polite">
-                        <h4>🤖 Template Hasil AI</h4>
-                        <p>{template}</p>
+                        <h4>Template Hasil AI</h4>
+                        <p>{escaped}</p>
                     </div>
                 """, unsafe_allow_html=True)
                 if not st.session_state.get("crm_broadcast_ai_xp"):

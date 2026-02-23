@@ -848,10 +848,12 @@ def render_ai_explanation(doa: Doa):
     # Show cached AI result
     cached = st.session_state.get(result_key)
     if cached:
+        escaped_name = doa.name.replace("<", "&lt;").replace(">", "&gt;")
+        escaped_cached = cached.replace("<", "&lt;").replace(">", "&gt;")
         st.markdown(
             '<div class="ai-card" role="status" aria-live="polite">'
-            '<h4>Penjelasan AI: ' + doa.name + '</h4>'
-            '<p>' + cached + '</p>'
+            '<h4>Penjelasan AI: ' + escaped_name + '</h4>'
+            '<p>' + escaped_cached + '</p>'
             '</div>',
             unsafe_allow_html=True,
         )
@@ -888,10 +890,11 @@ def render_ai_contextual_doa():
             response = ai_complete(prompt, system_prompt=DOA_SYSTEM_PROMPT, max_tokens=1024)
 
             if response:
+                escaped = response.replace("<", "&lt;").replace(">", "&gt;")
                 st.markdown(
                     '<div class="ai-card" role="status" aria-live="polite">'
                     '<h4>Saran Doa untuk Situasi Anda</h4>'
-                    '<p>' + response + '</p>'
+                    '<p>' + escaped + '</p>'
                     '</div>',
                     unsafe_allow_html=True,
                 )

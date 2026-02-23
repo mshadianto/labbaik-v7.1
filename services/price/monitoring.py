@@ -175,7 +175,7 @@ class PriceMonitor:
                     UNION ALL SELECT scraped_at FROM prices_hotels
                     UNION ALL SELECT scraped_at FROM prices_flights
                 ) all_updates
-                WHERE scraped_at >= CURRENT_DATE - INTERVAL '%s days'
+                WHERE scraped_at >= CURRENT_DATE - INTERVAL '1 day' * %s
                 GROUP BY DATE(scraped_at)
                 ORDER BY date DESC
             """

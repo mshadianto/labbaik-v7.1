@@ -1953,10 +1953,11 @@ def render_ai_analysis(itinerary, preferences, start_date):
             response = ai_complete(prompt, system_prompt=system_prompt, max_tokens=1024)
 
         if response:
-            html_content = _markdown_to_html_simple(response)
+            escaped = response.replace("<", "&lt;").replace(">", "&gt;")
+            html_content = _markdown_to_html_simple(escaped)
             st.markdown(
                 f'<div class="ai-card" role="status" aria-live="polite">'
-                f'<h4 style="color:#4ade80;margin-top:0;">\U0001f9e0 Analisis AI</h4>'
+                f'<h4 style="color:#4ade80;margin-top:0;">Analisis AI</h4>'
                 f'{html_content}'
                 f'</div>',
                 unsafe_allow_html=True,

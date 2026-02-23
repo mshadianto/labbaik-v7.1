@@ -823,10 +823,11 @@ def render_partnership_page():
                 max_tokens=300,
             )
             if tips:
+                escaped = tips.replace("<", "&lt;").replace(">", "&gt;")
                 st.markdown(f'''
                     <div class="ai-card" role="status" aria-live="polite">
                         <h4>Tips AI untuk Mitra</h4>
-                        <p>{tips}</p>
+                        <p>{escaped}</p>
                     </div>
                 ''', unsafe_allow_html=True)
             else:

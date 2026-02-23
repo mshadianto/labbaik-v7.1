@@ -549,7 +549,8 @@ def _render_ai_pricing_suggestion(quote):
                     st.session_state.quote_ai_xp_awarded = True
                     add_xp_safe(15, "Analisis harga AI untuk quote")
 
-                ai_html = _markdown_to_html_simple(response)
+                escaped = response.replace("<", "&lt;").replace(">", "&gt;")
+                ai_html = _markdown_to_html_simple(escaped)
                 card_html = (
                     '<div class="ai-card" role="status" aria-live="polite">'
                     '<h4>Analisis Harga AI</h4>'

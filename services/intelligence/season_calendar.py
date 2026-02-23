@@ -5,7 +5,7 @@ Auto-boost refresh & risk based on peak seasons.
 """
 
 from dataclasses import dataclass
-from datetime import date, datetime
+from datetime import date, datetime, timedelta
 from typing import List, Optional, Tuple
 from enum import Enum
 
@@ -192,16 +192,7 @@ class SeasonCalendar:
             if w > max_weight:
                 max_weight = w
             # Move to next day
-            current = date(
-                current.year,
-                current.month,
-                current.day + 1 if current.day < 28 else 1
-            )
-            if current.day == 1:
-                if current.month == 12:
-                    current = date(current.year + 1, 1, 1)
-                else:
-                    current = date(current.year, current.month + 1, 1)
+            current = current + timedelta(days=1)
 
             # Safety limit
             if (current - start_date).days > 30:

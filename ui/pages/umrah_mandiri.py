@@ -497,7 +497,8 @@ def render_xp_bar():
     nxt = next((lv for lv in LEVELS if lv["level"] > curr["level"]), None)
 
     if nxt:
-        prog = (st.session_state.um_xp - curr["min_xp"]) / (nxt["min_xp"] - curr["min_xp"])
+        denom = nxt["min_xp"] - curr["min_xp"]
+        prog = (st.session_state.um_xp - curr["min_xp"]) / denom if denom else 1.0
         xp_text = f"{st.session_state.um_xp} / {nxt['min_xp']} XP"
     else:
         prog = 1.0
@@ -888,10 +889,11 @@ def render_tab_manasik():
             response = ai_complete(prompt_text, system_prompt=system_prompt, max_tokens=768)
 
         if response:
+            escaped = response.replace("<", "&lt;").replace(">", "&gt;")
             st.markdown(
                 '<div class="ai-card" role="status" aria-live="polite">'
                 '<h4>Panduan AI - Manasik</h4>'
-                f'<p>{response}</p>'
+                f'<p>{escaped}</p>'
                 '</div>',
                 unsafe_allow_html=True,
             )
@@ -986,10 +988,11 @@ def render_tab_budget():
             response = ai_complete(prompt_text, system_prompt=system_prompt, max_tokens=768)
 
         if response:
+            escaped = response.replace("<", "&lt;").replace(">", "&gt;")
             st.markdown(
                 '<div class="ai-card" role="status" aria-live="polite">'
                 '<h4>Analisis AI - Budget Umrah</h4>'
-                f'<p>{response}</p>'
+                f'<p>{escaped}</p>'
                 '</div>',
                 unsafe_allow_html=True,
             )
@@ -1082,10 +1085,11 @@ def render_tab_visa():
             response = ai_complete(prompt_text, system_prompt=system_prompt, max_tokens=768)
 
         if response:
+            escaped = response.replace("<", "&lt;").replace(">", "&gt;")
             st.markdown(
                 '<div class="ai-card" role="status" aria-live="polite">'
                 '<h4>Panduan AI - Visa Umrah</h4>'
-                f'<p>{response}</p>'
+                f'<p>{escaped}</p>'
                 '</div>',
                 unsafe_allow_html=True,
             )
@@ -1165,10 +1169,11 @@ def render_tab_miqat():
             response = ai_complete(prompt_text, system_prompt=system_prompt, max_tokens=768)
 
         if response:
+            escaped = response.replace("<", "&lt;").replace(">", "&gt;")
             st.markdown(
                 '<div class="ai-card" role="status" aria-live="polite">'
-                '<h4>Panduan AI - Miqat & Ihram</h4>'
-                f'<p>{response}</p>'
+                '<h4>Panduan AI - Miqat &amp; Ihram</h4>'
+                f'<p>{escaped}</p>'
                 '</div>',
                 unsafe_allow_html=True,
             )

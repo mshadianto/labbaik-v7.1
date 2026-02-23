@@ -573,6 +573,6 @@ class TiketScraper(BaseScraper):
 
 def create_tiket_scraper(enabled: bool = True) -> TiketScraper:
     """Factory function to create TiketScraper."""
-    config = TiketScraper.DEFAULT_CONFIG
-    config.enabled = enabled
+    from dataclasses import replace
+    config = replace(TiketScraper.DEFAULT_CONFIG, enabled=enabled)
     return TiketScraper(config)

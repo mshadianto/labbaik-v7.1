@@ -435,7 +435,7 @@ def render_commission_summary(stats: Dict):
         )
 
     with col3:
-        avg_commission = stats['total_commission'] / stats['total_bookings'] / 1_000
+        avg_commission = stats['total_commission'] / max(stats['total_bookings'], 1) / 1_000
         st.metric(
             "Rata-rata per Booking",
             f"Rp {avg_commission:.0f}rb"
@@ -615,10 +615,11 @@ def render_ai_insights_section(stats: Dict, bookings: List[Dict], monthly_data: 
     if cache_key in st.session_state and st.session_state[cache_key]:
         # Show cached insights
         cached = st.session_state[cache_key]
+        escaped = cached.replace("<", "&lt;").replace(">", "&gt;")
         html = (
             '<div class="ai-card" role="status" aria-live="polite">'
-            '<h4>🤖 Analisis AI - Performa Bisnis Anda</h4>'
-            '<p>' + _markdown_to_html(cached) + '</p>'
+            '<h4>Analisis AI - Performa Bisnis Anda</h4>'
+            '<p>' + _markdown_to_html(escaped) + '</p>'
             '</div>'
         )
         st.markdown(html, unsafe_allow_html=True)
@@ -628,16 +629,17 @@ def render_ai_insights_section(stats: Dict, bookings: List[Dict], monthly_data: 
             "optimasi revenue, dan rekomendasi strategi."
         )
 
-    if st.button("🔍 Analisis Bisnis dengan AI", use_container_width=True):
+    if st.button("Analisis Bisnis dengan AI", use_container_width=True):
         with st.spinner("AI sedang menganalisis data bisnis Anda..."):
             response = generate_ai_business_insights(stats, bookings, monthly_data)
 
         if response:
             st.session_state[cache_key] = response
+            escaped = response.replace("<", "&lt;").replace(">", "&gt;")
             html = (
                 '<div class="ai-card" role="status" aria-live="polite">'
-                '<h4>🤖 Analisis AI - Performa Bisnis Anda</h4>'
-                '<p>' + _markdown_to_html(response) + '</p>'
+                '<h4>Analisis AI - Performa Bisnis Anda</h4>'
+                '<p>' + _markdown_to_html(escaped) + '</p>'
                 '</div>'
             )
             st.markdown(html, unsafe_allow_html=True)
@@ -777,7 +779,7 @@ def render_partner_dashboard():
         )
 
     with col2:
-        confirm_pct = stats['confirmed_bookings'] / stats['total_bookings'] * 100
+        confirm_pct = stats['confirmed_bookings'] / max(stats['total_bookings'], 1) * 100
         st.metric(
             "Booking Confirmed",
             stats['confirmed_bookings'],
@@ -794,7 +796,7 @@ def render_partner_dashboard():
         )
 
     with col4:
-        avg_per_booking = stats['total_travelers'] / stats['total_bookings']
+        avg_per_booking = stats['total_travelers'] / max(stats['total_bookings'], 1)
         st.metric(
             "Total Jamaah",
             stats['total_travelers'],

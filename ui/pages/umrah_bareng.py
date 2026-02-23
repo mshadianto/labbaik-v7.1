@@ -1704,7 +1704,7 @@ def _render_create_community_form():
             return
 
         current_user = st.session_state.get("ub_current_user")
-        owner_id = current_user.id if current_user else "user_0"
+        owner_id = current_user.user_id if current_user else "user_0"
         owner_name = current_user.name if current_user else "Anda"
 
         new_community = Community(
@@ -2009,10 +2009,11 @@ def render_ai_recommendation():
     # Render stored AI response
     ai_response = st.session_state.get("ub_ai_response")
     if ai_response:
-        html_content = _markdown_to_html_simple(ai_response)
+        escaped = ai_response.replace("<", "&lt;").replace(">", "&gt;")
+        html_content = _markdown_to_html_simple(escaped)
         ai_card_html = (
             '<div class="ai-card" role="status" aria-live="polite">'
-            '<h4>🧠 Rekomendasi AI untuk Anda</h4>'
+            '<h4>Rekomendasi AI untuk Anda</h4>'
             '<p>' + html_content + '</p>'
             '</div>'
         )

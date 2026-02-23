@@ -657,12 +657,14 @@ def sar_to_idr(amount: float) -> float:
 
 def idr_to_sar(amount: float) -> float:
     """Convert IDR to SAR using live or fallback rates."""
-    return amount / get_current_rates()["SAR_IDR"]
+    rate = get_current_rates()["SAR_IDR"]
+    return amount / rate if rate else 0.0
 
 
 def sar_to_usd(amount: float) -> float:
     """Convert SAR to USD using live or fallback rates."""
-    return amount / get_current_rates()["USD_SAR"]
+    rate = get_current_rates()["USD_SAR"]
+    return amount / rate if rate else 0.0
 
 
 def format_sar(amount: float) -> str:
@@ -1117,10 +1119,11 @@ def render_tips_and_analysis():
             )
 
             if response:
+                escaped = response.replace("<", "&lt;").replace(">", "&gt;")
                 st.markdown(
                     f'<div class="ai-card" role="status" aria-live="polite">'
-                    f'<h3>\U0001f9e0 Hasil Analisis AI</h3>'
-                    f'<p>{_markdown_to_html_simple(response)}</p>'
+                    f'<h3>Hasil Analisis AI</h3>'
+                    f'<p>{_markdown_to_html_simple(escaped)}</p>'
                     f'</div>',
                     unsafe_allow_html=True,
                 )

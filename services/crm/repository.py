@@ -41,22 +41,37 @@ class CRMRepository:
         self.db = get_db()
 
     def _execute(self, query: str, params: tuple = None) -> Optional[List[Dict]]:
-        """Execute query and return results."""
+        """Execute query and return results as list of dicts."""
         if not self.db:
             logger.error("Database not available")
             return None
         try:
-            return self.db.execute(query, params)
+            return self.db.fetch_all(query, params)
         except Exception as e:
             logger.error(f"Query failed: {e}")
             return None
 
+    def _execute_write(self, query: str, params: tuple = None) -> int:
+        """Execute write query (INSERT/UPDATE/DELETE) and return affected rows."""
+        if not self.db:
+            logger.error("Database not available")
+            return 0
+        try:
+            return self.db.execute(query, params)
+        except Exception as e:
+            logger.error(f"Query failed: {e}")
+            return 0
+
     def _execute_one(self, query: str, params: tuple = None) -> Optional[Dict]:
         """Execute query and return single result."""
-        results = self._execute(query, params)
-        if results and len(results) > 0:
-            return results[0]
-        return None
+        if not self.db:
+            logger.error("Database not available")
+            return None
+        try:
+            return self.db.fetch_one(query, params)
+        except Exception as e:
+            logger.error(f"Query failed: {e}")
+            return None
 
     # =========================================================================
     # LEADS
@@ -149,7 +164,7 @@ class CRMRepository:
         params = list(safe_updates.values()) + [lead_id]
 
         query = f"UPDATE leads SET {set_clause}, updated_at = NOW() WHERE id = %s"
-        self._execute(query, tuple(params))
+        self._execute_write(query, tuple(params))
         return True
 
     def update_lead_status(self, lead_id: str, status: str) -> bool:
@@ -282,7 +297,7 @@ class CRMRepository:
         params = list(safe_updates.values()) + [jamaah_id]
 
         query = f"UPDATE jamaah SET {set_clause}, updated_at = NOW() WHERE id = %s"
-        self._execute(query, tuple(params))
+        self._execute_write(query, tuple(params))
         return True
 
     def find_jamaah_by_phone(self, phone: str) -> Optional[Jamaah]:
@@ -401,7 +416,7 @@ class CRMRepository:
         params = list(safe_updates.values()) + [booking_id]
 
         query = f"UPDATE bookings SET {set_clause}, updated_at = NOW() WHERE id = %s"
-        self._execute(query, tuple(params))
+        self._execute_write(query, tuple(params))
         return True
 
     def update_booking_payment(self, booking_id: str, amount_paid: int, payment_status: str) -> bool:
@@ -454,7 +469,7 @@ class CRMRepository:
             SET status = 'confirmed', paid_at = NOW(), confirmed_at = NOW(), confirmed_by = %s
             WHERE id = %s
         """
-        self._execute(query, (confirmed_by, payment_id))
+        self._execute_write(query, (confirmed_by, payment_id))
 
         # Update booking payment totals
         payment_query = "SELECT booking_id, amount FROM payments WHERE id = %s"
@@ -552,7 +567,7 @@ class CRMRepository:
         params = list(safe_updates.values()) + [doc_id]
 
         query = f"UPDATE documents SET {set_clause}, updated_at = NOW() WHERE id = %s"
-        self._execute(query, tuple(params))
+        self._execute_write(query, tuple(params))
         return True
 
     def verify_document(self, doc_id: str, verified_by: str) -> bool:
@@ -857,7 +872,7 @@ class CRMRepository:
                 COUNT(*) as bookings,
                 COALESCE(SUM(total_price), 0) as revenue
             FROM bookings
-            WHERE created_at >= NOW() - INTERVAL '%s days'
+            WHERE created_at >= NOW() - INTERVAL '1 day' * %s
             GROUP BY DATE(created_at)
             ORDER BY date
         """
@@ -871,7 +886,7 @@ class CRMRepository:
                 COUNT(*) as leads,
                 COUNT(*) FILTER (WHERE status = 'won') as converted
             FROM leads
-            WHERE created_at >= NOW() - INTERVAL '%s days'
+            WHERE created_at >= NOW() - INTERVAL '1 day' * %s
             GROUP BY DATE(created_at)
             ORDER BY date
         """

@@ -1725,10 +1725,11 @@ def render_savings_insights():
             response = ai_complete(prompt_text, system_prompt=system_prompt, max_tokens=1024)
 
             if response:
+                escaped = response.replace("<", "&lt;").replace(">", "&gt;")
                 st.markdown(f"""
                 <div class="insight-card" role="status" aria-live="polite">
-                    <h3>\U0001f4a1 Hasil Analisis AI</h3>
-                    {_markdown_to_html_simple(response)}
+                    <h3>Hasil Analisis AI</h3>
+                    {_markdown_to_html_simple(escaped)}
                 </div>
                 """, unsafe_allow_html=True)
             else:

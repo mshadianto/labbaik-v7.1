@@ -268,10 +268,11 @@ def render_hotel_section(config: dict) -> dict:
         hotels_makkah = config.get("hotels_makkah", [])
         hotel_makkah_options = {h["label"]: h for h in hotels_makkah}
 
+        makkah_keys = list(hotel_makkah_options.keys())
         selected_makkah = st.selectbox(
             "Kategori Hotel Makkah",
-            options=list(hotel_makkah_options.keys()),
-            index=1  # Default to bintang 4
+            options=makkah_keys,
+            index=min(1, len(makkah_keys) - 1) if makkah_keys else 0
         )
         hotel_makkah = hotel_makkah_options[selected_makkah]
 
@@ -531,13 +532,17 @@ def render_margin_section(config: dict) -> dict:
             horizontal=True
         )
 
+        margin_percentage = 0.0
+        margin_fixed = 0
+
         if margin_type == "Persentase":
             # Show presets
             preset_options = {f"{p['name']} ({p['percentage']}%)": p for p in presets}
+            preset_keys = ["Custom"] + list(preset_options.keys())
             selected_preset = st.selectbox(
                 "Preset Margin",
-                options=["Custom"] + list(preset_options.keys()),
-                index=2  # Default to Standar (15%)
+                options=preset_keys,
+                index=min(2, len(preset_keys) - 1)
             )
 
             if selected_preset == "Custom":
@@ -553,12 +558,6 @@ def render_margin_section(config: dict) -> dict:
                 preset = preset_options[selected_preset]
                 margin_percentage = preset["percentage"]
                 st.info(preset["description"])
-
-            return {
-                "margin_type": "percentage",
-                "margin_percentage": margin_percentage,
-                "margin_fixed": 0,
-            }
         else:
             margin_fixed = st.number_input(
                 "Margin per Orang (Rp)",
@@ -567,11 +566,6 @@ def render_margin_section(config: dict) -> dict:
                 value=3000000,
                 step=500000
             )
-            return {
-                "margin_type": "fixed",
-                "margin_percentage": 0,
-                "margin_fixed": margin_fixed,
-            }
 
     with col2:
         season = st.selectbox(

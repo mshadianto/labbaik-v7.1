@@ -1054,10 +1054,11 @@ def render_referral_code(code: str):
             max_tokens=300,
         )
     if tips:
+        escaped = tips.replace("<", "&lt;").replace(">", "&gt;")
         st.markdown(f"""
             <div class="ai-card" role="status" aria-live="polite">
                 <h4><span aria-hidden="true">\U0001f916</span> Tips AI: Cara Efektif Mengajak Teman</h4>
-                <p>{tips}</p>
+                <p>{escaped}</p>
             </div>
         """, unsafe_allow_html=True)
 

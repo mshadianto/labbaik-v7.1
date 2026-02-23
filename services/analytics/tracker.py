@@ -547,7 +547,7 @@ class AnalyticsTracker:
                     SUM(unique_visitors) as visitors,
                     SUM(page_views) as views
                 FROM visitor_stats
-                WHERE date >= CURRENT_DATE - INTERVAL '%s days'
+                WHERE date >= CURRENT_DATE - INTERVAL '1 day' * %s
                 GROUP BY date
                 ORDER BY date ASC
             """

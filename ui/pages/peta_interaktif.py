@@ -1028,10 +1028,12 @@ def render_ai_tips(poi):
     cached_tips = st.session_state.peta_ai_tips_cache.get(poi["id"])
 
     if cached_tips:
+        escaped = cached_tips.replace("<", "&lt;").replace(">", "&gt;")
+        escaped_name = poi['name'].replace("<", "&lt;").replace(">", "&gt;")
         st.markdown(f"""
         <div class="peta-ai-card" role="status" aria-live="polite">
-            <h4>AI Tips: {poi['icon']} {poi['name']}</h4>
-            <p>{cached_tips}</p>
+            <h4>AI Tips: {poi['icon']} {escaped_name}</h4>
+            <p>{escaped}</p>
         </div>
         """, unsafe_allow_html=True)
         return
@@ -1045,10 +1047,12 @@ def render_ai_tips(poi):
             response = generate_ai_tips(poi)
 
         if response:
+            escaped = response.replace("<", "&lt;").replace(">", "&gt;")
+            escaped_name = poi['name'].replace("<", "&lt;").replace(">", "&gt;")
             st.markdown(f"""
             <div class="peta-ai-card" role="status" aria-live="polite">
-                <h4>AI Tips: {poi['icon']} {poi['name']}</h4>
-                <p>{response}</p>
+                <h4>AI Tips: {poi['icon']} {escaped_name}</h4>
+                <p>{escaped}</p>
             </div>
             """, unsafe_allow_html=True)
         else:

@@ -112,10 +112,11 @@ def render_user_analytics_page():
                 max_tokens=400,
             )
             if insight:
+                escaped = insight.replace("<", "&lt;").replace(">", "&gt;")
                 st.markdown(f'''
                     <div class="ai-card" role="status" aria-live="polite">
-                        <h4>🤖 Insight AI</h4>
-                        <p>{insight}</p>
+                        <h4>Insight AI</h4>
+                        <p>{escaped}</p>
                     </div>
                 ''', unsafe_allow_html=True)
             else:
@@ -130,7 +131,11 @@ def render_registration_trends(stats: Dict[str, Any]):
 
     if daily_data:
         # Create chart data
-        import pandas as pd
+        try:
+            import pandas as pd
+        except ImportError:
+            st.info("Library pandas tidak tersedia untuk menampilkan chart.")
+            return
         df = pd.DataFrame(daily_data)
         df['date'] = pd.to_datetime(df['date'])
 
@@ -381,8 +386,8 @@ def render_user_list():
                 <div style="display: grid; grid-template-columns: 2fr 2fr 1fr 1fr 1.5fr;
                             padding: 0.75rem; border-bottom: 1px solid rgba(255,255,255,0.1);
                             font-size: 0.85rem;">
-                    <div>{user.name}</div>
-                    <div style="color: #b0b0b0;">{user.email}</div>
+                    <div>{user.name.replace("<", "&lt;").replace(">", "&gt;") if user.name else "-"}</div>
+                    <div style="color: #b0b0b0;">{user.email.replace("<", "&lt;").replace(">", "&gt;") if user.email else "-"}</div>
                     <div style="color: {role_color};">{user.role.display_name}</div>
                     <div style="color: {status_color};">●</div>
                     <div style="color: #b0b0b0;">{join_date}</div>

@@ -607,6 +607,6 @@ class TravelokaScraper(BaseScraper):
 
 def create_traveloka_scraper(enabled: bool = True) -> TravelokaScraper:
     """Factory function to create TravelokaScraper."""
-    config = TravelokaScraper.DEFAULT_CONFIG
-    config.enabled = enabled
+    from dataclasses import replace
+    config = replace(TravelokaScraper.DEFAULT_CONFIG, enabled=enabled)
     return TravelokaScraper(config)

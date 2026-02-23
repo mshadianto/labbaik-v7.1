@@ -1562,9 +1562,10 @@ def render_qa_history_tab():
         timestamp = entry.get("timestamp", "")
         cat_info = CATEGORIES.get(category, CATEGORIES["umum"])
 
+        escaped_q = question.replace("<", "&lt;").replace(">", "&gt;")
         st.markdown(f"""
         <div class="qa-history-card">
-            <div class="history-q"><span aria-hidden="true">&#10067;</span> {question}</div>
+            <div class="history-q"><span aria-hidden="true">&#10067;</span> {escaped_q}</div>
             <div class="history-time"><span aria-hidden="true">&#128336;</span> {timestamp}
                 &nbsp;&middot;&nbsp; {cat_info["icon"]} {cat_info["label"]}</div>
         </div>
@@ -1641,11 +1642,12 @@ def render_qa_history():
         # Convert newlines for HTML
         answer_html = answer_html.replace("\n\n", "<br><br>").replace("\n", "<br>")
 
+        escaped_q = question.replace("<", "&lt;").replace(">", "&gt;")
         st.markdown(f"""
         <div class="qa-card">
             <div class="qa-question">
-                <span class="q-icon">❓</span>
-                <span>{question}</span>
+                <span class="q-icon">&#10067;</span>
+                <span>{escaped_q}</span>
             </div>
             <div class="qa-answer" role="status" aria-live="polite">{answer_html}</div>
             <div class="qa-meta">

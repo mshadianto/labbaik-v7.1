@@ -848,8 +848,9 @@ def render_ai_suggestions(profile: Dict, checklist: Dict, checked_items: Dict):
                 suggestion_items.append(line)
 
         if suggestion_items:
+            escaped_items = [item.replace("<", "&lt;").replace(">", "&gt;") for item in suggestion_items[:7]]
             items_html = "".join(
-                f"<li>\U0001f4cc {item}</li>" for item in suggestion_items[:7]
+                f"<li>{item}</li>" for item in escaped_items
             )
             st.markdown(
                 '<div class="ai-suggestion-card" role="status" aria-live="polite">'
@@ -860,7 +861,8 @@ def render_ai_suggestions(profile: Dict, checklist: Dict, checked_items: Dict):
                 unsafe_allow_html=True,
             )
         else:
-            html_content = _markdown_to_html_simple(cached)
+            escaped = cached.replace("<", "&lt;").replace(">", "&gt;")
+            html_content = _markdown_to_html_simple(escaped)
             st.markdown(
                 '<div class="ai-suggestion-card" role="status" aria-live="polite">'
                 '<h4><span aria-hidden="true">\U0001f4a1</span> Saran AI: Jangan lupa bawa item ini!</h4>'
@@ -1117,10 +1119,11 @@ def render_ai_packing_tips(profile: Dict, checklist: Dict, checked_items: Dict):
     # Display cached tips
     cached_tips = st.session_state.get("checklist_ai_tips")
     if cached_tips:
-        html_content = _markdown_to_html_simple(cached_tips)
+        escaped = cached_tips.replace("<", "&lt;").replace(">", "&gt;")
+        html_content = _markdown_to_html_simple(escaped)
         st.markdown(
             '<div class="ai-card" role="status" aria-live="polite">'
-            '<h4 style="color:#4ade80;margin-top:0;">\U0001f9e0 Tips Packing Personal dari AI</h4>'
+            '<h4 style="color:#4ade80;margin-top:0;">Tips Packing Personal dari AI</h4>'
             f'<p>{html_content}</p>'
             '</div>',
             unsafe_allow_html=True,

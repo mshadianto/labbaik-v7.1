@@ -284,7 +284,7 @@ class AggregatedPriceRepository:
         """Delete offers not updated in the last N hours."""
         query = """
             DELETE FROM aggregated_prices
-            WHERE updated_at < NOW() - INTERVAL '%s hours'
+            WHERE updated_at < NOW() - INTERVAL '1 hour' * %s
         """
         return self._execute(query, (hours,))
 
@@ -330,7 +330,7 @@ class AggregatedPriceRepository:
             SELECT price_idr, recorded_at
             FROM price_history
             WHERE aggregated_price_id = %s
-              AND recorded_at > NOW() - INTERVAL '%s days'
+              AND recorded_at > NOW() - INTERVAL '1 day' * %s
             ORDER BY recorded_at DESC
             LIMIT 2
         """
@@ -375,7 +375,7 @@ class AggregatedPriceRepository:
         query = """
             SELECT * FROM price_history
             WHERE aggregated_price_id = %s
-              AND recorded_at > NOW() - INTERVAL '%s days'
+              AND recorded_at > NOW() - INTERVAL '1 day' * %s
             ORDER BY recorded_at DESC
         """
         results = self._fetch_all(query, (offer_id, days))

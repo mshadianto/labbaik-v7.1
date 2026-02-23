@@ -568,13 +568,13 @@ def render_add_booking_form():
                     booking_id = repo.create_booking(booking)
                     if booking_id:
                         # Audit log
-                        user = st.session_state.get("user", {})
+                        user = st.session_state.get("user")
                         audit_log(
                             action=AuditAction.CREATE,
                             entity_type="booking",
                             entity_id=booking_id,
-                            user_id=user.get("id"),
-                            user_email=user.get("email"),
+                            user_id=getattr(user, "id", None),
+                            user_email=getattr(user, "email", None),
                             details={
                                 "package_name": package_name,
                                 "total_price": total_price,
@@ -963,10 +963,11 @@ def render_ai_booking_insights():
                     st.session_state.crm_booking_ai_xp_awarded = True
                     add_xp_safe(15, "Analisis booking dengan AI")
 
+                escaped = response.replace("<", "&lt;").replace(">", "&gt;")
                 ai_html = (
                     '<div class="ai-card" role="status" aria-live="polite">'
                     '<h4>Hasil Analisis AI</h4>'
-                    '<p>' + _markdown_to_html_simple(response) + '</p>'
+                    '<p>' + _markdown_to_html_simple(escaped) + '</p>'
                     '</div>'
                 )
                 st.markdown(ai_html, unsafe_allow_html=True)

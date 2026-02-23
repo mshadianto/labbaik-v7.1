@@ -219,7 +219,7 @@ class VisitorAnalytics:
         results = self._execute_query("""
             SELECT DATE(viewed_at) as date, COUNT(*) as views
             FROM page_views
-            WHERE viewed_at >= CURRENT_DATE - INTERVAL '%s days'
+            WHERE viewed_at >= CURRENT_DATE - INTERVAL '1 day' * %s
             GROUP BY DATE(viewed_at)
             ORDER BY date ASC
         """, params=(days,), fetch="all")

@@ -229,13 +229,13 @@ def render_add_jamaah_form():
                     jamaah_id = repo.create_jamaah(jamaah)
                     if jamaah_id:
                         # Audit log
-                        user = st.session_state.get("user", {})
+                        user = st.session_state.get("user")
                         audit_log(
                             action=AuditAction.CREATE,
                             entity_type="jamaah",
                             entity_id=jamaah_id,
-                            user_id=user.get("id"),
-                            user_email=user.get("email"),
+                            user_id=getattr(user, "id", None),
+                            user_email=getattr(user, "email", None),
                             details={"full_name": full_name.strip(), "phone": validated_phone}
                         )
                         st.success("Jamaah berhasil ditambahkan!")
@@ -483,10 +483,11 @@ def render_crm_jamaah_page():
                     max_tokens=400,
                 )
                 if insight:
+                    escaped = insight.replace("<", "&lt;").replace(">", "&gt;")
                     st.markdown(f"""
                         <div class="ai-card" role="status" aria-live="polite">
-                            <h4>🤖 Tips Manajemen Jamaah</h4>
-                            <p>{insight}</p>
+                            <h4>Tips Manajemen Jamaah</h4>
+                            <p>{escaped}</p>
                         </div>
                     """, unsafe_allow_html=True)
                     if not st.session_state.get("crm_jamaah_ai_xp"):

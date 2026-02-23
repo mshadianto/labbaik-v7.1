@@ -1709,7 +1709,7 @@ def render_cost_chart(cost: CostBreakdown):
     total = sum([v for _, v in filtered_data])
     
     for item, amount in filtered_data:
-        pct = amount / total * 100
+        pct = amount / total * 100 if total else 0
         st.markdown(f"**{item}** ({pct:.1f}%)")
         st.progress(pct / 100)
         st.caption(format_currency(amount))
@@ -3106,10 +3106,11 @@ def render_ai_analysis(cost: CostBreakdown, params: Dict):
     # Show cached response
     cached = st.session_state.get("simulator_ai_response")
     if cached:
+        escaped = cached.replace("<", "&lt;").replace(">", "&gt;")
         ai_html = (
             '<div class="ai-card" role="status" aria-live="polite">'
-            '<h4>🤖 Hasil Analisis AI</h4>'
-            '<p>' + _markdown_to_html_simple(cached) + '</p>'
+            '<h4>Hasil Analisis AI</h4>'
+            '<p>' + _markdown_to_html_simple(escaped) + '</p>'
             '</div>'
         )
         st.markdown(ai_html, unsafe_allow_html=True)
@@ -3381,7 +3382,7 @@ def render_simulator_page():
             # Live kurs info
             if HAS_KURS_SERVICE:
                 rates = get_current_rates()
-                sar_equiv = cost.total / rates["SAR_IDR"]
+                sar_equiv = cost.total / rates["SAR_IDR"] if rates.get("SAR_IDR") else 0
                 source_label = "Live" if rates.get("source") == "live" else "Estimasi"
                 st.caption(f"≈ SAR {sar_equiv:,.0f} (kurs {source_label}: 1 SAR = Rp {rates['SAR_IDR']:,.0f})")
                 if st.button("🏦 Kalkulator Kurs", key="sim_to_kurs", use_container_width=True):

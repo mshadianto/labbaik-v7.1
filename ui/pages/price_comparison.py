@@ -1000,7 +1000,7 @@ def render_package_cards(packages: List[AggregatedOffer], best_price: float,
                 if not pkg.is_available:
                     st.error("Sold Out")
                 elif pkg.quota:
-                    available = pkg.quota - (pkg.quota if hasattr(pkg, 'booked') else 0)
+                    available = pkg.quota - (pkg.booked if hasattr(pkg, 'booked') else 0)
                     if available < 10:
                         st.warning(f"Sisa {available} seat!")
 
@@ -1029,10 +1029,11 @@ def _render_ai_price_analysis(offers: List[AggregatedOffer], result: Dict[str, A
     cached = st.session_state.get(cached_key)
 
     if cached:
-        html_content = _markdown_to_html_simple(cached)
+        escaped = cached.replace("<", "&lt;").replace(">", "&gt;")
+        html_content = _markdown_to_html_simple(escaped)
         ai_html = (
             '<div class="ai-card" role="status" aria-live="polite">'
-            '<h4 style="color:#4ade80;margin-top:0;">🧠 Hasil Analisis Tren Harga</h4>'
+            '<h4 style="color:#4ade80;margin-top:0;">Hasil Analisis Tren Harga</h4>'
             '<p>' + html_content + '</p>'
             '</div>'
         )
@@ -1067,10 +1068,11 @@ def _render_ai_price_analysis(offers: List[AggregatedOffer], result: Dict[str, A
 
         if response:
             st.session_state[cached_key] = response
-            html_content = _markdown_to_html_simple(response)
+            escaped = response.replace("<", "&lt;").replace(">", "&gt;")
+            html_content = _markdown_to_html_simple(escaped)
             ai_html = (
                 '<div class="ai-card" role="status" aria-live="polite">'
-                '<h4 style="color:#4ade80;margin-top:0;">🧠 Hasil Analisis Tren Harga</h4>'
+                '<h4 style="color:#4ade80;margin-top:0;">Hasil Analisis Tren Harga</h4>'
                 '<p>' + html_content + '</p>'
                 '</div>'
             )

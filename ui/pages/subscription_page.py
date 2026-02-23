@@ -1193,10 +1193,11 @@ def render_premium_benefits():
             max_tokens=200,
         )
     if recommendation:
+        escaped = recommendation.replace("<", "&lt;").replace(">", "&gt;")
         st.markdown(f"""
             <div class="ai-card" role="status" aria-live="polite">
                 <h4><span aria-hidden="true">&#129302;</span> Rekomendasi AI</h4>
-                <p>{recommendation}</p>
+                <p>{escaped}</p>
             </div>
         """, unsafe_allow_html=True)
 
@@ -1244,7 +1245,7 @@ def render_pricing_plans(user, current_sub):
                         {format_price(price)}
                     </div>
                     <div style="color: #b0b0b0; font-size: 0.85rem;">
-                        {format_price(plan.price_idr // (plan.duration_days // 30))}/bulan
+                        {format_price(plan.price_idr // max(plan.duration_days // 30, 1))}/bulan
                     </div>
                     {"<div style='color: #4CAF50; margin-top: 0.5rem;'>Hemat " + str(plan.savings_percent) + "%</div>" if plan.savings_percent > 0 else ""}
                 </div>

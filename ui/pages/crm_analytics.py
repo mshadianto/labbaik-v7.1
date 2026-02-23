@@ -469,10 +469,11 @@ def render_crm_analytics_page():
                 max_tokens=400,
             )
             if summary:
+                escaped = summary.replace("<", "&lt;").replace(">", "&gt;")
                 st.markdown(f"""
                     <div class="ai-card" role="status" aria-live="polite">
-                        <h4>🤖 Rekomendasi AI untuk Meningkatkan Performa</h4>
-                        <p>{summary}</p>
+                        <h4>Rekomendasi AI untuk Meningkatkan Performa</h4>
+                        <p>{escaped}</p>
                     </div>
                 """, unsafe_allow_html=True)
             else:

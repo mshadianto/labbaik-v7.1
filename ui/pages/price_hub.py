@@ -1012,7 +1012,8 @@ def render_ai_analysis(result: Dict):
             )
 
             if response:
-                ai_html = _markdown_to_html_simple(response)
+                escaped = response.replace("<", "&lt;").replace(">", "&gt;")
+                ai_html = _markdown_to_html_simple(escaped)
                 card_html = (
                     '<div class="ai-card" role="status" aria-live="polite">'
                     '<h4>Rekomendasi AI</h4>'
@@ -1143,7 +1144,8 @@ def render_flight_ai_analysis(result: Dict):
             )
 
             if response:
-                ai_html = _markdown_to_html_simple(response)
+                escaped = response.replace("<", "&lt;").replace(">", "&gt;")
+                ai_html = _markdown_to_html_simple(escaped)
                 card_html = (
                     '<div class="ai-card" role="status" aria-live="polite">'
                     '<h4>Rekomendasi AI - Penerbangan</h4>'
@@ -1227,7 +1229,8 @@ def render_package_ai_analysis(result: Dict):
             )
 
             if response:
-                ai_html = _markdown_to_html_simple(response)
+                escaped = response.replace("<", "&lt;").replace(">", "&gt;")
+                ai_html = _markdown_to_html_simple(escaped)
                 card_html = (
                     '<div class="ai-card" role="status" aria-live="polite">'
                     '<h4>Rekomendasi AI - Paket Umrah</h4>'

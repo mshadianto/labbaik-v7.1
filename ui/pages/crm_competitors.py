@@ -245,18 +245,25 @@ def render_market_insights():
     with col2:
         st.markdown("**Rekomendasi**")
 
-        with st.spinner("Menganalisis kompetitor..."):
-            insight = ai_complete(
-                "Berikan 4 rekomendasi singkat strategi harga untuk travel umrah "
-                "berdasarkan analisis kompetitor. Format: bullet points. Bahasa Indonesia.",
-                system_prompt="Kamu adalah business strategist untuk industri travel umrah.",
-                max_tokens=300,
-            )
+        cache_key = "crm_competitor_ai_insight"
+        insight = st.session_state.get(cache_key)
+        if not insight:
+            if st.button("Analisis AI", key="btn_competitor_ai", use_container_width=True):
+                with st.spinner("Menganalisis kompetitor..."):
+                    insight = ai_complete(
+                        "Berikan 4 rekomendasi singkat strategi harga untuk travel umrah "
+                        "berdasarkan analisis kompetitor. Format: bullet points. Bahasa Indonesia.",
+                        system_prompt="Kamu adalah business strategist untuk industri travel umrah.",
+                        max_tokens=300,
+                    )
+                    if insight:
+                        st.session_state[cache_key] = insight
         if insight:
+            escaped = insight.replace("<", "&lt;").replace(">", "&gt;")
             st.markdown(f"""
                 <div class="ai-card" role="status" aria-live="polite">
-                    <h4>🤖 Rekomendasi AI</h4>
-                    <p>{insight}</p>
+                    <h4>Rekomendasi AI</h4>
+                    <p>{escaped}</p>
                 </div>
             """, unsafe_allow_html=True)
             if not st.session_state.get("crm_competitor_ai_xp"):

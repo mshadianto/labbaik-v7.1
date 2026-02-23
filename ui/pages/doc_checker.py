@@ -1313,10 +1313,12 @@ def render_document_checklist():
             skeleton_placeholder.empty()
 
             if tips:
+                escaped_tips = tips.replace("<", "&lt;").replace(">", "&gt;")
+                escaped_name = doc["name"].replace("<", "&lt;").replace(">", "&gt;")
                 st.markdown(f"""
                 <div class="doc-ai-tips" role="status" aria-live="polite">
-                    <div class="doc-ai-tips-header">Tips AI untuk {doc["name"]}</div>
-                    {tips}
+                    <div class="doc-ai-tips-header">Tips AI untuk {escaped_name}</div>
+                    {escaped_tips}
                 </div>
                 """, unsafe_allow_html=True)
             else:

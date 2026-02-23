@@ -1167,7 +1167,7 @@ def render_hotel_compare_page():
 
     with col2:
         # Show results or placeholder
-        if search_params:
+        if search_params and HAS_MAKCORPS:
             with st.spinner("Mencari hotel..."):
                 result = search_umrah_hotels(
                     city=search_params['city'],
@@ -1308,10 +1308,11 @@ def render_hotel_compare_page():
                 max_tokens=400,
             )
             if tips:
+                escaped = tips.replace("<", "&lt;").replace(">", "&gt;")
                 st.markdown(f'''
                     <div class="ai-card" role="status" aria-live="polite">
-                        <h4>🤖 Tips AI Memilih Hotel</h4>
-                        <p>{tips}</p>
+                        <h4>Tips AI Memilih Hotel</h4>
+                        <p>{escaped}</p>
                     </div>
                 ''', unsafe_allow_html=True)
             else:
