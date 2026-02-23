@@ -57,6 +57,12 @@ COMMON_REPLACEMENTS = [
     ("and", ""), ("&", " "), ("'s", ""),
 ]
 
+# Pre-compiled single-pass replacement (avoids 13+ sequential .replace() calls)
+_REPLACEMENT_DICT = dict(COMMON_REPLACEMENTS)
+_REPLACEMENT_RE = re.compile(
+    "|".join(re.escape(old) for old, _ in COMMON_REPLACEMENTS)
+)
+
 # Hotel chain aliases
 HOTEL_CHAINS = {
     "hilton": ["hilton", "doubletree", "embassy suites", "hampton", "waldorf"],
@@ -122,9 +128,8 @@ def normalize_name(name: str) -> str:
     s = s.replace("'", "'").replace("`", "'").replace("'", "")
     s = s.replace('"', '')
 
-    # Apply common replacements
-    for old, new in COMMON_REPLACEMENTS:
-        s = s.replace(old, new)
+    # Apply common replacements (single-pass regex)
+    s = _REPLACEMENT_RE.sub(lambda m: _REPLACEMENT_DICT[m.group()], s)
 
     # Remove non-alphanumeric
     s = NON_ALNUM.sub(" ", s)

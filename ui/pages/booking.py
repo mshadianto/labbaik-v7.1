@@ -475,6 +475,9 @@ ADDONS = [
     ),
 ]
 
+# Pre-built lookup for O(1) addon access by id
+ADDON_BY_ID = {a.id: a for a in ADDONS}
+
 
 # =============================================================================
 # UTILITY FUNCTIONS
@@ -504,7 +507,7 @@ def calculate_total_price(data: Dict) -> Dict[str, int]:
     selected_addons = data.get("addons", [])
     addons_price = 0
     for addon_id in selected_addons:
-        addon = next((a for a in ADDONS if a.id == addon_id), None)
+        addon = ADDON_BY_ID.get(addon_id)
         if addon:
             addons_price += addon.price * traveler_count
 
@@ -647,11 +650,7 @@ def render_ai_booking_tips():
     city = data.get("departure_city", "Jakarta")
     hotel_star = data.get("hotel_star", 3)
     addons_list = data.get("addons", [])
-    addons_names = []
-    for aid in addons_list:
-        a = next((x for x in ADDONS if x.id == aid), None)
-        if a:
-            addons_names.append(a.name)
+    addons_names = [ADDON_BY_ID[aid].name for aid in addons_list if aid in ADDON_BY_ID]
     addons_str = ", ".join(addons_names) if addons_names else "tidak ada"
 
     prompt_text = (
@@ -1007,11 +1006,10 @@ def render_cost_tracker_sync():
 
             # Add add-ons if applicable
             if prices.get("addons", 0) > 0:
-                addons_detail = []
-                for addon_id in data.get("addons", []):
-                    addon = next((a for a in ADDONS if a.id == addon_id), None)
-                    if addon:
-                        addons_detail.append(f"{addon.name} ({format_currency(addon.price)})")
+                addons_detail = [
+                    f"{ADDON_BY_ID[aid].name} ({format_currency(ADDON_BY_ID[aid].price)})"
+                    for aid in data.get("addons", []) if aid in ADDON_BY_ID
+                ]
                 booking_costs["breakdown"]["addons"] = {
                     "label": "Add-ons: " + ", ".join(addons_detail),
                     "amount": prices["addons"],
@@ -1705,7 +1703,7 @@ def render_step_review():
         with st.container(border=True):
             st.markdown("### \U0001f381 Add-ons")
             for addon_id in selected_addons:
-                addon = next((a for a in ADDONS if a.id == addon_id), None)
+                addon = ADDON_BY_ID.get(addon_id)
                 if addon:
                     st.markdown(f"- {addon.icon} {addon.name} ({format_currency(addon.price)}/orang)")
 

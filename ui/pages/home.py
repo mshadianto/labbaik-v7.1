@@ -1707,8 +1707,8 @@ def render_featured_deals():
     </div>
     """, unsafe_allow_html=True)
 
-    # Build deal cards
-    cards_html = '<div class="deals-container">'
+    # Build deal cards (list + join for efficient string building)
+    card_parts = []
     for deal in deals:
         price_formatted = f"Rp {deal['price']:,.0f}".replace(",", ".")
         stars_display = "⭐" * deal["stars"]
@@ -1716,7 +1716,7 @@ def render_featured_deals():
         if deal["is_promo"]:
             promo_badge = f'<div class="deal-badge{badge_type}">{badge_label}</div>'
 
-        cards_html += (
+        card_parts.append(
             '<div class="deal-card">'
             f'{promo_badge}'
             '<div style="font-size: 2rem;" aria-hidden="true">🕌</div>'
@@ -1730,7 +1730,7 @@ def render_featured_deals():
             '<div class="deal-cta">Lihat Detail</div>'
             '</div>'
         )
-    cards_html += "</div>"
+    cards_html = '<div class="deals-container">' + "".join(card_parts) + "</div>"
 
     st.markdown(cards_html, unsafe_allow_html=True)
 
@@ -1790,13 +1790,12 @@ def render_testimonials_section():
     </div>
     """, unsafe_allow_html=True)
 
-    # Build duplicated cards for infinite scroll effect
+    # Build duplicated cards for infinite scroll effect (list + join)
     all_testimonials = testimonials + testimonials  # duplicate for seamless loop
-    cards_html = '<div class="testimonial-track-wrapper"><div class="testimonial-track">'
-
+    card_parts = []
     for t in all_testimonials:
         stars = "★" * t["rating"] + "☆" * (5 - t["rating"])
-        cards_html += (
+        card_parts.append(
             '<div class="testimonial-card">'
             '<div>'
             f'<div class="testimonial-stars" aria-label="{t["rating"]} dari 5 bintang">{stars}</div>'
@@ -1808,8 +1807,7 @@ def render_testimonials_section():
             '</div>'
             '</div>'
         )
-
-    cards_html += "</div></div>"
+    cards_html = '<div class="testimonial-track-wrapper"><div class="testimonial-track">' + "".join(card_parts) + "</div></div>"
     st.markdown(cards_html, unsafe_allow_html=True)
 
 

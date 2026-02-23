@@ -1417,6 +1417,15 @@ def render_chat_messages():
     tts_enabled = st.session_state.get("tts_enabled", False)
     is_last_msg_index = len(messages) - 1
 
+    # Pre-compute user question map: assistant msg index -> preceding user question
+    _user_q_map: dict = {}
+    _last_user_q = ""
+    for _i, _m in enumerate(messages):
+        if _m["role"] == "user":
+            _last_user_q = _m["content"]
+        elif _m["role"] == "assistant" and _i > 0:
+            _user_q_map[_i] = _last_user_q
+
     for idx, msg in enumerate(messages):
         role = msg["role"]
         content = msg["content"]
@@ -1444,12 +1453,7 @@ def render_chat_messages():
 
                 # WhatsApp share link for AI responses (skip welcome message)
                 if idx > 0:
-                    # Find the user question that preceded this response
-                    user_question = ""
-                    for prev_idx in range(idx - 1, -1, -1):
-                        if messages[prev_idx]["role"] == "user":
-                            user_question = messages[prev_idx]["content"]
-                            break
+                    user_question = _user_q_map.get(idx, "")
                     answer_summary = content[:500]
                     share_text = (
                         f"Pertanyaan: {user_question}\n\n"
