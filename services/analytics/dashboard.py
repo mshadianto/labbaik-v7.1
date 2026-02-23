@@ -15,6 +15,24 @@ logger = logging.getLogger(__name__)
 
 
 # =============================================================================
+# CACHED WRAPPERS
+# =============================================================================
+
+@st.cache_data(ttl=300, show_spinner=False)
+def _cached_daily_trend(days: int = 7) -> List[Dict]:
+    """Cached daily visitor trend data."""
+    dashboard = AnalyticsDashboard()
+    return dashboard.get_daily_trend(days)
+
+
+@st.cache_data(ttl=300, show_spinner=False)
+def _cached_hourly_distribution() -> List[Dict]:
+    """Cached hourly distribution data."""
+    dashboard = AnalyticsDashboard()
+    return dashboard.get_hourly_distribution()
+
+
+# =============================================================================
 # ANALYTICS DATA FETCHER
 # =============================================================================
 
@@ -218,7 +236,7 @@ def render_daily_trend(dashboard: AnalyticsDashboard):
     
     st.markdown("### 📈 Trend Pengunjung (7 Hari)")
     
-    trend_data = dashboard.get_daily_trend(7)
+    trend_data = _cached_daily_trend(7)
     
     if trend_data:
         import pandas as pd
@@ -253,7 +271,7 @@ def render_hourly_chart(dashboard: AnalyticsDashboard):
     st.markdown("### 🕐 Distribusi Waktu Kunjungan")
     st.caption("Waktu paling ramai pengunjung (WIB)")
     
-    hourly = dashboard.get_hourly_distribution()
+    hourly = _cached_hourly_distribution()
     
     if hourly:
         import pandas as pd
@@ -398,8 +416,7 @@ def render_device_flow(dashboard: AnalyticsDashboard):
 def render_analytics_mini_widget():
     """Render a mini analytics widget for home page."""
     
-    dashboard = AnalyticsDashboard()
-    trend = dashboard.get_daily_trend(7)
+    trend = _cached_daily_trend(7)
     
     if trend:
         # Calculate week over week change

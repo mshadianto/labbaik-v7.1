@@ -638,13 +638,37 @@ def get_total_spent():
     return sum(e["amount"] for e in st.session_state.tracker_expenses)
 
 
+def _get_all_category_sums() -> Dict[str, int]:
+    """Compute all category sums in a single pass over expenses.
+
+    Result is cached in session state per render cycle (keyed by expense count
+    to auto-invalidate when expenses change).
+    """
+    expenses = st.session_state.tracker_expenses
+    cache_key = "_tracker_cat_sums"
+    version_key = "_tracker_cat_sums_ver"
+    current_ver = len(expenses)
+
+    if (
+        cache_key in st.session_state
+        and st.session_state.get(version_key) == current_ver
+    ):
+        return st.session_state[cache_key]
+
+    sums: Dict[str, int] = {cat_id: 0 for cat_id in EXPENSE_CATEGORIES}
+    for e in expenses:
+        cat = e.get("category", "")
+        if cat in sums:
+            sums[cat] += e["amount"]
+
+    st.session_state[cache_key] = sums
+    st.session_state[version_key] = current_ver
+    return sums
+
+
 def get_spent_by_category(category: str) -> int:
-    """Get total spent for a specific category."""
-    return sum(
-        e["amount"]
-        for e in st.session_state.tracker_expenses
-        if e["category"] == category
-    )
+    """Get total spent for a specific category (single-pass cached)."""
+    return _get_all_category_sums().get(category, 0)
 
 
 def get_daily_average() -> float:

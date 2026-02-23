@@ -21,6 +21,72 @@ logger = logging.getLogger(__name__)
 # =============================================================================
 LEADS_PER_PAGE = 10
 
+
+# =============================================================================
+# CACHED WRAPPERS
+# =============================================================================
+
+@st.cache_data(ttl=300, show_spinner=False)
+def _cached_crm_lead_stats() -> dict:
+    """Cached CRM lead statistics."""
+    from services.crm import CRMRepository
+    repo = CRMRepository()
+    stats = repo.get_crm_stats()
+    return {
+        "total_leads": stats.total_leads,
+        "new_leads": stats.new_leads,
+        "conversion_rate": stats.conversion_rate,
+    }
+
+
+@st.cache_data(ttl=300, show_spinner=False)
+def _cached_followup_count(days_ahead: int = 1) -> int:
+    """Cached count of leads needing follow-up."""
+    from services.crm import CRMRepository
+    repo = CRMRepository()
+    followups = repo.get_leads_for_followup(days_ahead=days_ahead)
+    return len(followups)
+
+
+@st.cache_data(ttl=120, show_spinner=False)
+def _cached_pipeline_leads() -> dict:
+    """Cached pipeline leads grouped by status — single DB fetch replaces 6."""
+    from services.crm import CRMRepository
+    from services.crm.config import get_lead_statuses
+    repo = CRMRepository()
+    statuses = get_lead_statuses()
+    result = {}
+    for status in statuses:
+        code = status["code"]
+        leads = repo.get_leads(status=code, limit=10)
+        result[code] = [
+            {
+                "id": l.id,
+                "name": l.name,
+                "phone": l.phone,
+                "interested_package": l.interested_package,
+                "priority": l.priority,
+            }
+            for l in leads
+        ]
+    return result
+
+
+@st.cache_data(ttl=300, show_spinner=False)
+def _cached_partner_crm_leads() -> list:
+    """Cached partner-sourced CRM leads."""
+    from services.crm import CRMRepository
+    repo = CRMRepository()
+    leads = repo.get_leads(source="partner", limit=500)
+    return [
+        {
+            "status": l.status,
+            "notes": l.notes,
+        }
+        for l in leads
+    ]
+
+
 # =============================================================================
 # PARTNER API INTEGRATION (lazy import with feature flag)
 # =============================================================================
@@ -253,25 +319,22 @@ def init_session_state():
 def render_lead_stats():
     """Render lead statistics."""
     try:
-        from services.crm import CRMRepository
-        repo = CRMRepository()
-        stats = repo.get_crm_stats()
+        stats = _cached_crm_lead_stats()
+        followup_count = _cached_followup_count()
 
         col1, col2, col3, col4 = st.columns(4)
 
         with col1:
-            st.metric("Total Leads", stats.total_leads)
+            st.metric("Total Leads", stats["total_leads"])
         with col2:
-            st.metric("Lead Baru", stats.new_leads)
+            st.metric("Lead Baru", stats["new_leads"])
         with col3:
-            st.metric("Conversion Rate", f"{stats.conversion_rate:.1f}%")
+            st.metric("Conversion Rate", f"{stats['conversion_rate']:.1f}%")
         with col4:
-            followups = repo.get_leads_for_followup(days_ahead=1)
-            st.metric("Perlu Follow-up", len(followups))
+            st.metric("Perlu Follow-up", followup_count)
 
     except Exception as e:
         logger.error(f"Failed to load stats: {e}")
-        # Show demo stats
         col1, col2, col3, col4 = st.columns(4)
         with col1:
             st.metric("Total Leads", 0)
@@ -292,10 +355,9 @@ def render_pipeline_view():
     st.markdown("### Pipeline View")
 
     try:
-        from services.crm import CRMRepository
         from services.crm.config import get_lead_statuses
-        repo = CRMRepository()
         statuses = get_lead_statuses()
+        pipeline_data = _cached_pipeline_leads()
 
         # Create columns for each status
         cols = st.columns(len(statuses))
@@ -303,14 +365,14 @@ def render_pipeline_view():
         for i, status in enumerate(statuses):
             with cols[i]:
                 st.markdown(f"**{status['label']}**")
-                leads = repo.get_leads(status=status['code'], limit=10)
+                leads = pipeline_data.get(status['code'], [])
 
                 for lead in leads:
                     with st.container():
-                        safe_name = escape_html(lead.name)
-                        safe_phone = escape_html(lead.phone)
-                        safe_package = escape_html(lead.interested_package) if lead.interested_package else 'Belum ada paket'
-                        priority_emoji = get_priority_emoji(lead.priority)
+                        safe_name = escape_html(lead["name"])
+                        safe_phone = escape_html(lead["phone"])
+                        safe_package = escape_html(lead["interested_package"]) if lead["interested_package"] else 'Belum ada paket'
+                        priority_emoji = get_priority_emoji(lead["priority"])
                         border_color = status['color']
                         card_html = (
                             '<div class="pipeline-card" style="border-left-color: '
@@ -329,8 +391,8 @@ def render_pipeline_view():
                         )
                         st.markdown(card_html, unsafe_allow_html=True)
 
-                        if st.button("Detail", key=f"lead_{lead.id}", use_container_width=True):
-                            st.session_state.crm_selected_lead = lead.id
+                        if st.button("Detail", key=f"lead_{lead['id']}", use_container_width=True):
+                            st.session_state.crm_selected_lead = lead["id"]
                             st.session_state.crm_view = "detail"
                             st.rerun()
 
@@ -354,12 +416,13 @@ def render_lead_list():
     col1, col2, col3, col4 = st.columns([2, 1, 1, 1])
 
     with col1:
-        search = st.text_input("Cari nama/nomor", placeholder="Ketik untuk mencari...")
+        search = st.text_input("Cari nama/nomor", placeholder="Ketik untuk mencari...", key="crm_leads_search")
 
     with col2:
         status_filter = st.selectbox(
             "Status",
             options=["Semua", "new", "contacted", "interested", "negotiating", "won", "lost"],
+            key="crm_leads_status_filter",
             format_func=lambda x: {
                 "Semua": "Semua Status",
                 "new": "Baru",
@@ -375,6 +438,7 @@ def render_lead_list():
         source_filter = st.selectbox(
             "Sumber",
             options=["Semua", "direct", "referral", "social", "ads", "website", "whatsapp", "partner"],
+            key="crm_leads_source_filter",
             format_func=lambda x: {
                 "Semua": "Semua Sumber",
                 "direct": "Langsung",
@@ -391,6 +455,7 @@ def render_lead_list():
         priority_filter = st.selectbox(
             "Prioritas",
             options=["Semua", "urgent", "high", "medium", "low"],
+            key="crm_leads_priority_filter",
             format_func=lambda x: {
                 "Semua": "Semua",
                 "urgent": "\U0001f534 Urgent",
@@ -1050,22 +1115,20 @@ def render_partner_leads():
     # --- Stats cards ---
     partner_bookings = _get_partner_bookings()
 
-    # Also count how many CRM leads have source='partner'
+    # Use cached partner CRM leads
     partner_crm_count = 0
     partner_won_count = 0
     top_partners = {}
     try:
-        from services.crm import CRMRepository
-        repo = CRMRepository()
-        partner_leads = repo.get_leads(source="partner", limit=500)
+        partner_leads = _cached_partner_crm_leads()
         partner_crm_count = len(partner_leads)
         for pl in partner_leads:
-            if pl.status == "won":
+            if pl["status"] == "won":
                 partner_won_count += 1
-            # Extract partner name from notes
-            if pl.notes and "[partner:" in pl.notes:
+            notes = pl.get("notes") or ""
+            if "[partner:" in notes:
                 try:
-                    pname = pl.notes.split("[partner:")[1].split("]")[0]
+                    pname = notes.split("[partner:")[1].split("]")[0]
                     top_partners[pname] = top_partners.get(pname, 0) + 1
                 except (IndexError, ValueError):
                     pass
