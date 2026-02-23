@@ -27,12 +27,74 @@ def format_number(num: int) -> str:
     return str(num)
 
 
-def render_kpi_cards():
-    """Render main KPI cards."""
+# =============================================================================
+# CACHED CRM DATA WRAPPERS
+# =============================================================================
+
+@st.cache_data(ttl=300, show_spinner=False)
+def _cached_crm_stats() -> dict:
+    """Cached CRM stats — avoids duplicate get_crm_stats() calls per page."""
     try:
         from services.crm import CRMRepository
         repo = CRMRepository()
         stats = repo.get_crm_stats()
+        return {
+            "total_leads": stats.total_leads,
+            "conversion_rate": stats.conversion_rate,
+            "total_bookings": stats.total_bookings,
+            "total_revenue": stats.total_revenue,
+            "total_jamaah": stats.total_jamaah,
+            "total_paid": stats.total_paid,
+            "total_pending": stats.total_pending,
+        }
+    except Exception:
+        return {
+            "total_leads": 0, "conversion_rate": 0, "total_bookings": 0,
+            "total_revenue": 0, "total_jamaah": 0, "total_paid": 0, "total_pending": 0,
+        }
+
+
+@st.cache_data(ttl=300, show_spinner=False)
+def _cached_leads_by_status() -> dict:
+    """Cached lead counts grouped by status."""
+    try:
+        from services.crm import CRMRepository
+        return CRMRepository().count_leads_by_status()
+    except Exception:
+        return {}
+
+
+@st.cache_data(ttl=300, show_spinner=False)
+def _cached_revenue_trend(days: int) -> list:
+    """Cached revenue trend data."""
+    try:
+        from services.crm import CRMRepository
+        return CRMRepository().get_revenue_trend(days) or []
+    except Exception:
+        return []
+
+
+@st.cache_data(ttl=300, show_spinner=False)
+def _cached_lead_sources() -> dict:
+    """Cached lead source counts."""
+    try:
+        from services.crm import CRMRepository
+        leads = CRMRepository().get_leads(limit=1000)
+        if not leads:
+            return {}
+        source_counts = {}
+        for lead in leads:
+            source = lead.source or "unknown"
+            source_counts[source] = source_counts.get(source, 0) + 1
+        return source_counts
+    except Exception:
+        return {}
+
+
+def render_kpi_cards():
+    """Render main KPI cards."""
+    try:
+        stats = _cached_crm_stats()
 
         col1, col2, col3, col4 = st.columns(4)
 
@@ -42,7 +104,7 @@ def render_kpi_cards():
                 <h3 style="margin: 0; font-size: 14px; opacity: 0.9;">Total Leads</h3>
                 <h1 style="margin: 10px 0 0 0; font-size: 32px;">{}</h1>
             </div>
-            """.format(stats.total_leads), unsafe_allow_html=True)
+            """.format(stats["total_leads"]), unsafe_allow_html=True)
 
         with col2:
             st.markdown("""
@@ -50,7 +112,7 @@ def render_kpi_cards():
                 <h3 style="margin: 0; font-size: 14px; opacity: 0.9;">Conversion Rate</h3>
                 <h1 style="margin: 10px 0 0 0; font-size: 32px;">{:.1f}%</h1>
             </div>
-            """.format(stats.conversion_rate), unsafe_allow_html=True)
+            """.format(stats["conversion_rate"]), unsafe_allow_html=True)
 
         with col3:
             st.markdown("""
@@ -58,7 +120,7 @@ def render_kpi_cards():
                 <h3 style="margin: 0; font-size: 14px; opacity: 0.9;">Total Booking</h3>
                 <h1 style="margin: 10px 0 0 0; font-size: 32px;">{}</h1>
             </div>
-            """.format(stats.total_bookings), unsafe_allow_html=True)
+            """.format(stats["total_bookings"]), unsafe_allow_html=True)
 
         with col4:
             st.markdown("""
@@ -66,7 +128,7 @@ def render_kpi_cards():
                 <h3 style="margin: 0; font-size: 14px; opacity: 0.9;">Total Revenue</h3>
                 <h1 style="margin: 10px 0 0 0; font-size: 28px;">{}</h1>
             </div>
-            """.format(format_number(stats.total_revenue)), unsafe_allow_html=True)
+            """.format(format_number(stats["total_revenue"])), unsafe_allow_html=True)
 
     except Exception as e:
         logger.error(f"Failed to load KPIs: {e}")
@@ -85,36 +147,34 @@ def render_kpi_cards():
 def render_secondary_kpis():
     """Render secondary KPI metrics."""
     try:
-        from services.crm import CRMRepository
-        repo = CRMRepository()
-        stats = repo.get_crm_stats()
+        stats = _cached_crm_stats()  # Reuses same cached data as render_kpi_cards
 
         col1, col2, col3, col4 = st.columns(4)
 
         with col1:
             st.metric(
                 "Total Jamaah",
-                stats.total_jamaah,
+                stats["total_jamaah"],
                 help="Total jamaah dalam database"
             )
 
         with col2:
             st.metric(
                 "Sudah Dibayar",
-                format_rupiah(stats.total_paid),
+                format_rupiah(stats["total_paid"]),
                 help="Total pembayaran yang sudah diterima"
             )
 
         with col3:
             st.metric(
                 "Belum Dibayar",
-                format_rupiah(stats.total_pending),
+                format_rupiah(stats["total_pending"]),
                 help="Total pembayaran yang masih pending"
             )
 
         with col4:
             # Calculate average booking value
-            avg_value = stats.total_revenue // stats.total_bookings if stats.total_bookings > 0 else 0
+            avg_value = stats["total_revenue"] // stats["total_bookings"] if stats["total_bookings"] > 0 else 0
             st.metric(
                 "Rata-rata Booking",
                 format_rupiah(avg_value),
@@ -130,10 +190,7 @@ def render_lead_funnel():
     st.markdown("### Lead Funnel")
 
     try:
-        from services.crm import CRMRepository
-        repo = CRMRepository()
-
-        leads_by_status = repo.count_leads_by_status()
+        leads_by_status = _cached_leads_by_status()
 
         # Order for funnel
         funnel_order = ["new", "contacted", "interested", "negotiating", "won"]
@@ -188,11 +245,9 @@ def render_revenue_chart():
     days = {"7 Hari": 7, "30 Hari": 30, "90 Hari": 90}.get(period, 30)
 
     try:
-        from services.crm import CRMRepository
         import pandas as pd
 
-        repo = CRMRepository()
-        trend_data = repo.get_revenue_trend(days)
+        trend_data = _cached_revenue_trend(days)
 
         if trend_data:
             df = pd.DataFrame(trend_data)
@@ -222,19 +277,9 @@ def render_lead_sources():
     st.markdown("### Sumber Lead")
 
     try:
-        from services.crm import CRMRepository
+        source_counts = _cached_lead_sources()
 
-        repo = CRMRepository()
-
-        # Get leads and count by source
-        leads = repo.get_leads(limit=1000)
-
-        if leads:
-            source_counts = {}
-            for lead in leads:
-                source = lead.source or "unknown"
-                source_counts[source] = source_counts.get(source, 0) + 1
-
+        if source_counts:
             source_labels = {
                 "direct": "Langsung",
                 "referral": "Referensi",

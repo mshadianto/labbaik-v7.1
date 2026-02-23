@@ -453,6 +453,102 @@ def _cached_daily_trend(start_str: str, end_str: str) -> list:
         return []
 
 
+@st.cache_data(ttl=300, show_spinner=False)
+def _cached_pillar_page_data(start_str: str, end_str: str) -> list:
+    """Cached wrapper for pillar page stats."""
+    try:
+        from services.database.repository import get_db
+        db = get_db()
+        if not db:
+            return []
+        query = """
+        SELECT page, COALESCE(SUM(page_views), 0) as views,
+               COALESCE(SUM(unique_visitors), 0) as unique_users
+        FROM visitor_stats WHERE date BETWEEN %s AND %s
+        GROUP BY page ORDER BY views DESC
+        """
+        return db.fetch_all(query, (start_str, end_str)) or []
+    except Exception:
+        return []
+
+
+@st.cache_data(ttl=300, show_spinner=False)
+def _cached_nudge_stats(start_str: str, end_str: str) -> dict:
+    """Cached wrapper for smart savings nudge stats."""
+    try:
+        from services.database.repository import get_db
+        db = get_db()
+        if not db:
+            return {}
+        query = """
+        SELECT
+            COUNT(*) FILTER (WHERE event_action = 'nudge_displayed') as nudge_shows,
+            COUNT(*) FILTER (WHERE event_action = 'nudge_clicked') as nudge_clicks
+        FROM analytics_events
+        WHERE event_category = 'smart_savings'
+            AND event_timestamp::date BETWEEN %s AND %s
+        """
+        return db.fetch_one(query, (start_str, end_str)) or {}
+    except Exception:
+        return {}
+
+
+@st.cache_data(ttl=300, show_spinner=False)
+def _cached_simulator_stats(start_str: str, end_str: str) -> dict:
+    """Cached wrapper for simulator usage stats."""
+    try:
+        from services.database.repository import get_db
+        db = get_db()
+        if not db:
+            return {}
+        query = """
+        SELECT COALESCE(SUM(page_views), 0) as views,
+               COALESCE(SUM(unique_visitors), 0) as users
+        FROM visitor_stats WHERE page = 'simulator' AND date BETWEEN %s AND %s
+        """
+        return db.fetch_one(query, (start_str, end_str)) or {}
+    except Exception:
+        return {}
+
+
+@st.cache_data(ttl=300, show_spinner=False)
+def _cached_top_pages(start_str: str, end_str: str) -> list:
+    """Cached wrapper for top pages by views."""
+    try:
+        from services.database.repository import get_db
+        db = get_db()
+        if not db:
+            return []
+        query = """
+        SELECT page, SUM(page_views) as views, SUM(unique_visitors) as users
+        FROM visitor_stats WHERE date BETWEEN %s AND %s
+        GROUP BY page ORDER BY views DESC LIMIT 10
+        """
+        return db.fetch_all(query, (start_str, end_str)) or []
+    except Exception:
+        return []
+
+
+@st.cache_data(ttl=300, show_spinner=False)
+def _cached_conversion_events(start_str: str, end_str: str) -> list:
+    """Cached wrapper for conversion events."""
+    try:
+        from services.database.repository import get_db
+        db = get_db()
+        if not db:
+            return []
+        query = """
+        SELECT event_action as conversion_type, COUNT(*) as count
+        FROM analytics_events
+        WHERE event_type = 'conversion'
+            AND event_timestamp::date BETWEEN %s AND %s
+        GROUP BY event_action ORDER BY count DESC
+        """
+        return db.fetch_all(query, (start_str, end_str)) or []
+    except Exception:
+        return []
+
+
 def _collect_dashboard_metrics(db, start_date, end_date):
     """Collect all key metrics into a dict for both display and AI prompt."""
     excluded_sql, excluded_params = get_excluded_user_ids_clause()
@@ -672,17 +768,8 @@ def render_pillar_analytics(db, start_date, end_date):
     }
 
     try:
-        query = """
-        SELECT
-            page,
-            COALESCE(SUM(page_views), 0) as views,
-            COALESCE(SUM(unique_visitors), 0) as unique_users
-        FROM visitor_stats
-        WHERE date BETWEEN %s AND %s
-        GROUP BY page
-        ORDER BY views DESC
-        """
-        df = pd.DataFrame(db.fetch_all(query, (start_date, end_date)) or [])
+        rows = _cached_pillar_page_data(str(start_date), str(end_date))
+        df = pd.DataFrame(rows)
 
         if df.empty:
             st.info("Belum ada data navigasi untuk periode ini.")
@@ -753,16 +840,7 @@ def render_smart_savings_analytics(db, start_date, end_date):
     st.subheader("Smart Savings Performance")
 
     try:
-        # Try to get nudge stats from analytics_events
-        query = """
-        SELECT
-            COUNT(*) FILTER (WHERE event_action = 'nudge_displayed') as nudge_shows,
-            COUNT(*) FILTER (WHERE event_action = 'nudge_clicked') as nudge_clicks
-        FROM analytics_events
-        WHERE event_category = 'smart_savings'
-            AND event_timestamp::date BETWEEN %s AND %s
-        """
-        stats = db.fetch_one(query, (start_date, end_date))
+        stats = _cached_nudge_stats(str(start_date), str(end_date))
 
         if stats and (stats.get('nudge_shows', 0) > 0 or stats.get('nudge_clicks', 0) > 0):
             col1, col2, col3 = st.columns(3)
@@ -804,15 +882,7 @@ def render_smart_savings_analytics(db, start_date, end_date):
             st.info("Belum ada data smart nudge. Data akan muncul setelah pengguna melihat Budget Optimizer.")
 
             # Show Budget Optimizer usage instead
-            query = """
-            SELECT
-                COALESCE(SUM(page_views), 0) as views,
-                COALESCE(SUM(unique_visitors), 0) as users
-            FROM visitor_stats
-            WHERE page = 'simulator'
-                AND date BETWEEN %s AND %s
-            """
-            simulator_stats = db.fetch_one(query, (start_date, end_date))
+            simulator_stats = _cached_simulator_stats(str(start_date), str(end_date))
 
             if simulator_stats:
                 col1, col2 = st.columns(2)
@@ -835,19 +905,9 @@ def render_user_behavior(db, start_date, end_date):
     st.subheader("User Behavior Patterns")
 
     try:
-        # Popular pages
-        query = """
-        SELECT
-            page,
-            SUM(page_views) as views,
-            SUM(unique_visitors) as users
-        FROM visitor_stats
-        WHERE date BETWEEN %s AND %s
-        GROUP BY page
-        ORDER BY views DESC
-        LIMIT 10
-        """
-        df = pd.DataFrame(db.fetch_all(query, (start_date, end_date)) or [])
+        # Popular pages (cached)
+        top_rows = _cached_top_pages(str(start_date), str(end_date))
+        df = pd.DataFrame(top_rows)
 
         if not df.empty:
             col1, col2 = st.columns(2)
@@ -874,7 +934,7 @@ def render_user_behavior(db, start_date, end_date):
         st.markdown("**Session Metrics**")
 
         try:
-            sessions = _collect_session_stats(db, start_date, end_date)
+            sessions = _cached_session_stats(str(start_date), str(end_date))
 
             if sessions and sessions.get('total_sessions', 0) > 0:
                 col1, col2, col3 = st.columns(3)
@@ -995,8 +1055,8 @@ def render_conversion_metrics(db, start_date, end_date):
     st.subheader("Conversion Metrics")
 
     try:
-        # Get user counts
-        users = _collect_conversion_stats(db, start_date, end_date)
+        # Get user counts (cached)
+        users = _cached_conversion_stats(str(start_date), str(end_date))
 
         if users:
             col1, col2, col3 = st.columns(3)
@@ -1022,17 +1082,7 @@ def render_conversion_metrics(db, start_date, end_date):
         st.markdown("**Conversion Events**")
 
         try:
-            query = """
-            SELECT
-                event_action as conversion_type,
-                COUNT(*) as count
-            FROM analytics_events
-            WHERE event_type = 'conversion'
-                AND event_timestamp::date BETWEEN %s AND %s
-            GROUP BY event_action
-            ORDER BY count DESC
-            """
-            conversions = db.fetch_all(query, (start_date, end_date))
+            conversions = _cached_conversion_events(str(start_date), str(end_date))
 
             if conversions:
                 df = pd.DataFrame(conversions)

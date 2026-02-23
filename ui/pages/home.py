@@ -846,26 +846,25 @@ def render_visitor_stats_section():
             "booking": "📦",
         }
         
+        max_views = popular_pages[0]['views'] if popular_pages else 100
+        pages_html_parts = []
         for i, page in enumerate(popular_pages[:6], 1):
             icon = page_icons.get(page['page'], "📄")
             page_name = page['page'].replace("_", " ").title()
             views = page['views']
-            
-            # Progress bar width based on views
-            max_views = popular_pages[0]['views'] if popular_pages else 100
             width_pct = (views / max_views) * 100
-            
-            st.markdown(f"""
-            <div style="margin-bottom: 0.8rem;">
-                <div style="display: flex; justify-content: space-between; margin-bottom: 0.3rem;">
-                    <span style="color: #fafafa;">{icon} {page_name}</span>
-                    <span style="color: #d4af37; font-weight: bold;">{views:,}</span>
-                </div>
-                <div style="background: #333; border-radius: 10px; height: 8px; overflow: hidden;">
-                    <div style="background: linear-gradient(90deg, #d4af37, #f4d03f); width: {width_pct}%; height: 100%;"></div>
-                </div>
-            </div>
-            """, unsafe_allow_html=True)
+            pages_html_parts.append(
+                f'<div style="margin-bottom: 0.8rem;">'
+                f'<div style="display: flex; justify-content: space-between; margin-bottom: 0.3rem;">'
+                f'<span style="color: #fafafa;">{icon} {page_name}</span>'
+                f'<span style="color: #d4af37; font-weight: bold;">{views:,}</span>'
+                f'</div>'
+                f'<div style="background: #333; border-radius: 10px; height: 8px; overflow: hidden;">'
+                f'<div style="background: linear-gradient(90deg, #d4af37, #f4d03f); width: {width_pct}%; height: 100%;"></div>'
+                f'</div></div>'
+            )
+        if pages_html_parts:
+            st.markdown("".join(pages_html_parts), unsafe_allow_html=True)
     
     with col2:
         st.markdown("""
@@ -890,13 +889,14 @@ def render_visitor_stats_section():
             ("🌍", "Top region", top_region),
         ]
         
-        for icon, label, value in metrics:
-            st.markdown(f"""
-            <div style="display: flex; justify-content: space-between; padding: 0.6rem 0; border-bottom: 1px solid #333;">
-                <span style="color: #b0b0b0;">{icon} {label}</span>
-                <span style="color: #d4af37; font-weight: bold;">{value}</span>
-            </div>
-            """, unsafe_allow_html=True)
+        metrics_html = "".join(
+            f'<div style="display: flex; justify-content: space-between; padding: 0.6rem 0; border-bottom: 1px solid #333;">'
+            f'<span style="color: #b0b0b0;">{icon} {label}</span>'
+            f'<span style="color: #d4af37; font-weight: bold;">{value}</span>'
+            f'</div>'
+            for icon, label, value in metrics
+        )
+        st.markdown(metrics_html, unsafe_allow_html=True)
     
     # Live indicator — pulse keyframes now in HOME_PAGE_CSS
     indicator_color = "#4ade80" if is_live else "#fbbf24"

@@ -92,6 +92,12 @@ def _load_partner_counts_from_db():
     return None
 
 
+@st.cache_data(ttl=300, show_spinner=False)
+def _cached_partner_counts():
+    """Cached wrapper for partner tier counts."""
+    return _load_partner_counts_from_db()
+
+
 def _load_partner_stats_from_db():
     """Load aggregate partner statistics from database.
 
@@ -118,6 +124,12 @@ def _load_partner_stats_from_db():
     except Exception as e:
         logger.debug(f"Could not load partner stats from DB: {e}")
     return None
+
+
+@st.cache_data(ttl=300, show_spinner=False)
+def _cached_partner_stats():
+    """Cached wrapper for partner statistics."""
+    return _load_partner_stats_from_db()
 
 
 def _save_registration_to_db(registration_data: dict) -> bool:
@@ -195,8 +207,8 @@ def _get_partner_counts():
 
     Returns dict of {batch_id: count}.
     """
-    # Try DB first
-    db_counts = _load_partner_counts_from_db()
+    # Try DB first (cached)
+    db_counts = _cached_partner_counts()
     if db_counts is not None:
         return db_counts
 
@@ -214,8 +226,8 @@ def _get_partner_stats():
 
     Returns dict with total_partners, active_partners, pending_partners.
     """
-    # Try DB first
-    db_stats = _load_partner_stats_from_db()
+    # Try DB first (cached)
+    db_stats = _cached_partner_stats()
     if db_stats is not None:
         return db_stats
 

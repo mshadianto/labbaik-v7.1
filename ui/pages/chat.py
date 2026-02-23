@@ -755,6 +755,9 @@ def add_message(role: str, content: str):
         "content": content,
         "timestamp": datetime.now().isoformat(),
     })
+    # Cap chat history to prevent session bloat
+    if len(st.session_state.chat_messages) > 200:
+        st.session_state.chat_messages = st.session_state.chat_messages[-200:]
 
 
 def get_ai_response(user_message: str) -> str:
