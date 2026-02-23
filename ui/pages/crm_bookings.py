@@ -203,6 +203,40 @@ BOOKINGS_CSS = """
 from ui.components.crm_helpers import format_rupiah, format_date
 
 
+# =============================================================================
+# CACHED WRAPPERS
+# =============================================================================
+
+@st.cache_data(ttl=300, show_spinner=False)
+def _cached_booking_stats() -> dict:
+    """Cached booking statistics."""
+    from services.crm import CRMRepository
+    repo = CRMRepository()
+    stats = repo.get_crm_stats()
+    return {
+        "total_bookings": stats.total_bookings,
+        "total_revenue": stats.total_revenue or 0,
+        "total_paid": stats.total_paid or 0,
+        "total_pending": stats.total_pending or 0,
+    }
+
+
+@st.cache_data(ttl=120, show_spinner=False)
+def _cached_overdue_payments() -> list:
+    """Cached overdue payments."""
+    from services.crm import CRMRepository
+    repo = CRMRepository()
+    return repo.get_overdue_payments()
+
+
+@st.cache_data(ttl=120, show_spinner=False)
+def _cached_pending_payments() -> list:
+    """Cached pending payments."""
+    from services.crm import CRMRepository
+    repo = CRMRepository()
+    return repo.get_pending_payments()
+
+
 def get_status_color(status: str) -> str:
     """Get status badge color."""
     colors = {
@@ -297,13 +331,11 @@ def render_booking_stats():
     total_pending_val = 0
 
     try:
-        from services.crm import CRMRepository
-        repo = CRMRepository()
-        stats = repo.get_crm_stats()
-        total_bookings = stats.total_bookings
-        total_revenue_val = stats.total_revenue or 0
-        total_paid_val = stats.total_paid or 0
-        total_pending_val = stats.total_pending or 0
+        stats = _cached_booking_stats()
+        total_bookings = stats["total_bookings"]
+        total_revenue_val = stats["total_revenue"]
+        total_paid_val = stats["total_paid"]
+        total_pending_val = stats["total_pending"]
     except Exception as e:
         logger.error(f"Failed to load stats: {e}")
 
@@ -363,6 +395,7 @@ def render_booking_list():
         status_filter = st.selectbox(
             "Status Booking",
             options=["Semua", "draft", "confirmed", "processing", "completed", "cancelled"],
+            key="crm_bookings_status_filter",
             format_func=lambda x: {
                 "Semua": "Semua",
                 "draft": "Draft",
@@ -377,6 +410,7 @@ def render_booking_list():
         payment_filter = st.selectbox(
             "Status Pembayaran",
             options=["Semua", "pending", "dp_paid", "partial", "paid"],
+            key="crm_bookings_payment_filter",
             format_func=lambda x: {
                 "Semua": "Semua",
                 "pending": "Belum Bayar",
@@ -832,11 +866,8 @@ def render_payment_reminders():
     st.markdown("### Pengingat Pembayaran")
 
     try:
-        from services.crm import CRMRepository
-        repo = CRMRepository()
-
-        overdue = repo.get_overdue_payments()
-        pending = repo.get_pending_payments()
+        overdue = _cached_overdue_payments()
+        pending = _cached_pending_payments()
 
         if overdue:
             st.error(f"**{len(overdue)} pembayaran sudah jatuh tempo!**")
@@ -876,14 +907,14 @@ def render_ai_booking_insights():
     stats_summary = ""
     try:
         from services.crm import CRMRepository
+        stats = _cached_booking_stats()
         repo = CRMRepository()
-        stats = repo.get_crm_stats()
         bookings = repo.get_bookings(limit=50)
 
-        total_bookings = stats.total_bookings or 0
-        total_revenue = stats.total_revenue or 0
-        total_paid = stats.total_paid or 0
-        total_pending = stats.total_pending or 0
+        total_bookings = stats["total_bookings"] or 0
+        total_revenue = stats["total_revenue"] or 0
+        total_paid = stats["total_paid"] or 0
+        total_pending = stats["total_pending"] or 0
 
         stats_summary = (
             f"Total Booking: {total_bookings}\n"

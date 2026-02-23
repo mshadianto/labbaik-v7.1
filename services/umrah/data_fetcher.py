@@ -20,6 +20,9 @@ Author: MS Hadianto (Sopian) - LABBAIK.AI
 
 import requests
 import time
+
+# Module-level session for connection pooling across API calls
+_http_session = requests.Session()
 from datetime import datetime, timedelta
 from typing import Dict, List, Optional, Tuple
 import logging
@@ -155,7 +158,7 @@ class AmadeusHotelAPI:
             return None
 
         try:
-            response = requests.post(
+            response = _http_session.post(
                 f"{self.BASE_URL}/v1/security/oauth2/token",
                 data={
                     'grant_type': 'client_credentials',
@@ -191,7 +194,7 @@ class AmadeusHotelAPI:
 
         try:
             # Step 1: Get hotel list by city
-            response = requests.get(
+            response = _http_session.get(
                 f"{self.BASE_URL}/v1/reference-data/locations/hotels/by-city",
                 headers={'Authorization': f'Bearer {token}'},
                 params={'cityCode': city_code},
@@ -207,7 +210,7 @@ class AmadeusHotelAPI:
                 return []
 
             # Step 2: Get offers for hotels
-            response = requests.get(
+            response = _http_session.get(
                 f"{self.BASE_URL}/v3/shopping/hotel-offers",
                 headers={'Authorization': f'Bearer {token}'},
                 params={
@@ -305,7 +308,7 @@ class XoteloAPI:
             return []
 
         try:
-            response = requests.get(
+            response = _http_session.get(
                 f"{self.BASE_URL}/search",
                 headers=self.headers,
                 params={
@@ -380,7 +383,7 @@ class MakCorpsAPI:
             return []
 
         try:
-            response = requests.get(
+            response = _http_session.get(
                 f"{self.BASE_URL}/hotels",
                 params={'city': city},
                 timeout=15
@@ -440,7 +443,7 @@ class LocationService:
             return self._geocode_cache[cache_key]
 
         try:
-            response = requests.get(
+            response = _http_session.get(
                 "https://nominatim.openstreetmap.org/search",
                 params={
                     'q': f"{address}, {city}, Saudi Arabia",
@@ -480,7 +483,7 @@ class LocationService:
         try:
             url = f"http://router.project-osrm.org/route/v1/foot/{hotel_coords[1]},{hotel_coords[0]};{dest_coords[1]},{dest_coords[0]}"
 
-            response = requests.get(url, params={'overview': 'false'}, timeout=10)
+            response = _http_session.get(url, params={'overview': 'false'}, timeout=10)
             response.raise_for_status()
             data = response.json()
 

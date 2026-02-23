@@ -22,6 +22,17 @@ try:
 except ImportError:
     HAS_CROWD_PREDICTION = False
 
+
+@st.cache_resource
+def _get_crowd_predictor():
+    """Cached CrowdPredictor instance (expensive to instantiate)."""
+    if not HAS_CROWD_PREDICTION:
+        return None
+    try:
+        return CrowdPredictor()
+    except Exception:
+        return None
+
 # =============================================================================
 # STYLING
 # =============================================================================
@@ -1293,14 +1304,8 @@ def render_crowd_overlay(selected_city: str):
     predicting crowd at different hours.
     """
     # Initialize predictor (or None for demo mode)
-    predictor = None
-    is_demo = True
-    if HAS_CROWD_PREDICTION:
-        try:
-            predictor = CrowdPredictor()
-            is_demo = False
-        except Exception:
-            pass
+    predictor = _get_crowd_predictor()
+    is_demo = predictor is None
 
     arabia_now = _get_arabia_time()
 

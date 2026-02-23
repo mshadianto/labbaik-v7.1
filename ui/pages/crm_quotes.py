@@ -131,6 +131,28 @@ def escape(text):
 from ui.components.crm_helpers import format_rupiah, format_date
 
 
+# =============================================================================
+# CACHED WRAPPERS
+# =============================================================================
+
+@st.cache_data(ttl=300, show_spinner=False)
+def _cached_bookings_for_invoice(limit: int = 20) -> list:
+    """Cached bookings list for invoice generator."""
+    from services.crm import CRMRepository
+    repo = CRMRepository()
+    bookings = repo.get_bookings(limit=limit)
+    return [
+        {
+            "id": b.id,
+            "booking_code": b.booking_code,
+            "package_name": b.package_name,
+            "total_price": b.total_price,
+            "amount_remaining": b.amount_remaining,
+        }
+        for b in bookings
+    ]
+
+
 def _markdown_to_html_simple(text: str) -> str:
     """Simple markdown to HTML conversion for AI output."""
     import re

@@ -16,6 +16,19 @@ from ui.components.shared_styles import inject_css, HERO_CSS, CARD_CSS, AI_CARD_
 from ui.components.crm_helpers import format_date
 
 
+# =============================================================================
+# CACHED WRAPPERS
+# =============================================================================
+
+@st.cache_data(ttl=300, show_spinner=False)
+def _cached_jamaah_stats() -> dict:
+    """Cached jamaah statistics."""
+    from services.crm import CRMRepository
+    repo = CRMRepository()
+    stats = repo.get_crm_stats()
+    return {"total_jamaah": stats.total_jamaah}
+
+
 def init_session_state():
     """Initialize session state."""
     if "jamaah_view" not in st.session_state:
@@ -27,14 +40,12 @@ def init_session_state():
 def render_jamaah_stats():
     """Render jamaah statistics."""
     try:
-        from services.crm import CRMRepository
-        repo = CRMRepository()
-        stats = repo.get_crm_stats()
+        stats = _cached_jamaah_stats()
 
         col1, col2, col3, col4 = st.columns(4)
 
         with col1:
-            st.metric("Total Jamaah", stats.total_jamaah)
+            st.metric("Total Jamaah", stats["total_jamaah"])
         with col2:
             # Count with complete docs
             st.metric("Dokumen Lengkap", "-")
@@ -58,7 +69,7 @@ def render_jamaah_stats():
 
 def render_jamaah_list():
     """Render jamaah list."""
-    search = st.text_input("Cari jamaah", placeholder="Nama, telepon, atau paspor...")
+    search = st.text_input("Cari jamaah", placeholder="Nama, telepon, atau paspor...", key="crm_jamaah_search")
 
     try:
         from services.crm import CRMRepository

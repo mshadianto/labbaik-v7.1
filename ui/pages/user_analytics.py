@@ -16,6 +16,13 @@ from services.ai.helpers import ai_complete, add_xp_safe
 from ui.components.shared_styles import inject_css, HERO_CSS, CARD_CSS, AI_CARD_CSS
 
 
+@st.cache_data(ttl=600, show_spinner=False)
+def _cached_user_stats() -> dict:
+    """Cached user repository stats."""
+    repo = get_user_repository()
+    return repo.get_stats()
+
+
 def render_user_analytics_page():
     """Main user analytics dashboard"""
     try:
@@ -43,9 +50,8 @@ def render_user_analytics_page():
         st.warning("Halaman ini hanya dapat diakses oleh Admin")
         st.info("Untuk demo, data statistik tetap ditampilkan")
 
-    # Get stats
-    repo = get_user_repository()
-    stats = repo.get_stats()
+    # Get stats (cached)
+    stats = _cached_user_stats()
 
     # Quick stats
     st.markdown("### Ringkasan")
