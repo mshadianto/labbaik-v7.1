@@ -1131,9 +1131,8 @@ def render_hotel_compare_page():
 
     inject_css(HERO_CSS, CARD_CSS, AI_CARD_CSS, SKELETON_CSS)
 
-    # Inject amenity filter CSS and favorites CSS
-    st.markdown(AMENITY_FILTER_CSS, unsafe_allow_html=True)
-    st.markdown(FAVORITES_CSS, unsafe_allow_html=True)
+    # Inject amenity filter CSS and favorites CSS (combined to reduce DOM nodes)
+    st.markdown(AMENITY_FILTER_CSS + FAVORITES_CSS, unsafe_allow_html=True)
 
     # Initialize favorites in session state
     _init_favorites()

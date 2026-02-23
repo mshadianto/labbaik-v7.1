@@ -942,37 +942,36 @@ def generate_all_scenarios(base_cost: CostBreakdown) -> Dict[ScenarioType, Scena
     return scenarios
 
 
-def run_monte_carlo_simulation(
-    base_cost: CostBreakdown,
-    num_simulations: int = 1000
+@st.cache_data(ttl=600, show_spinner=False)
+def _cached_monte_carlo(
+    flight: int, visa: int, hotel_makkah: int, hotel_madinah: int,
+    transport: int, meals: int, mutawif: int, insurance: int,
+    misc: int, seasonal_adj: int, num_simulations: int = 1000
 ) -> Dict[str, Any]:
-    """Run Monte Carlo simulation for cost estimation."""
+    """Run Monte Carlo simulation (cached on cost components)."""
     results = []
 
     for _ in range(num_simulations):
-        # Random variations for each component
         flight_var = random.uniform(0.85, 1.25)
         hotel_var = random.uniform(0.90, 1.35)
         misc_var = random.uniform(0.80, 1.50)
 
-        # Apply risk factors randomly
         risk_multiplier = 1.0
         for rf in RISK_FACTORS:
             if random.random() < rf.probability:
                 impact = random.uniform(rf.impact_min, rf.impact_max) / 100
                 risk_multiplier += impact
 
-        # Calculate simulated total
         sim_total = (
-            base_cost.flight * flight_var +
-            base_cost.visa +
-            (base_cost.hotel_makkah + base_cost.hotel_madinah) * hotel_var +
-            base_cost.transport +
-            base_cost.meals +
-            base_cost.mutawif +
-            base_cost.insurance +
-            base_cost.misc * misc_var +
-            base_cost.seasonal_adj
+            flight * flight_var +
+            visa +
+            (hotel_makkah + hotel_madinah) * hotel_var +
+            transport +
+            meals +
+            mutawif +
+            insurance +
+            misc * misc_var +
+            seasonal_adj
         ) * risk_multiplier
 
         results.append(int(sim_total))
@@ -984,13 +983,28 @@ def run_monte_carlo_simulation(
         "max": results[-1],
         "mean": int(sum(results) / len(results)),
         "median": results[len(results) // 2],
-        "p10": results[int(len(results) * 0.10)],  # 10th percentile
-        "p25": results[int(len(results) * 0.25)],  # 25th percentile
-        "p75": results[int(len(results) * 0.75)],  # 75th percentile
-        "p90": results[int(len(results) * 0.90)],  # 90th percentile
+        "p10": results[int(len(results) * 0.10)],
+        "p25": results[int(len(results) * 0.25)],
+        "p75": results[int(len(results) * 0.75)],
+        "p90": results[int(len(results) * 0.90)],
         "std_dev": int((sum((x - sum(results)/len(results))**2 for x in results) / len(results)) ** 0.5),
         "distribution": results
     }
+
+
+def run_monte_carlo_simulation(
+    base_cost: CostBreakdown,
+    num_simulations: int = 1000
+) -> Dict[str, Any]:
+    """Run Monte Carlo simulation for cost estimation (cached)."""
+    return _cached_monte_carlo(
+        flight=base_cost.flight, visa=base_cost.visa,
+        hotel_makkah=base_cost.hotel_makkah, hotel_madinah=base_cost.hotel_madinah,
+        transport=base_cost.transport, meals=base_cost.meals,
+        mutawif=base_cost.mutawif, insurance=base_cost.insurance,
+        misc=base_cost.misc, seasonal_adj=base_cost.seasonal_adj,
+        num_simulations=num_simulations,
+    )
 
 
 def calculate_sensitivity(

@@ -1822,19 +1822,33 @@ def render_hotel_results(result: Dict):
 
     st.markdown("---")
 
-    for hotel in hotels:
-        # Get alternate names from clusters
-        alt_names = []
+    # Pre-compute alternate names lookup from clusters in one pass
+    alt_names_map: Dict[str, List[str]] = {}
+    if clusters:
         try:
-            alt_names = _get_alternate_names(hotel, clusters)
+            for cluster in clusters:
+                members = cluster.members
+                for m in members:
+                    m_id = m.get("hotel_id") or m.get("id")
+                    m_name = m.get("hotel_name") or m.get("name", "")
+                    if m_id:
+                        alt_names_map[m_id] = [
+                            o.get("hotel_name") or o.get("name", "")
+                            for o in members
+                            if (o.get("hotel_id") or o.get("id")) != m_id
+                            and (o.get("hotel_name") or o.get("name", ""))
+                            and (o.get("hotel_name") or o.get("name", "")) != m_name
+                        ]
         except Exception:
             pass
 
+    for hotel in hotels:
+        hid = hotel.get("hotel_id") or hotel.get("id") or ""
         render_hotel_card(
             hotel,
             nights,
             risk_info=risk_info,
-            alt_names=alt_names,
+            alt_names=alt_names_map.get(hid, []),
         )
 
     # Gamification: +25 XP for comparing prices (first time)

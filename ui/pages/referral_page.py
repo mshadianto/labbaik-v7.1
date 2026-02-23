@@ -645,11 +645,12 @@ def _get_user_code() -> str:
     return st.session_state.referral_user_code
 
 
+@st.cache_data(ttl=3600, show_spinner=False)
 def _generate_qr_svg(url: str) -> str:
     """Generate a QR code as a base64 PNG data URL using the qrcode library.
 
     Returns an <img> tag with the QR code, or empty string if qrcode
-    library is unavailable.
+    library is unavailable. Cached for 1 hour since referral URL rarely changes.
     """
     if not HAS_QRCODE:
         return ""
